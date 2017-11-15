@@ -1,5 +1,5 @@
 {
-  "name": "mod_webservice",
+  "name": "submit-service",
   "version": "1.0.0",
   "description": "Standalone service that samples data sources and creates pull requests",
   "main": "index.js",

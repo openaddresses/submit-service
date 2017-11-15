@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      th {
+        text-align: left;
+      }
+      th, td {
+        border-bottom: 1px solid #ddd;
+        border-left: 1px solid #ddd;
+        padding: 3px 10px 3px 5px;
+      }
+      tr:nth-child(even) {
+        background-color: #f2f2f2
+      }
+      input[type=text] {
+        width: 40%;
+      }
+      input {
+        font-size: 20px;
+      }
+    </style>
+    <script type="text/javascript" src="jquery-3.2.1.js"></script>
+    <script type="text/javascript">
+      $( document ).ready(() => {
+        $("#lookup").click(() => {
+          // clear out the existing results
+          $('#results').html('<h4>Working...</h4>');
+
+          $.get(`/fields`, {source: $("#source").val()}, r => {
+            // clear out the existing results
+            const data_table = $('<table/>');
+
+            // create a header row from the fields
+            const header_row = r.source_data.fields.reduce((row, field) => {
+              row.append($('<th/>').text(field));
+              return row;
+            }, $('<tr/>'));
+            data_table.append(header_row);
+
+            // create data rows
+            r.source_data.results.forEach(result => {
+              const data_row = r.source_data.fields.reduce((row, field) => {
+                row.append($('<td/>').text(result[field]));
+                return row;
+                row.append(col);
+              }, $('<tr/>'));
+              data_table.append(data_row);
+
+            });
+
+            const metadata_table = $('<table/>');
+            metadata_table.append(`<tr><td>Protocol</td><td>${r.type}</td></tr>`);
+            metadata_table.append(`<tr><td>Type</td><td>${r.conform.type}</td></tr>`);
+            metadata_table.append(`<tr><td>Compression</td><td>${r.compression ? r.compression : ''}</td></tr>`);
+            metadata_table.append(`<tr><td>Full Request</td><td><a target="_new" href="/fields?source=${$("#source").val()}">request</a></td></tr>`);
+
+            // add the metadata and data tables
+            $('#results').html($('<p/>'));
+            $('#results').append(metadata_table);
+            $('#results').append($('<p/>'));
+            $('#results').append(data_table);
+
+          }).fail(r => {
+            // request failed, 
+            $('#results').html(`<h3>${r.responseText}</h3><h4>${r.status} (${r.statusText})</h4>`);
+          });
+
+
+        });
+
+      });
+
+    </script>
+  </head>
+
+  <body>
+    <h1>MOD Service</h1>
+
+    <form>
+      <input type="text" id="source" value="https://services.arcgis.com/f4rR7WnIfGBdVYFd/arcgis/rest/services/Valid_Address_Points_FNSB/FeatureServer/0"></input><p/>
+      <input type="button" id="lookup" value="Lookup"></input>
+    </form>
+
+    <h2>Results</h2>
+    <div id="results"></div>
+
+  </body>
+</html>

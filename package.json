@@ -1,0 +1,41 @@
+{
+  "name": "mod_webservice",
+  "version": "1.0.0",
+  "description": "Standalone service that samples data sources and creates pull requests",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test/test | tap-dot",
+    "lint": "jshint .",
+    "validate": "npm ls"
+  },
+  "keywords": [],
+  "author": "trescube",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 8.0.0"
+  },
+  "dependencies": {
+    "csv-parse": "^1.1.7",
+    "express": "^4.16.2",
+    "lodash": "^4.17.4",
+    "oboe": "^2.1.4",
+    "superagent": "^3.8.0",
+    "superagent-binary-parser": "^1.0.1",
+    "through2": "^2.0.3",
+    "unzip": "^0.1.11"
+  },
+  "devDependencies": {
+    "archiver": "^2.1.0",
+    "jshint": "^2.8.0",
+    "precommit-hook": "^3.0.0",
+    "tap-dot": "^1.0.1",
+    "tape": "^4.2.2",
+    "temp": "^0.8.3"
+  },
+  "pre-commit": [
+    "lint",
+    "validate",
+    "test"
+  ]
+}

@@ -61,29 +61,7 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 };
 
-const lookupArcgisFields = (req, res, next) => {
-  request
-    .get(req.query.source)
-    .accept('json')
-    .query({ f: 'json' })
-    .on('error', (err) => {
-      console.error(err);
-      return next();
-    })
-    .end((err, response) => {
-      // bail early if there's an error (shouldn't happen since it was already handled above)
-      if (err) {
-        return next();
-      }
-
-      req.query.fields = JSON.parse(response.text).fields.map(_.property('name'));
-      return next();
-
-    });
-
-};
-
-const lookupArcgisSampleRecords = (req, res, next) => {
+const sampleArcgis = (req, res, next) => {
   request
     .get(`${req.query.source}/query`)
     .accept('json')
@@ -104,6 +82,7 @@ const lookupArcgisSampleRecords = (req, res, next) => {
         return next();
       }
 
+      req.query.fields = JSON.parse(response.text).fields.map(_.property('name'));
       req.query.results = JSON.parse(response.text).features.map( _.property('attributes') );
       return next();
 
@@ -111,7 +90,7 @@ const lookupArcgisSampleRecords = (req, res, next) => {
 
 };
 
-const processGeojson = (req, res, next) => {
+const sampleGeojson = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
   req.query.results = [];
@@ -133,7 +112,7 @@ const processGeojson = (req, res, next) => {
 
 };
 
-const processGeojsonZip = (req, res, next) => {
+const sampleGeojsonZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
   request
@@ -167,7 +146,7 @@ const processGeojsonZip = (req, res, next) => {
 
 };
 
-const processCsv = (req, res, next) => {
+const sampleCsv = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
   req.query.results = [];
@@ -198,7 +177,7 @@ const processCsv = (req, res, next) => {
 
 };
 
-const processCsvZip = (req, res, next) => {
+const sampleCsvZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
   req.query.results = [];
@@ -262,19 +241,19 @@ module.exports = () => {
   const app = express();
 
   const arcgisRouter = express.Router();
-  arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), lookupArcgisFields, lookupArcgisSampleRecords);
+  arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleArcgis);
 
   const geojsonRouter = express.Router();
-  geojsonRouter.get('/fields', typecheck('http', 'geojson'), processGeojson);
+  geojsonRouter.get('/fields', typecheck('http', 'geojson'), sampleGeojson);
 
   const geojsonZipRouter = express.Router();
-  geojsonRouter.get('/fields', typecheck('http', 'geojson', 'zip'), processGeojsonZip);
+  geojsonRouter.get('/fields', typecheck('http', 'geojson', 'zip'), sampleGeojsonZip);
 
   const csvRouter = express.Router();
-  csvRouter.get('/fields', typecheck('http', 'csv'), processCsv);
+  csvRouter.get('/fields', typecheck('http', 'csv'), sampleCsv);
 
   const csvZipRouter = express.Router();
-  csvRouter.get('/fields', typecheck('http', 'csv', 'zip'), processCsvZip);
+  csvRouter.get('/fields', typecheck('http', 'csv', 'zip'), sampleCsvZip);
 
   app.get('/fields',
     preconditionsCheck,

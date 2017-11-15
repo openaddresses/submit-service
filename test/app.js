@@ -8,22 +8,6 @@ tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
 
     const mock_arcgis_app = require('express')();
-    mock_arcgis_app.get('/MapServer/0', (req, res, next) => {
-      t.equals(req.query.f, 'json');
-
-      res.status(200).send({
-        fields: [
-          {
-            name: 'field 1'
-          },
-          {
-            name: 'field 2'
-          }
-        ]
-      });
-
-    });
-
     mock_arcgis_app.get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
@@ -31,6 +15,14 @@ tape('arcgis tests', test => {
       t.equals(req.query.resultOffset, '0');
 
       res.status(200).send({
+        fields: [
+          {
+            name: 'attribute1'
+          },
+          {
+            name: 'attribute2'
+          }
+        ],
         features: [
           {
             attributes: {
@@ -67,7 +59,7 @@ tape('arcgis tests', test => {
           type: 'ESRI',
           data: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`,
           source_data: {
-            fields: ['field 1', 'field 2'],
+            fields: ['attribute1', 'attribute2'],
             results: [
               {
                 attribute1: 'feature 1 attribute 1 value',

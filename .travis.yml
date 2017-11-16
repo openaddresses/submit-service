@@ -1,0 +1,13 @@
+sudo: false
+language: node_js
+notifications:
+  email: false
+node_js:
+  - 8
+matrix:
+  fast_finish: true
+script: npm run travis
+before_install:
+  - npm i -g npm@^3.0.0
+before_script:
+  - npm prune

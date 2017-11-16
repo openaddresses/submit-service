@@ -30,16 +30,11 @@ const determineType = (req, res, next) => {
   } else if (_.endsWith(source, '.geojson')) {
     req.query.protocol = 'http';
     req.query.type = 'geojson';
-  } else if (_.endsWith(source, '.geojson.zip')) {
-    req.query.protocol = 'http';
-    req.query.type = 'geojson';
-    req.query.compression = 'zip';
   } else if (_.endsWith(source, '.csv')) {
     req.query.protocol = 'http';
     req.query.type = 'csv';
-  } else if (_.endsWith(source, '.csv.zip')) {
+  } else if (_.endsWith(source, '.zip')) {
     req.query.protocol = 'http';
-    req.query.type = 'csv';
     req.query.compression = 'zip';
   } else {
     req.query.protocol = 'unknown';
@@ -120,44 +115,6 @@ const sampleGeojson = (req, res, next) => {
 
 };
 
-// middleware that requests and streams a compressed .geojson file, returning up
-// to the first 10 records
-const sampleGeojsonZip = (req, res, next) => {
-  console.log(`requesting ${req.query.source}`);
-
-  request
-    .get(req.query.source)
-    .pipe(unzip.Parse())
-    .on('entry', entry => {
-      // skip files that don't end with .geojson
-      if (!_.endsWith(entry.path, '.geojson')) {
-        return;
-      }
-
-      // process the .geojson file
-      req.query.results = [];
-
-      oboe(entry)
-        .node('features[*]', function(feature) {
-          req.query.fields = _.keys(feature.properties);
-          req.query.results.push(feature.properties);
-        })
-        .node('features[9]', function() {
-          // bail after the 10th result.  'done' does not get called after .abort()
-          //  so next() must be called explicitly
-          this.abort();
-          next();
-        })
-        .done(() => {
-          // this will happen when the list of results has been processed and
-          // iteration still has no reached the 11th result, which is very unlikely
-          next();
-        });
-
-    });
-
-};
-
 // middleware that requests and streams a .csv file, returning up to the first
 // 10 records
 const sampleCsv = (req, res, next) => {
@@ -193,43 +150,63 @@ const sampleCsv = (req, res, next) => {
 
 // middleware that requests and streams a compressed .csv file, returning up
 // to the first 10 records
-const sampleCsvZip = (req, res, next) => {
+const sampleZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
-
-  req.query.results = [];
 
   request.get(req.query.source)
   .pipe(unzip.Parse())
   .on('entry', entry => {
-    // skip files that don't end with .csv
-    if (!_.endsWith(entry.path, '.csv')) {
-      return;
+    if (_.endsWith(entry.path, '.csv')) {
+      req.query.type = 'csv';
+      req.query.results = [];
+
+      // process the .csv file
+      entry.pipe(csvParse({
+        skip_empty_lines: true,
+        columns: true
+      }))
+      .pipe(through2.obj(function(record, enc, callback) {
+        if (req.query.results.length < 10) {
+          req.query.fields = _.keys(record);
+          req.query.results.push(record);
+          callback();
+        } else {
+          // there are enough records so end the stream prematurely, handle in 'close' event
+          this.destroy();
+        }
+
+      }))
+      .on('close', () => {
+        // stream was closed prematurely
+        next();
+      })
+      .on('finish', () => {
+        // stream was ended normally
+        next();
+      });
+
+    } else if (_.endsWith(entry.path, '.geojson')) {
+      req.query.type = 'geojson';
+      req.query.results = [];
+
+      oboe(entry)
+        .node('features[*]', function(feature) {
+          req.query.fields = _.keys(feature.properties);
+          req.query.results.push(feature.properties);
+        })
+        .node('features[9]', function() {
+          // bail after the 10th result.  'done' does not get called after .abort()
+          //  so next() must be called explicitly
+          this.abort();
+          next();
+        })
+        .done(() => {
+          // this will happen when the list of results has been processed and
+          // iteration still has no reached the 11th result, which is very unlikely
+          next();
+        });
+
     }
-
-    // process the .csv file
-    entry.pipe(csvParse({
-      skip_empty_lines: true,
-      columns: true
-    }))
-    .pipe(through2.obj(function(record, enc, callback) {
-      if (req.query.results.length < 10) {
-        req.query.fields = _.keys(record);
-        req.query.results.push(record);
-        callback();
-      } else {
-        // there are enough records so end the stream prematurely, handle in 'close' event
-        this.destroy();
-      }
-
-    }))
-    .on('close', () => {
-      // stream was closed prematurely
-      next();
-    })
-    .on('finish', () => {
-      // stream was ended normally
-      next();
-    });
 
   });
 
@@ -265,26 +242,20 @@ module.exports = () => {
   const geojsonRouter = express.Router();
   geojsonRouter.get('/fields', typecheck('http', 'geojson'), sampleGeojson);
 
-  // setup a router that only handles geojson.zip files
-  const geojsonZipRouter = express.Router();
-  geojsonRouter.get('/fields', typecheck('http', 'geojson', 'zip'), sampleGeojsonZip);
-
   // setup a router that only handles csv files
   const csvRouter = express.Router();
   csvRouter.get('/fields', typecheck('http', 'csv'), sampleCsv);
 
-  // setup a router that only handles csv.zip files
-  const csvZipRouter = express.Router();
-  csvRouter.get('/fields', typecheck('http', 'csv', 'zip'), sampleCsvZip);
+  const zipRouter = express.Router();
+  zipRouter.get('/fields', typecheck('http', undefined, 'zip'), sampleZip);
 
   app.get('/fields',
     preconditionsCheck,
     determineType,
     esriRouter,
     geojsonRouter,
-    geojsonZipRouter,
     csvRouter,
-    csvZipRouter,
+    zipRouter,
     output
   );
 

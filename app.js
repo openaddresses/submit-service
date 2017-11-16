@@ -6,7 +6,7 @@ const binaryParser = require('superagent-binary-parser');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const oboe = require('oboe');
-const unzip = require('unzip');
+const unzip = require('unzip-stream');
 
 const arcgisRegexp = /(Map|Feature)Server\/\d+\/?$/;
 
@@ -187,7 +187,8 @@ const sampleZip = (req, res, next) => {
         next();
       });
 
-    } else if (_.endsWith(entry.path, '.geojson')) {
+    }
+    else if (_.endsWith(entry.path, '.geojson')) {
       req.query.type = 'geojson';
       req.query.results = [];
 
@@ -209,6 +210,9 @@ const sampleZip = (req, res, next) => {
           next();
         });
 
+    }
+    else {
+      entry.autodrain();
     }
 
   });

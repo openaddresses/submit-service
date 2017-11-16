@@ -97,13 +97,14 @@ const sampleGeojson = (req, res, next) => {
   req.query.results = [];
 
   oboe(req.query.source)
-    .node('features[*]', function(feature) {
+    .node('features[*]', feature => {
       req.query.fields = _.keys(feature.properties);
       req.query.results.push(feature.properties);
     })
     .node('features[9]', function() {
       // bail after the 10th result.  'done' does not get called after .abort()
       //  so next() must be called explicitly
+      // must use full function() syntax for "this" reference
       this.abort();
       next();
     })
@@ -166,6 +167,7 @@ const sampleZip = (req, res, next) => {
         columns: true
       }))
       .pipe(through2.obj(function(record, enc, callback) {
+        // must use full function() syntax for "this" reference
         if (req.query.results.length < 10) {
           req.query.fields = _.keys(record);
           req.query.results.push(record);
@@ -190,13 +192,14 @@ const sampleZip = (req, res, next) => {
       req.query.results = [];
 
       oboe(entry)
-        .node('features[*]', function(feature) {
+        .node('features[*]', feature => {
           req.query.fields = _.keys(feature.properties);
           req.query.results.push(feature.properties);
         })
         .node('features[9]', function() {
           // bail after the 10th result.  'done' does not get called after .abort()
           //  so next() must be called explicitly
+          // must use full function() syntax for "this" reference
           this.abort();
           next();
         })

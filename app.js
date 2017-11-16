@@ -10,6 +10,7 @@ const unzip = require('unzip');
 
 const arcgisRegexp = /(Map|Feature)Server\/\d+\/?$/;
 
+// if no source parameter was supplied, bail immediately
 const preconditionsCheck = (req, res, next) => {
   if (!req.query.source) {
     res.status(400).send('\'source\' parameter is required');
@@ -19,6 +20,7 @@ const preconditionsCheck = (req, res, next) => {
 
 };
 
+// determine the protocol, type, and compression to make decisions easier later on
 const determineType = (req, res, next) => {
   const source = req.query.source;
 
@@ -52,6 +54,8 @@ const determineType = (req, res, next) => {
 
 };
 
+// if the request protocol, type, and compression match, continue on this route
+// otherwise move on to the next route
 const typecheck = (protocol, type, compression) => (req, res, next) => {
   if (req.query.protocol === protocol && req.query.type === type && req.query.compression === compression) {
     next();
@@ -61,7 +65,8 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 };
 
-const sampleArcgis = (req, res, next) => {
+// middleware that queries an Esri server for the first 10 records
+const sampleEsri = (req, res, next) => {
   request
     .get(`${req.query.source}/query`)
     .accept('json')
@@ -73,7 +78,6 @@ const sampleArcgis = (req, res, next) => {
       f: 'json'
     })
     .on('error', (err) => {
-      // console.error(err);
       return next();
     })
     .end((err, response) => {
@@ -90,6 +94,8 @@ const sampleArcgis = (req, res, next) => {
 
 };
 
+// middleware that requests and streams a .geojson file, returning up to the first
+// 10 records
 const sampleGeojson = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
@@ -107,11 +113,15 @@ const sampleGeojson = (req, res, next) => {
       next();
     })
     .done(() => {
+      // this will happen when the list of results has been processed and
+      // iteration still has no reached the 11th result, which is very unlikely
       next();
     });
 
 };
 
+// middleware that requests and streams a compressed .geojson file, returning up
+// to the first 10 records
 const sampleGeojsonZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
@@ -139,6 +149,8 @@ const sampleGeojsonZip = (req, res, next) => {
           next();
         })
         .done(() => {
+          // this will happen when the list of results has been processed and
+          // iteration still has no reached the 11th result, which is very unlikely
           next();
         });
 
@@ -146,6 +158,8 @@ const sampleGeojsonZip = (req, res, next) => {
 
 };
 
+// middleware that requests and streams a .csv file, returning up to the first
+// 10 records
 const sampleCsv = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
@@ -177,6 +191,8 @@ const sampleCsv = (req, res, next) => {
 
 };
 
+// middleware that requests and streams a compressed .csv file, returning up
+// to the first 10 records
 const sampleCsvZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
@@ -219,6 +235,7 @@ const sampleCsvZip = (req, res, next) => {
 
 };
 
+// middleware that outputs the accumulated metadata, fields, and sample results
 const output = (req, res, next) => {
   res.status(200).send({
     coverage: {},
@@ -240,25 +257,30 @@ const output = (req, res, next) => {
 module.exports = () => {
   const app = express();
 
-  const arcgisRouter = express.Router();
-  arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleArcgis);
+  // setup a router that only handles ESRI sources
+  const esriRouter = express.Router();
+  esriRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleEsri);
 
+  // setup a router that only handles geojson files
   const geojsonRouter = express.Router();
   geojsonRouter.get('/fields', typecheck('http', 'geojson'), sampleGeojson);
 
+  // setup a router that only handles geojson.zip files
   const geojsonZipRouter = express.Router();
   geojsonRouter.get('/fields', typecheck('http', 'geojson', 'zip'), sampleGeojsonZip);
 
+  // setup a router that only handles csv files
   const csvRouter = express.Router();
   csvRouter.get('/fields', typecheck('http', 'csv'), sampleCsv);
 
+  // setup a router that only handles csv.zip files
   const csvZipRouter = express.Router();
   csvRouter.get('/fields', typecheck('http', 'csv', 'zip'), sampleCsvZip);
 
   app.get('/fields',
     preconditionsCheck,
     determineType,
-    arcgisRouter,
+    esriRouter,
     geojsonRouter,
     geojsonZipRouter,
     csvRouter,
@@ -266,6 +288,7 @@ module.exports = () => {
     output
   );
 
+  // expose testing UI
   app.use(express.static(__dirname + '/public'));
 
   return app;

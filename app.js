@@ -77,7 +77,7 @@ const sampleArcgis = (req, res, next) => {
       f: 'json'
     })
     .on('error', (err) => {
-      let error_message = `Error connecting to ESRI server ${req.query.source}`;
+      let error_message = `Error connecting to Arcgis server ${req.query.source}`;
       error_message += `: ${err.response.text} (${err.status})`;
 
       res.status(400).send(error_message);
@@ -252,7 +252,7 @@ const output = (req, res, next) => {
 module.exports = () => {
   const app = express();
 
-  // setup a router that only handles ESRI sources
+  // setup a router that only handles Arcgis sources
   const arcgisRouter = express.Router();
   arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleArcgis);
 

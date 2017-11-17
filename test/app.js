@@ -4,10 +4,10 @@ const _ = require('lodash');
 const archiver = require('archiver');
 const ZipContentsStream = require('./ZipContentsStream');
 
-tape('esri tests', test => {
+tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
-    const mock_esri_app = require('express')();
-    mock_esri_app.get('/MapServer/0/query', (req, res, next) => {
+    const mock_arcgis_app = require('express')();
+    mock_arcgis_app.get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -40,7 +40,7 @@ tape('esri tests', test => {
 
     });
 
-    const mock_esri_server = mock_esri_app.listen();
+    const mock_arcgis_server = mock_arcgis_app.listen();
 
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
@@ -49,14 +49,14 @@ tape('esri tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_esri_server.address().port}/MapServer/0`
+        source: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
         t.deepEquals(JSON.parse(response.text), {
           coverage: {},
           type: 'ESRI',
-          data: `http://localhost:${mock_esri_server.address().port}/MapServer/0`,
+          data: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`,
           source_data: {
             fields: ['attribute1', 'attribute2'],
             results: [
@@ -76,19 +76,19 @@ tape('esri tests', test => {
         });
 
         t.end();
-        mock_esri_server.close();
+        mock_arcgis_server.close();
         mod_server.close();
       });
 
   });
 
-  test.test('esri server returning error should return 400 w/message', t => {
-    const mock_esri_app = require('express')();
-    mock_esri_app.get('/MapServer/0/query', (req, res, next) => {
+  test.test('arcgis server returning error should return 400 w/message', t => {
+    const mock_arcgis_app = require('express')();
+    mock_arcgis_app.get('/MapServer/0/query', (req, res, next) => {
       res.status(404).send('page not found');
     });
 
-    const mock_esri_server = mock_esri_app.listen();
+    const mock_arcgis_server = mock_arcgis_app.listen();
 
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
@@ -97,18 +97,18 @@ tape('esri tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_esri_server.address().port}/MapServer/0`
+        source: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`
       })
       .end((err, response) => {
-        let error_message = 'Error connecting to ESRI server ';
-        error_message += `http://localhost:${mock_esri_server.address().port}/MapServer/0`;
+        let error_message = 'Error connecting to Arcgis server ';
+        error_message += `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`;
         error_message += ': page not found (404)';
 
         t.equals(response.statusCode, 400);
         t.equals(response.error.text, error_message);
         t.end();
 
-        mock_esri_server.close();
+        mock_arcgis_server.close();
         mod_server.close();
       });
 

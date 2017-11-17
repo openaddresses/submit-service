@@ -53,6 +53,7 @@ tape('arcgis tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'ESRI',
@@ -105,6 +106,7 @@ tape('arcgis tests', test => {
         error_message += ': page not found (404)';
 
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.error.text, error_message);
         t.end();
 
@@ -150,6 +152,7 @@ tape('geojson tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -209,6 +212,7 @@ tape('geojson tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -258,6 +262,7 @@ tape('geojson tests', test => {
         error_message += ': page not found (404)';
 
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.error.text, error_message);
         t.end();
 
@@ -320,6 +325,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -397,6 +403,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -464,6 +471,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -530,6 +538,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -585,6 +594,7 @@ tape('csv tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -636,6 +646,7 @@ tape('csv tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
+        t.equals(response.type, 'application/json');
         t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
@@ -674,6 +685,7 @@ tape('error conditions', test => {
       .accept('json')
       .end((err, response) => {
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.text, '\'source\' parameter is required');
         t.end();
         mod_server.close();
@@ -693,6 +705,7 @@ tape('error conditions', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.text, '\'source\' parameter is required');
         t.end();
         mod_server.close();
@@ -712,6 +725,7 @@ tape('error conditions', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.text, 'Unsupported type');
         t.end();
         mod_server.close();
@@ -755,6 +769,7 @@ tape('error conditions', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 400);
+        t.equals(response.type, 'text/plain');
         t.equals(response.text, 'Could not determine type from zip file');
         t.end();
 

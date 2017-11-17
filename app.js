@@ -18,7 +18,7 @@ const arcgisRegexp = /(Map|Feature)Server\/\d+\/?$/;
 // if no source parameter was supplied, bail immediately
 const preconditionsCheck = (req, res, next) => {
   if (!req.query.source) {
-    res.status(400).send('\'source\' parameter is required');
+    res.status(400).type('text/plain').send('\'source\' parameter is required');
   } else {
     next();
   }
@@ -47,7 +47,7 @@ const determineType = (req, res, next) => {
 
   // if protocol is unknown, return a 400
   if (req.query.protocol === 'unknown') {
-    res.status(400).send('Unsupported type');
+    res.status(400).type('text/plain').send('Unsupported type');
   } else {
     next();
   }
@@ -81,7 +81,7 @@ const sampleArcgis = (req, res, next) => {
       let error_message = `Error connecting to Arcgis server ${req.query.source}`;
       error_message += `: ${err.response.text} (${err.status})`;
 
-      res.status(400).send(error_message);
+      res.status(400).type('text/plain').send(error_message);
 
     })
     .end((err, response) => {
@@ -119,7 +119,7 @@ const sampleGeojson = (req, res, next) => {
       let error_message = `Error retrieving file ${req.query.source}`;
       error_message += `: ${err.body} (${err.statusCode})`;
 
-      res.status(400).send(error_message);
+      res.status(400).type('text/plain').send(error_message);
 
     })
     .done(() => {
@@ -233,7 +233,7 @@ const sampleZip = (req, res, next) => {
   })
   .on('finish', () => {
     if (!req.query.type) {
-      res.status(400).send('Could not determine type from zip file');
+      res.status(400).type('text/plain').send('Could not determine type from zip file');
     }
   });
 

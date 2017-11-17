@@ -2,7 +2,6 @@ const express = require('express');
 const Router = require('express').Router;
 const _ = require('lodash');
 const request = require('superagent');
-const binaryParser = require('superagent-binary-parser');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const oboe = require('oboe');

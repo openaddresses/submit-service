@@ -22,7 +22,6 @@
     "morgan": "^1.9.0",
     "oboe": "^2.1.4",
     "superagent": "^3.8.0",
-    "superagent-binary-parser": "^1.0.1",
     "through2": "^2.0.3",
     "unzip-stream": "^0.2.1"
   },

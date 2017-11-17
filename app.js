@@ -64,8 +64,8 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 };
 
-// middleware that queries an Esri server for the first 10 records
-const sampleEsri = (req, res, next) => {
+// middleware that queries an Arcgis server for the first 10 records
+const sampleArcgis = (req, res, next) => {
   request
     .get(`${req.query.source}/query`)
     .accept('json')
@@ -253,8 +253,8 @@ module.exports = () => {
   const app = express();
 
   // setup a router that only handles ESRI sources
-  const esriRouter = express.Router();
-  esriRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleEsri);
+  const arcgisRouter = express.Router();
+  arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleArcgis);
 
   // setup a router that only handles geojson files
   const geojsonRouter = express.Router();
@@ -270,7 +270,7 @@ module.exports = () => {
   app.get('/fields',
     preconditionsCheck,
     determineType,
-    esriRouter,
+    arcgisRouter,
     geojsonRouter,
     csvRouter,
     zipRouter,

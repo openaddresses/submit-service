@@ -215,6 +215,11 @@ const sampleZip = (req, res, next) => {
       entry.autodrain();
     }
 
+  })
+  .on('finish', () => {
+    if (!req.query.type) {
+      res.status(400).send('Could not determine type from zip file');
+    }
   });
 
 };

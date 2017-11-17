@@ -1,5 +1,5 @@
 const tape = require('tape');
-const request = require('superagent');
+const request = require('request');
 const _ = require('lodash');
 const archiver = require('archiver');
 const ZipContentsStream = require('./ZipContentsStream');
@@ -45,41 +45,42 @@ tape('arcgis tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'ESRI',
-          data: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`,
-          source_data: {
-            fields: ['attribute1', 'attribute2'],
-            results: [
-              {
-                attribute1: 'feature 1 attribute 1 value',
-                attribute2: 'feature 1 attribute 2 value'
-              },
-              {
-                attribute1: 'feature 2 attribute 1 value',
-                attribute2: 'feature 2 attribute 2 value'
-              }
-            ]
-          },
-          conform: {
-            type: 'geojson'
-          }
-        });
-
-        t.end();
-        mock_arcgis_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'ESRI',
+        data: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`,
+        source_data: {
+          fields: ['attribute1', 'attribute2'],
+          results: [
+            {
+              attribute1: 'feature 1 attribute 1 value',
+              attribute2: 'feature 1 attribute 2 value'
+            },
+            {
+              attribute1: 'feature 2 attribute 1 value',
+              attribute2: 'feature 2 attribute 2 value'
+            }
+          ]
+        },
+        conform: {
+          type: 'geojson'
+        }
       });
+
+      t.end();
+      mock_arcgis_server.close();
+      mod_server.close();
+
+    });
 
   });
 
@@ -94,24 +95,25 @@ tape('arcgis tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
-        source: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`
-      })
-      .end((err, response) => {
+    request.get(
+      {
+        uri: `http://localhost:${mod_server.address().port}/fields`,
+        qs: {
+          source: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`
+        },
+        json: true
+      }, (err, response, body) => {
         let error_message = 'Error connecting to Arcgis server ';
         error_message += `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`;
         error_message += ': page not found (404)';
 
         t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.error.text, error_message);
+        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+        t.equals(body, error_message);
         t.end();
-
         mock_arcgis_server.close();
         mod_server.close();
+
       });
 
   });
@@ -144,43 +146,43 @@ tape('geojson tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/file.geojson`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(10).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'geojson'
-          }
-        });
-
-        t.end();
-        mock_geojson_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (error, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(10).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'geojson'
+        }
       });
+
+      t.end();
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
 
   });
 
   test.test('geojson consisting of less than 10 records should return all', t => {
-
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/file.geojson', (req, res, next) => {
       res.status(200).send({
@@ -204,38 +206,39 @@ tape('geojson tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/file.geojson`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(2).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'geojson'
-          }
-        });
-
-        t.end();
-        mock_geojson_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'geojson'
+        }
       });
+
+      t.end();
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
 
   });
 
@@ -250,25 +253,134 @@ tape('geojson tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/file.geojson`
-      })
-      .end((err, response) => {
-        let error_message = 'Error retrieving file ';
-        error_message += `http://localhost:${mock_geojson_server.address().port}/file.geojson`;
-        error_message += ': page not found (404)';
+      },
+      json: true
+    }, (err, response, body) => {
+      let error_message = 'Error retrieving file ';
+      error_message += `http://localhost:${mock_geojson_server.address().port}/file.geojson`;
+      error_message += ': page not found (404)';
 
-        t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.error.text, error_message);
-        t.end();
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, error_message);
+      t.end();
 
-        mock_geojson_server.close();
-        mod_server.close();
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+});
+
+tape('csv tests', test => {
+  test.test('fields and sample results, should limit to 10', t => {
+    const mock_csv_app = require('express')();
+    mock_csv_app.get('/file.csv', (req, res, next) => {
+      const rows = _.range(20).reduce((rows, i) => {
+        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+      }, ['attribute 1,attribute 2']);
+
+      res.status(200).send(rows.join('\n'));
+
+    });
+
+    const mock_csv_server = mock_csv_app.listen();
+
+    const mod_app = require('../app')();
+    const mod_server = mod_app.listen();
+
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: `http://localhost:${mock_csv_server.address().port}/file.csv`
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_csv_server.address().port}/file.csv`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(10).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'csv'
+        }
       });
+
+      t.end();
+      mock_csv_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('csv consisting of less than 10 records should return all', t => {
+
+    const mock_csv_app = require('express')();
+    mock_csv_app.get('/file.csv', (req, res, next) => {
+      const rows = _.range(2).reduce((rows, i) => {
+        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+      }, ['attribute 1,attribute 2']);
+
+      res.status(200).send(rows.join('\n'));
+
+    });
+
+    const mock_csv_server = mock_csv_app.listen();
+
+    const mod_app = require('../app')();
+    const mod_server = mod_app.listen();
+
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: `http://localhost:${mock_csv_server.address().port}/file.csv`
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_csv_server.address().port}/file.csv`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'csv'
+        }
+      });
+
+      t.end();
+      mock_csv_server.close();
+      mod_server.close();
+
+    });
 
   });
 
@@ -276,7 +388,6 @@ tape('geojson tests', test => {
 
 tape('zip tests', test => {
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
-
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
@@ -317,44 +428,44 @@ tape('zip tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          compression: 'zip',
-          data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(10).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'geojson'
-          }
-        });
-
-        t.end();
-        mock_geojson_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(10).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'geojson'
+        }
       });
+
+      t.end();
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
 
   });
 
   test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
-
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
@@ -395,44 +506,44 @@ tape('zip tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          compression: 'zip',
-          data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(2).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'geojson'
-          }
-        });
-
-        t.end();
-        mock_geojson_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'geojson'
+        }
       });
+
+      t.end();
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
 
   });
 
   test.test('csv.zip: fields and sample results, should limit to 10', t => {
-
     const mock_csv_app = require('express')();
     mock_csv_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
@@ -463,39 +574,40 @@ tape('zip tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_csv_server.address().port}/data.zip`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          compression: 'zip',
-          data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(10).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'csv'
-          }
-        });
-
-        t.end();
-        mock_csv_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(10).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'csv'
+        }
       });
+
+      t.end();
+      mock_csv_server.close();
+      mod_server.close();
+
+    });
 
   });
 
@@ -530,146 +642,40 @@ tape('zip tests', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_csv_server.address().port}/data.zip`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          compression: 'zip',
-          data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(2).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'csv'
-          }
-        });
-
-        t.end();
-        mock_csv_server.close();
-        mod_server.close();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'csv'
+        }
       });
 
-  });
-
-});
-
-tape('csv tests', test => {
-  test.test('fields and sample results, should limit to 10', t => {
-
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv', (req, res, next) => {
-      const rows = _.range(20).reduce((rows, i) => {
-        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-      }, ['attribute 1,attribute 2']);
-
-      res.status(200).send(rows.join('\n'));
+      t.end();
+      mock_csv_server.close();
+      mod_server.close();
 
     });
-
-    const mock_csv_server = mock_csv_app.listen();
-
-    const mod_app = require('../app')();
-    const mod_server = mod_app.listen();
-
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
-        source: `http://localhost:${mock_csv_server.address().port}/file.csv`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          data: `http://localhost:${mock_csv_server.address().port}/file.csv`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(10).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'csv'
-          }
-        });
-
-        t.end();
-        mock_csv_server.close();
-        mod_server.close();
-      });
-
-  });
-
-  test.test('csv consisting of less than 10 records should return all', t => {
-
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv', (req, res, next) => {
-      const rows = _.range(2).reduce((rows, i) => {
-        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-      }, ['attribute 1,attribute 2']);
-
-      res.status(200).send(rows.join('\n'));
-
-    });
-
-    const mock_csv_server = mock_csv_app.listen();
-
-    const mod_app = require('../app')();
-    const mod_server = mod_app.listen();
-
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
-        source: `http://localhost:${mock_csv_server.address().port}/file.csv`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.type, 'application/json');
-        t.deepEquals(response.body, {
-          coverage: {},
-          type: 'http',
-          data: `http://localhost:${mock_csv_server.address().port}/file.csv`,
-          source_data: {
-            fields: ['attribute 1', 'attribute 2'],
-            results: _.range(2).reduce((features, i) => {
-              features.push({
-                'attribute 1': `feature ${i} attribute 1 value`,
-                'attribute 2': `feature ${i} attribute 2 value`
-              });
-              return features;
-            }, [])
-          },
-          conform: {
-            type: 'csv'
-          }
-        });
-
-        t.end();
-        mock_csv_server.close();
-        mod_server.close();
-      });
 
   });
 
@@ -680,16 +686,17 @@ tape('error conditions', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .end((err, response) => {
-        t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.text, '\'source\' parameter is required');
-        t.end();
-        mod_server.close();
-      });
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, '\'source\' parameter is required');
+      t.end();
+      mod_server.close();
+
+    });
 
   });
 
@@ -697,19 +704,20 @@ tape('error conditions', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: ''
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.text, '\'source\' parameter is required');
-        t.end();
-        mod_server.close();
-      });
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, '\'source\' parameter is required');
+      t.end();
+      mod_server.close();
+
+    });
 
   });
 
@@ -717,19 +725,20 @@ tape('error conditions', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: 'unsupported type'
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.text, 'Unsupported type');
-        t.end();
-        mod_server.close();
-      });
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, 'Unsupported type');
+      t.end();
+      mod_server.close();
+
+    });
 
   });
 
@@ -761,21 +770,22 @@ tape('error conditions', test => {
     const mod_app = require('../app')();
     const mod_server = mod_app.listen();
 
-    request
-      .get(`http://localhost:${mod_server.address().port}/fields`)
-      .accept('json')
-      .query({
+    request.get({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
         source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
-      })
-      .end((err, response) => {
-        t.equals(response.statusCode, 400);
-        t.equals(response.type, 'text/plain');
-        t.equals(response.text, 'Could not determine type from zip file');
-        t.end();
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, 'Could not determine type from zip file');
+      t.end();
 
-        mock_geojson_server.close();
-        mod_server.close();
-      });
+      mock_geojson_server.close();
+      mod_server.close();
+
+    });
 
   });
 

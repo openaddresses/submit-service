@@ -1,7 +1,7 @@
 const express = require('express');
 const Router = require('express').Router;
 const _ = require('lodash');
-const request = require('superagent');
+const request = require('request');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const oboe = require('oboe');
@@ -66,32 +66,31 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 // middleware that queries an Arcgis server for the first 10 records
 const sampleArcgis = (req, res, next) => {
-  request
-    .get(`${req.query.source}/query`)
-    .accept('json')
-    .query({
+  request.get({
+    uri: `${req.query.source}/query`,
+    qs: {
       outFields: '*',
       where: '1=1',
       resultRecordCount: 10,
       resultOffset: 0,
       f: 'json'
-    })
-    .on('error', (err) => {
+    },
+    json: true
+  }, (err, response, body) => {
+    if (response.statusCode !== 200) {
       let error_message = `Error connecting to Arcgis server ${req.query.source}`;
-      error_message += `: ${err.response.text} (${err.status})`;
+      error_message += `: ${body} (${response.statusCode})`;
 
       res.status(400).type('text/plain').send(error_message);
 
-    })
-    .end((err, response) => {
-      // errors should be handled above but .end() is always called, so proceed when no error
-      if (!err) {
-        req.query.fields = response.body.fields.map(_.property('name'));
-        req.query.results = response.body.features.map( _.property('attributes') );
-        return next();
-      }
+    }
+    else {
+      req.query.fields = response.body.fields.map(_.property('name'));
+      req.query.results = response.body.features.map( _.property('attributes') );
+      return next();
+    }
 
-    });
+  });
 
 };
 

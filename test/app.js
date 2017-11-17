@@ -270,15 +270,15 @@ tape('geojson tests', test => {
 });
 
 tape('zip tests', test => {
-  test.test('fields and sample results, should limit to 10', t => {
+  test.test('geojson.zip: fields and sample results, should limit to 10', t => {
 
     const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson.zip', (req, res, next) => {
+    mock_geojson_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
         res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=file.geojson.zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
         res.set('Content-Length', this.buffer.length);
         res.end(this.buffer, 'binary');
       });
@@ -302,7 +302,7 @@ tape('zip tests', test => {
       });
       archive.pipe(output);
       archive.append('this is the README', { name: 'README.md' });
-      archive.append(JSON.stringify(data, null, 2), { name: 'file1.geojson' });
+      archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
       archive.finalize();
 
     });
@@ -316,7 +316,7 @@ tape('zip tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_geojson_server.address().port}/file.geojson.zip`
+        source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
@@ -324,7 +324,7 @@ tape('zip tests', test => {
           coverage: {},
           type: 'http',
           compression: 'zip',
-          data: `http://localhost:${mock_geojson_server.address().port}/file.geojson.zip`,
+          data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
           source_data: {
             fields: ['attribute 1', 'attribute 2'],
             results: _.range(10).reduce((features, i) => {
@@ -347,15 +347,15 @@ tape('zip tests', test => {
 
   });
 
-  test.test('geojson consisting of less than 10 records should return all', t => {
+  test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
 
     const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson.zip', (req, res, next) => {
+    mock_geojson_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
         res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=file.geojson.zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
         res.set('Content-Length', this.buffer.length);
         res.end(this.buffer, 'binary');
       });
@@ -379,7 +379,7 @@ tape('zip tests', test => {
       });
       archive.pipe(output);
       archive.append('this is the README', { name: 'README.md' });
-      archive.append(JSON.stringify(data, null, 2), { name: 'file1.geojson' });
+      archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
       archive.finalize();
 
     });
@@ -393,7 +393,7 @@ tape('zip tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_geojson_server.address().port}/file.geojson.zip`
+        source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
@@ -401,7 +401,7 @@ tape('zip tests', test => {
           coverage: {},
           type: 'http',
           compression: 'zip',
-          data: `http://localhost:${mock_geojson_server.address().port}/file.geojson.zip`,
+          data: `http://localhost:${mock_geojson_server.address().port}/data.zip`,
           source_data: {
             fields: ['attribute 1', 'attribute 2'],
             results: _.range(2).reduce((features, i) => {
@@ -424,15 +424,15 @@ tape('zip tests', test => {
 
   });
 
-  test.test('fields and sample results, should limit to 10', t => {
+  test.test('csv.zip: fields and sample results, should limit to 10', t => {
 
     const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv.zip', (req, res, next) => {
+    mock_csv_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
         res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=file.csv.zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
         res.set('Content-Length', this.buffer.length);
         res.end(this.buffer, 'binary');
       });
@@ -446,7 +446,7 @@ tape('zip tests', test => {
       });
       archive.pipe(output);
       archive.append('this is the README', { name: 'README.md' });
-      archive.append(data.join('\n'), { name: 'file1.csv' });
+      archive.append(data.join('\n'), { name: 'file.csv' });
       archive.finalize();
 
     });
@@ -460,7 +460,7 @@ tape('zip tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_csv_server.address().port}/file.csv.zip`
+        source: `http://localhost:${mock_csv_server.address().port}/data.zip`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
@@ -468,7 +468,7 @@ tape('zip tests', test => {
           coverage: {},
           type: 'http',
           compression: 'zip',
-          data: `http://localhost:${mock_csv_server.address().port}/file.csv.zip`,
+          data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
           source_data: {
             fields: ['attribute 1', 'attribute 2'],
             results: _.range(10).reduce((features, i) => {
@@ -491,14 +491,14 @@ tape('zip tests', test => {
 
   });
 
-  test.test('csv consisting of less than 10 records should return all', t => {
+  test.test('csv.zip: file consisting of less than 10 records should return all', t => {
     const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv.zip', (req, res, next) => {
+    mock_csv_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
         res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=file.csv.zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
         res.set('Content-Length', this.buffer.length);
         res.end(this.buffer, 'binary');
       });
@@ -512,7 +512,7 @@ tape('zip tests', test => {
       });
       archive.pipe(output);
       archive.append('this is the README', { name: 'README.md' });
-      archive.append(data.join('\n'), { name: 'file1.csv' });
+      archive.append(data.join('\n'), { name: 'file.csv' });
       archive.finalize();
 
     });
@@ -526,7 +526,7 @@ tape('zip tests', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_csv_server.address().port}/file.csv.zip`
+        source: `http://localhost:${mock_csv_server.address().port}/data.zip`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
@@ -534,7 +534,7 @@ tape('zip tests', test => {
           coverage: {},
           type: 'http',
           compression: 'zip',
-          data: `http://localhost:${mock_csv_server.address().port}/file.csv.zip`,
+          data: `http://localhost:${mock_csv_server.address().port}/data.zip`,
           source_data: {
             fields: ['attribute 1', 'attribute 2'],
             results: _.range(2).reduce((features, i) => {
@@ -721,12 +721,12 @@ tape('error conditions', test => {
 
   test.test('cannot determine type from .zip file', t => {
     const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.zip', (req, res, next) => {
+    mock_geojson_app.get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
         res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=file.zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
         res.set('Content-Length', this.buffer.length);
         res.end(this.buffer, 'binary');
       });
@@ -751,7 +751,7 @@ tape('error conditions', test => {
       .get(`http://localhost:${mod_server.address().port}/fields`)
       .accept('json')
       .query({
-        source: `http://localhost:${mock_geojson_server.address().port}/file.zip`
+        source: `http://localhost:${mock_geojson_server.address().port}/data.zip`
       })
       .end((err, response) => {
         t.equals(response.statusCode, 400);

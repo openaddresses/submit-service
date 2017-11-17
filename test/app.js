@@ -235,7 +235,7 @@ tape('geojson tests', test => {
 
   });
 
-  test.test('arcgis server returning error should return 400 w/message', t => {
+  test.test('geojson file returning error should return 400 w/message', t => {
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/file.geojson', (req, res, next) => {
       res.status(404).send('page not found');

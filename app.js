@@ -7,6 +7,7 @@ const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const oboe = require('oboe');
 const unzip = require('unzip-stream');
+const morgan = require('morgan');
 
 // matches:
 // - MapServer/0
@@ -259,6 +260,7 @@ const output = (req, res, next) => {
 
 module.exports = () => {
   const app = express();
+  app.use(morgan('combined'));
 
   // setup a router that only handles Arcgis sources
   const arcgisRouter = express.Router();

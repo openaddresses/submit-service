@@ -225,6 +225,7 @@ const sampleZip = (req, res, next) => {
 
     }
     else {
+      // we're not interested in this file, so dispose of its contents
       entry.autodrain();
     }
 

@@ -53,7 +53,7 @@ tape('arcgis tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'ESRI',
           data: `http://localhost:${mock_arcgis_server.address().port}/MapServer/0`,
@@ -150,7 +150,7 @@ tape('geojson tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
@@ -209,7 +209,7 @@ tape('geojson tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           data: `http://localhost:${mock_geojson_server.address().port}/file.geojson`,
@@ -320,7 +320,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           compression: 'zip',
@@ -397,7 +397,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           compression: 'zip',
@@ -464,7 +464,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           compression: 'zip',
@@ -530,7 +530,7 @@ tape('zip tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           compression: 'zip',
@@ -585,7 +585,7 @@ tape('csv tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           data: `http://localhost:${mock_csv_server.address().port}/file.csv`,
@@ -636,7 +636,7 @@ tape('csv tests', test => {
       })
       .end((err, response) => {
         t.equals(response.statusCode, 200);
-        t.deepEquals(JSON.parse(response.text), {
+        t.deepEquals(response.body, {
           coverage: {},
           type: 'http',
           data: `http://localhost:${mock_csv_server.address().port}/file.csv`,

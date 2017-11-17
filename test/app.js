@@ -235,6 +235,38 @@ tape('geojson tests', test => {
 
   });
 
+  test.test('arcgis server returning error should return 400 w/message', t => {
+    const mock_geojson_app = require('express')();
+    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+      res.status(404).send('page not found');
+    });
+
+    const mock_geojson_server = mock_geojson_app.listen();
+
+    const mod_app = require('../app')();
+    const mod_server = mod_app.listen();
+
+    request
+      .get(`http://localhost:${mod_server.address().port}/fields`)
+      .accept('json')
+      .query({
+        source: `http://localhost:${mock_geojson_server.address().port}/file.geojson`
+      })
+      .end((err, response) => {
+        let error_message = 'Error retrieving file ';
+        error_message += `http://localhost:${mock_geojson_server.address().port}/file.geojson`;
+        error_message += ': page not found (404)';
+
+        t.equals(response.statusCode, 400);
+        t.equals(response.error.text, error_message);
+        t.end();
+
+        mock_geojson_server.close();
+        mod_server.close();
+      });
+
+  });
+
 });
 
 tape('zip tests', test => {

@@ -114,6 +114,13 @@ const sampleGeojson = (req, res, next) => {
       this.abort();
       next();
     })
+    .fail((err) => {
+      let error_message = `Error retrieving file ${req.query.source}`;
+      error_message += `: ${err.body} (${err.statusCode})`;
+
+      res.status(400).send(error_message);
+
+    })
     .done(() => {
       // this will happen when the list of results has been processed and
       // iteration still has no reached the 11th result, which is very unlikely

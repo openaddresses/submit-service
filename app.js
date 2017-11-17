@@ -8,6 +8,10 @@ const through2 = require('through2');
 const oboe = require('oboe');
 const unzip = require('unzip-stream');
 
+// matches:
+// - MapServer/0
+// - FeatureServer/13
+// - MapServer/1/
 const arcgisRegexp = /(Map|Feature)Server\/\d+\/?$/;
 
 // if no source parameter was supplied, bail immediately
@@ -73,17 +77,19 @@ const sampleEsri = (req, res, next) => {
       f: 'json'
     })
     .on('error', (err) => {
-      return next();
+      let error_message = `Error connecting to ESRI server ${req.query.source}`;
+      error_message += `: ${err.response.text} (${err.status})`;
+
+      res.status(400).send(error_message);
+
     })
     .end((err, response) => {
-      // bail early if there's an error (shouldn't happen since it was already handled above)
-      if (err) {
+      // errors should be handled above but .end() is always called, so proceed when no error
+      if (!err) {
+        req.query.fields = response.body.fields.map(_.property('name'));
+        req.query.results = response.body.features.map( _.property('attributes') );
         return next();
       }
-
-      req.query.fields = JSON.parse(response.text).fields.map(_.property('name'));
-      req.query.results = JSON.parse(response.text).features.map( _.property('attributes') );
-      return next();
 
     });
 

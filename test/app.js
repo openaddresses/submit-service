@@ -409,6 +409,44 @@ tape('csv tests', test => {
 
   });
 
+  test.test('catastrophic errors should be handled', t => {
+    const mock_cvs_app = require('express')();
+    mock_cvs_app.get('/file.csv', (req, res, next) => {
+      res.status(404).send('page not found');
+    });
+
+    const mock_csv_server = mock_cvs_app.listen();
+    const mock_csv_server_port = mock_csv_server.address().port;
+
+    // stop the express server to cause a connection-refused error
+    mock_csv_server.close(() => {
+      // once the server
+      const mod_app = require('../app')();
+      const mod_server = mod_app.listen();
+
+      request.get(`http://localhost:${mod_server.address().port}/fields`, {
+        qs: {
+          source: `http://localhost:${mock_csv_server_port}/file.csv`
+        },
+        json: true
+      }, (err, response, body) => {
+        let error_message = 'Error retrieving file ';
+        error_message += `http://localhost:${mock_csv_server_port}/file.csv: ECONNREFUSED`;
+
+        t.equals(response.statusCode, 400);
+        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+        t.equals(body, error_message);
+        t.end();
+
+        mock_csv_server.close();
+        mod_server.close();
+
+      });
+
+    });
+
+  });
+
 });
 
 tape('zip tests', test => {

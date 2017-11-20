@@ -134,10 +134,18 @@ const sampleGeojson = (req, res, next) => {
 const sampleCsv = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
-  req.query.results = [];
-
   // save off request so it can be error-handled and piped later
   const r = request(req.query.source);
+
+  // handle catastrophic errors like "connection refused"
+  r.on('error', (err) => {
+    const error_message = `Error retrieving file ${req.query.source}: ${err.code}`;
+
+    res.status(400).type('text/plain').send(error_message);
+
+  });
+
+  // handle normal responses (including HTTP errors)
   r.on('response', (response) => {
     if (response.statusCode !== 200) {
       // something went wrong so save up the response text and return an error
@@ -151,6 +159,8 @@ const sampleCsv = (req, res, next) => {
 
     } else {
       // otherwise everything was fine so pipe the response to CSV and collect records
+      req.query.results = [];
+
       r.pipe(csvParse({
         skip_empty_lines: true,
         columns: true

@@ -115,9 +115,14 @@ const sampleGeojson = (req, res, next) => {
       next();
     })
     .fail((err) => {
-      let error_message = `Error retrieving file ${req.query.source}`;
-      error_message += `: ${err.body} (${err.statusCode})`;
+      let error_message = `Error retrieving file ${req.query.source}: `;
 
+      if (err.thrown) {
+        error_message += err.thrown.code;
+      } else {
+        error_message += `${err.body} (${err.statusCode})`;
+      }
+      
       res.status(400).type('text/plain').send(error_message);
 
     })

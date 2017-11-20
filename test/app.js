@@ -117,7 +117,7 @@ tape('arcgis tests', test => {
 
 });
 
-tape('geojson tests', test => {
+tape.only('geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
 
     const mock_geojson_app = require('express')();
@@ -265,6 +265,36 @@ tape('geojson tests', test => {
 
       mock_geojson_server.close();
       mod_server.close();
+
+    });
+
+  });
+
+  test.test('catastrophic errors should be handled', t => {
+    const mock_source_server = require('express')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+
+    // stop the express server to cause a connection-refused error
+    mock_source_server.close(() => {
+      // once the server has stopped, make a request that will fail
+      const mod_server = require('../app')().listen();
+
+      request.get(`http://localhost:${mod_server.address().port}/fields`, {
+        qs: {
+          source: source
+        },
+        json: true
+      }, (err, response, body) => {
+        mock_source_server.close();
+        mod_server.close();
+
+        t.equals(response.statusCode, 400);
+        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+        t.equals(body, `Error retrieving file ${source}: ECONNREFUSED`);
+        t.end();
+
+      });
 
     });
 

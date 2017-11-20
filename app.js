@@ -8,6 +8,7 @@ const oboe = require('oboe');
 const unzip = require('unzip-stream');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
+const { URL } = require('url');
 
 // matches:
 // - MapServer/0
@@ -67,31 +68,41 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 // middleware that queries an Arcgis server for the first 10 records
 const sampleArcgis = (req, res, next) => {
-  request.get({
-    uri: `${req.query.source}/query`,
-    qs: {
-      outFields: '*',
-      where: '1=1',
-      resultRecordCount: 10,
-      resultOffset: 0,
-      f: 'json'
-    },
-    json: true
-  }, (err, response, body) => {
-    if (response.statusCode !== 200) {
-      let error_message = `Error connecting to Arcgis server ${req.query.source}`;
-      error_message += `: ${body} (${response.statusCode})`;
+  // build up a URL for querying an Arcgis server
+  const url = new URL(`${req.query.source}/query`);
+  url.searchParams.append('outFields', '*');
+  url.searchParams.append('where', '1=1');
+  url.searchParams.append('resultRecordCount', '10');
+  url.searchParams.append('resultOffset', '0');
+  url.searchParams.append('f', 'json');
+
+  req.query.fields = [];
+  req.query.results = [];
+
+  oboe(url.href)
+    .node('fields.*.name', name => {
+      req.query.fields.push(name);
+    })
+    .node('features.*.attributes', attributes => {
+      req.query.results.push(attributes);
+    })
+    .fail((err) => {
+      let error_message = `Error connecting to Arcgis server ${req.query.source}: `;
+
+      if (err.thrown) {
+        error_message += err.thrown.code;
+      } else {
+        error_message += `${err.body} (${err.statusCode})`;
+      }
 
       res.status(400).type('text/plain').send(error_message);
 
-    }
-    else {
-      req.query.fields = response.body.fields.map(_.property('name'));
-      req.query.results = response.body.features.map( _.property('attributes') );
-      return next();
-    }
-
-  });
+    })
+    .done(() => {
+      // this will happen when the list of results has been processed and
+      // iteration still has no reached the 11th result, which is very unlikely
+      next();
+    });
 
 };
 
@@ -103,9 +114,9 @@ const sampleGeojson = (req, res, next) => {
   req.query.results = [];
 
   oboe(req.query.source)
-    .node('features[*]', feature => {
-      req.query.fields = _.keys(feature.properties);
-      req.query.results.push(feature.properties);
+    .node('features[*].properties', properties => {
+      req.query.fields = _.keys(properties);
+      req.query.results.push(properties);
     })
     .node('features[9]', function() {
       // bail after the 10th result.  'done' does not get called after .abort()
@@ -122,7 +133,7 @@ const sampleGeojson = (req, res, next) => {
       } else {
         error_message += `${err.body} (${err.statusCode})`;
       }
-      
+
       res.status(400).type('text/plain').send(error_message);
 
     })

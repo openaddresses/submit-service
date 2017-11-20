@@ -376,7 +376,7 @@ tape('csv tests', test => {
 
   });
 
-  test.test('geojson file returning error should return 400 w/message', t => {
+  test.test('csv file returning error should return 400 w/message', t => {
     const mock_cvs_app = require('express')();
     mock_cvs_app.get('/file.csv', (req, res, next) => {
       res.status(404).send('page not found');

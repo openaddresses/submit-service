@@ -82,6 +82,11 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 };
 
+const isArcgis = typecheck.bind(null, 'ESRI', 'geojson')();
+const isHttpGeojson = typecheck.bind(null, 'http', 'geojson')();
+const isHttpCsv = typecheck.bind(null, 'http', 'csv')();
+const isHttpZip = typecheck.bind(null, 'http', undefined, 'zip')();
+
 // middleware that queries an Arcgis server for the first 10 records
 const sampleArcgis = (req, res, next) => {
   // build up a URL for querying an Arcgis server
@@ -329,18 +334,19 @@ module.exports = () => {
 
   // setup a router that only handles Arcgis sources
   const arcgisRouter = express.Router();
-  arcgisRouter.get('/fields', typecheck('ESRI', 'geojson'), sampleArcgis);
+  arcgisRouter.get('/fields', isArcgis, sampleArcgis);
 
-  // setup a router that only handles geojson files
+  // setup a router that only handles .geojson files
   const geojsonRouter = express.Router();
-  geojsonRouter.get('/fields', typecheck('http', 'geojson'), sampleGeojson);
+  geojsonRouter.get('/fields', isHttpGeojson, sampleGeojson);
 
-  // setup a router that only handles csv files
+  // setup a router that only handles .csv files
   const csvRouter = express.Router();
-  csvRouter.get('/fields', typecheck('http', 'csv'), sampleCsv);
+  csvRouter.get('/fields', isHttpCsv, sampleCsv);
 
+  // setup a router that only handles .zip files
   const zipRouter = express.Router();
-  zipRouter.get('/fields', typecheck('http', undefined, 'zip'), sampleZip);
+  zipRouter.get('/fields', isHttpZip, sampleZip);
 
   app.get('/fields',
     preconditionsCheck,

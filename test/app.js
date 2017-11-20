@@ -117,7 +117,7 @@ tape('arcgis tests', test => {
 
 });
 
-tape.only('geojson tests', test => {
+tape('geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
 
     const mock_geojson_app = require('express')();
@@ -440,36 +440,28 @@ tape('csv tests', test => {
   });
 
   test.test('catastrophic errors should be handled', t => {
-    const mock_cvs_app = require('express')();
-    mock_cvs_app.get('/file.csv', (req, res, next) => {
-      res.status(404).send('page not found');
-    });
+    const mock_source_server = require('express')().listen();
 
-    const mock_csv_server = mock_cvs_app.listen();
-    const mock_csv_server_port = mock_csv_server.address().port;
+    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
 
     // stop the express server to cause a connection-refused error
-    mock_csv_server.close(() => {
-      // once the server
-      const mod_app = require('../app')();
-      const mod_server = mod_app.listen();
+    mock_source_server.close(() => {
+      // once the server has stopped, make a request that will fail
+      const mod_server = require('../app')().listen();
 
       request.get(`http://localhost:${mod_server.address().port}/fields`, {
         qs: {
-          source: `http://localhost:${mock_csv_server_port}/file.csv`
+          source: source
         },
         json: true
       }, (err, response, body) => {
-        let error_message = 'Error retrieving file ';
-        error_message += `http://localhost:${mock_csv_server_port}/file.csv: ECONNREFUSED`;
+        mock_source_server.close();
+        mod_server.close();
 
         t.equals(response.statusCode, 400);
         t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
-        t.equals(body, error_message);
+        t.equals(body, `Error retrieving file ${source}: ECONNREFUSED`);
         t.end();
-
-        mock_csv_server.close();
-        mod_server.close();
 
       });
 

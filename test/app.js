@@ -43,9 +43,11 @@ tape('arcgis tests', test => {
     const mock_source_server = mock_arcgis_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/MapServer/0`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -54,7 +56,7 @@ tape('arcgis tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'ESRI',
-        data: `http://localhost:${mock_source_server.address().port}/MapServer/0`,
+        data: source,
         source_data: {
           fields: ['attribute1', 'attribute2'],
           results: [
@@ -90,14 +92,15 @@ tape('arcgis tests', test => {
     const mock_source_server = mock_arcgis_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/MapServer/0`
+        source: source
       },
       json: true
     }, (err, response, body) => {
-      let error_message = 'Error connecting to Arcgis server ';
-      error_message += `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+      let error_message = `Error connecting to Arcgis server ${source}`;
       error_message += ': page not found (404)';
 
       t.equals(response.statusCode, 400);
@@ -166,9 +169,11 @@ tape('geojson tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.geojson`
+        source: source
       },
       json: true
     }, (error, response, body) => {
@@ -177,7 +182,7 @@ tape('geojson tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.geojson`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(10).reduce((features, i) => {
@@ -223,9 +228,11 @@ tape('geojson tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.geojson`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -234,7 +241,7 @@ tape('geojson tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.geojson`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(2).reduce((features, i) => {
@@ -279,9 +286,11 @@ tape('geojson tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`
+        source: source
       },
       json: true
     }, (error, response, body) => {
@@ -290,7 +299,7 @@ tape('geojson tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: [
@@ -321,15 +330,15 @@ tape('geojson tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.geojson`
+        source: source
       },
       json: true
     }, (err, response, body) => {
-      let error_message = 'Error retrieving file ';
-      error_message += `http://localhost:${mock_source_server.address().port}/file.geojson`;
-      error_message += ': page not found (404)';
+      const error_message = `Error retrieving file ${source}: page not found (404)`;
 
       t.equals(response.statusCode, 400);
       t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -390,9 +399,11 @@ tape('csv tests', test => {
     const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.csv`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -401,7 +412,7 @@ tape('csv tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.csv`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(10).reduce((features, i) => {
@@ -440,9 +451,11 @@ tape('csv tests', test => {
     const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.csv`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -451,7 +464,7 @@ tape('csv tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.csv`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(2).reduce((features, i) => {
@@ -489,9 +502,11 @@ tape('csv tests', test => {
     const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -500,7 +515,7 @@ tape('csv tests', test => {
       t.deepEquals(body, {
         coverage: {},
         type: 'http',
-        data: `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(1).reduce((features, i) => {
@@ -533,15 +548,15 @@ tape('csv tests', test => {
     const mock_source_server = mock_cvs_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.csv`
+        source: source
       },
       json: true
     }, (err, response, body) => {
-      let error_message = 'Error retrieving file ';
-      error_message += `http://localhost:${mock_source_server.address().port}/file.csv`;
-      error_message += ': page not found (404)';
+      const error_message = `Error retrieving file ${source}: page not found (404)`;
 
       t.equals(response.statusCode, 400);
       t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -627,9 +642,11 @@ tape('zip tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -639,7 +656,7 @@ tape('zip tests', test => {
         coverage: {},
         type: 'http',
         compression: 'zip',
-        data: `http://localhost:${mock_source_server.address().port}/data.zip`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(10).reduce((features, i) => {
@@ -702,9 +719,11 @@ tape('zip tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -714,7 +733,7 @@ tape('zip tests', test => {
         coverage: {},
         type: 'http',
         compression: 'zip',
-        data: `http://localhost:${mock_source_server.address().port}/data.zip`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(2).reduce((features, i) => {
@@ -767,9 +786,11 @@ tape('zip tests', test => {
     const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -779,7 +800,7 @@ tape('zip tests', test => {
         coverage: {},
         type: 'http',
         compression: 'zip',
-        data: `http://localhost:${mock_source_server.address().port}/data.zip`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(10).reduce((features, i) => {
@@ -832,9 +853,11 @@ tape('zip tests', test => {
     const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -844,7 +867,7 @@ tape('zip tests', test => {
         coverage: {},
         type: 'http',
         compression: 'zip',
-        data: `http://localhost:${mock_source_server.address().port}/data.zip`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(2).reduce((features, i) => {
@@ -877,15 +900,15 @@ tape('zip tests', test => {
     const mock_source_server = mock_cvs_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/file.zip`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/file.zip`
+        source: source
       },
       json: true
     }, (err, response, body) => {
-      let error_message = 'Error retrieving file ';
-      error_message += `http://localhost:${mock_source_server.address().port}/file.zip`;
-      error_message += ': page not found (404)';
+      const error_message = `Error retrieving file ${source}: page not found (404)`;
 
       t.equals(response.statusCode, 400);
       t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -967,9 +990,11 @@ tape('zip tests', test => {
     const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`;
+
     request.get(`http://localhost:${mod_server.address().port}/fields`, {
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`
+        source: source
       },
       json: true
     }, (err, response, body) => {
@@ -979,7 +1004,7 @@ tape('zip tests', test => {
         coverage: {},
         type: 'http',
         compression: 'zip',
-        data: `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`,
+        data: source,
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: [

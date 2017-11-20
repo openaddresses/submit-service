@@ -31,6 +31,7 @@ const determineType = (req, res, next) => {
   try {
     const source = new URL(req.query.source);
 
+    // setup a working context
     res.locals.source = {
       coverage: {},
       data: source.href,
@@ -280,9 +281,9 @@ const sampleZip = (req, res, next) => {
           res.locals.source.conform.type = 'geojson';
 
           oboe(entry)
-            .node('features[*]', feature => {
-              res.locals.source.source_data.fields = _.keys(feature.properties);
-              res.locals.source.source_data.results.push(feature.properties);
+            .node('features.*.properties', properties => {
+              res.locals.source.source_data.fields = _.keys(properties);
+              res.locals.source.source_data.results.push(properties);
             })
             .node('features[9]', function() {
               // bail after the 10th result.  'done' does not get called after .abort()

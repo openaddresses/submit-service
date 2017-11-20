@@ -868,6 +868,67 @@ tape('zip tests', test => {
 
   });
 
+  test.test('zip file returning error should return 400 w/message', t => {
+    const mock_cvs_app = require('express')();
+    mock_cvs_app.get('/file.zip', (req, res, next) => {
+      res.status(404).send('page not found');
+    });
+
+    const mock_source_server = mock_cvs_app.listen();
+    const mod_server = require('../app')().listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_source_server.address().port}/file.zip`
+      },
+      json: true
+    }, (err, response, body) => {
+      let error_message = 'Error retrieving file ';
+      error_message += `http://localhost:${mock_source_server.address().port}/file.zip`;
+      error_message += ': page not found (404)';
+
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, error_message);
+      t.end();
+
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('catastrophic errors should be handled', t => {
+    const mock_source_server = require('express')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson.zip`;
+
+    // stop the express server to cause a connection-refused error
+    mock_source_server.close(() => {
+      // once the server has stopped, make a request that will fail
+      const mod_server = require('../app')().listen();
+
+      request.get(`http://localhost:${mod_server.address().port}/fields`, {
+        qs: {
+          source: source
+        },
+        json: true
+      }, (err, response, body) => {
+        mock_source_server.close();
+        mod_server.close();
+
+        t.equals(response.statusCode, 400);
+        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+        t.equals(body, `Error retrieving file ${source}: ECONNREFUSED`);
+        t.end();
+
+      });
+
+    });
+
+  });
+
   test.test('extra parameters in source should be ignored', t => {
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/data.zip', (req, res, next) => {

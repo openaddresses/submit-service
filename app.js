@@ -218,73 +218,101 @@ const sampleCsv = (req, res, next) => {
 const sampleZip = (req, res, next) => {
   console.log(`requesting ${req.query.source}`);
 
-  request.get(req.query.source)
-  .pipe(unzip.Parse())
-  .on('entry', entry => {
-    if (_.endsWith(entry.path, '.csv')) {
-      req.query.type = 'csv';
-      req.query.results = [];
+  const r = request(req.query.source);
 
-      // process the .csv file
-      entry.pipe(csvParse({
-        skip_empty_lines: true,
-        columns: true
-      }))
-      .pipe(through2.obj(function(record, enc, callback) {
-        // must use full function() syntax for "this" reference
-        if (req.query.results.length < 10) {
-          req.query.fields = _.keys(record);
-          req.query.results.push(record);
-          callback();
-        } else {
-          // there are enough records so end the stream prematurely, handle in 'close' event
-          this.destroy();
-        }
+  // handle catastrophic errors like "connection refused"
+  r.on('error', (err) => {
+    const error_message = `Error retrieving file ${req.query.source}: ${err.code}`;
 
-      }))
-      .on('close', () => {
-        // stream was closed prematurely
-        next();
-      })
-      .on('finish', () => {
-        // stream was ended normally
-        next();
+    res.status(400).type('text/plain').send(error_message);
+
+  });
+
+  // handle normal responses (including HTTP errors)
+  r.on('response', (response) => {
+    if (response.statusCode !== 200) {
+      // something went wrong so save up the response text and return an error
+      toString(r, (err, msg) => {
+        let error_message = `Error retrieving file ${req.query.source}`;
+        error_message += `: ${msg} (${response.statusCode})`;
+
+        res.status(400).type('text/plain').send(error_message);
+
       });
 
-    }
-    else if (_.endsWith(entry.path, '.geojson')) {
-      req.query.type = 'geojson';
+    } else {
+      // otherwise everything was fine so pipe the response to CSV and collect records
       req.query.results = [];
 
-      oboe(entry)
-        .node('features[*]', feature => {
-          req.query.fields = _.keys(feature.properties);
-          req.query.results.push(feature.properties);
-        })
-        .node('features[9]', function() {
-          // bail after the 10th result.  'done' does not get called after .abort()
-          //  so next() must be called explicitly
-          // must use full function() syntax for "this" reference
-          this.abort();
-          next();
-        })
-        .done(() => {
-          // this will happen when the list of results has been processed and
-          // iteration still has no reached the 11th result, which is very unlikely
-          next();
-        });
+      r.pipe(unzip.Parse())
+      .on('entry', entry => {
+        if (_.endsWith(entry.path, '.csv')) {
+          req.query.type = 'csv';
+          req.query.results = [];
 
-    }
-    else {
-      // we're not interested in this file, so dispose of its contents
-      entry.autodrain();
-    }
+          // process the .csv file
+          entry.pipe(csvParse({
+            skip_empty_lines: true,
+            columns: true
+          }))
+          .pipe(through2.obj(function(record, enc, callback) {
+            // must use full function() syntax for "this" reference
+            if (req.query.results.length < 10) {
+              req.query.fields = _.keys(record);
+              req.query.results.push(record);
+              callback();
+            } else {
+              // there are enough records so end the stream prematurely, handle in 'close' event
+              this.destroy();
+            }
 
-  })
-  .on('finish', () => {
-    if (!req.query.type) {
-      res.status(400).type('text/plain').send('Could not determine type from zip file');
+          }))
+          .on('close', () => {
+            // stream was closed prematurely
+            next();
+          })
+          .on('finish', () => {
+            // stream was ended normally
+            next();
+          });
+
+        }
+        else if (_.endsWith(entry.path, '.geojson')) {
+          req.query.type = 'geojson';
+          req.query.results = [];
+
+          oboe(entry)
+            .node('features[*]', feature => {
+              req.query.fields = _.keys(feature.properties);
+              req.query.results.push(feature.properties);
+            })
+            .node('features[9]', function() {
+              // bail after the 10th result.  'done' does not get called after .abort()
+              //  so next() must be called explicitly
+              // must use full function() syntax for "this" reference
+              this.abort();
+              next();
+            })
+            .done(() => {
+              // this will happen when the list of results has been processed and
+              // iteration still has no reached the 11th result, which is very unlikely
+              next();
+            });
+
+        }
+        else {
+          // we're not interested in this file, so dispose of its contents
+          entry.autodrain();
+        }
+
+      })
+      .on('finish', () => {
+        if (!req.query.type) {
+          res.status(400).type('text/plain').send('Could not determine type from zip file');
+        }
+      });
     }
+    
   });
 
 };

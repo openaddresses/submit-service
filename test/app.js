@@ -376,6 +376,39 @@ tape('csv tests', test => {
 
   });
 
+  test.test('geojson file returning error should return 400 w/message', t => {
+    const mock_cvs_app = require('express')();
+    mock_cvs_app.get('/file.csv', (req, res, next) => {
+      res.status(404).send('page not found');
+    });
+
+    const mock_csv_server = mock_cvs_app.listen();
+
+    const mod_app = require('../app')();
+    const mod_server = mod_app.listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_csv_server.address().port}/file.csv`
+      },
+      json: true
+    }, (err, response, body) => {
+      let error_message = 'Error retrieving file ';
+      error_message += `http://localhost:${mock_csv_server.address().port}/file.csv`;
+      error_message += ': page not found (404)';
+
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, error_message);
+      t.end();
+
+      mock_csv_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
 });
 
 tape('zip tests', test => {

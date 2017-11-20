@@ -7,6 +7,7 @@ const through2 = require('through2');
 const oboe = require('oboe');
 const unzip = require('unzip-stream');
 const morgan = require('morgan');
+const toString = require('stream-to-string');
 
 // matches:
 // - MapServer/0
@@ -135,28 +136,47 @@ const sampleCsv = (req, res, next) => {
 
   req.query.results = [];
 
-  request.get(req.query.source).pipe(csvParse({
-    skip_empty_lines: true,
-    columns: true
-  }))
-  .pipe(through2.obj(function(record, enc, callback) {
-    if (req.query.results.length < 10) {
-      req.query.fields = _.keys(record);
-      req.query.results.push(record);
-      callback();
+  // save off request so it can be error-handled and piped later
+  const r = request(req.query.source);
+  r.on('response', (response) => {
+    if (response.statusCode !== 200) {
+      // something went wrong so save up the response text and return an error
+      toString(r, (err, msg) => {
+        let error_message = `Error retrieving file ${req.query.source}`;
+        error_message += `: ${msg} (${response.statusCode})`;
+
+        res.status(400).type('text/plain').send(error_message);
+
+      });
+
     } else {
-      // there are enough records so end the stream prematurely, handle in 'close' event
-      this.destroy();
+      // otherwise everything was fine so pipe the response to CSV and collect records
+      r.pipe(csvParse({
+        skip_empty_lines: true,
+        columns: true
+      }))
+      .pipe(through2.obj(function(record, enc, callback) {
+        if (req.query.results.length < 10) {
+          req.query.fields = _.keys(record);
+          req.query.results.push(record);
+          callback();
+        } else {
+          // there are enough records so end the stream prematurely, handle in 'close' event
+          this.destroy();
+        }
+
+      }))
+      .on('close', () => {
+        // stream was closed prematurely
+        next();
+      })
+      .on('finish', () => {
+        // stream was ended normally
+        next();
+      });
+
     }
 
-  }))
-  .on('close', () => {
-    // stream was closed prematurely
-    next();
-  })
-  .on('finish', () => {
-    // stream was ended normally
-    next();
   });
 
 };

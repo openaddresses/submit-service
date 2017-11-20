@@ -82,6 +82,7 @@ const typecheck = (protocol, type, compression) => (req, res, next) => {
 
 };
 
+// helper functions bound to typecheck with specific parameters
 const isArcgis = typecheck.bind(null, 'ESRI', 'geojson')();
 const isHttpGeojson = typecheck.bind(null, 'http', 'geojson')();
 const isHttpCsv = typecheck.bind(null, 'http', 'csv')();

@@ -325,8 +325,6 @@ const sampleZip = (req, res, next) => {
 // middleware that outputs the accumulated metadata, fields, and sample results
 const output = (req, res, next) => {
   res.status(200).send(res.locals.source);
-
-  next();
 };
 
 module.exports = () => {

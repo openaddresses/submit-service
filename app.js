@@ -28,29 +28,35 @@ const preconditionsCheck = (req, res, next) => {
 
 // determine the protocol, type, and compression to make decisions easier later on
 const determineType = (req, res, next) => {
-  const source = req.query.source;
+  try {
+    const source = new URL(req.query.source);
 
-  if (arcgisRegexp.test(source)) {
-    req.query.protocol = 'ESRI';
-    req.query.type = 'geojson';
-  } else if (_.endsWith(source, '.geojson')) {
-    req.query.protocol = 'http';
-    req.query.type = 'geojson';
-  } else if (_.endsWith(source, '.csv')) {
-    req.query.protocol = 'http';
-    req.query.type = 'csv';
-  } else if (_.endsWith(source, '.zip')) {
-    req.query.protocol = 'http';
-    req.query.compression = 'zip';
-  } else {
-    req.query.protocol = 'unknown';
-  }
+    if (arcgisRegexp.test(source.pathname)) {
+      req.query.protocol = 'ESRI';
+      req.query.type = 'geojson';
+    } else if (_.endsWith(source.pathname, '.geojson')) {
+      req.query.protocol = 'http';
+      req.query.type = 'geojson';
+    } else if (_.endsWith(source.pathname, '.csv')) {
+      req.query.protocol = 'http';
+      req.query.type = 'csv';
+    } else if (_.endsWith(source.pathname, '.zip')) {
+      req.query.protocol = 'http';
+      req.query.compression = 'zip';
+    } else {
+      req.query.protocol = 'unknown';
+    }
 
-  // if protocol is unknown, return a 400
-  if (req.query.protocol === 'unknown') {
-    res.status(400).type('text/plain').send('Unsupported type');
-  } else {
-    next();
+    // if protocol is unknown, return a 400
+    if (req.query.protocol === 'unknown') {
+      res.status(400).type('text/plain').send('Unsupported type');
+    } else {
+      next();
+    }
+
+  } catch (err) {
+    res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
+
   }
 
 };

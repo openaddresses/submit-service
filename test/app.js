@@ -258,6 +258,60 @@ tape('geojson tests', test => {
 
   });
 
+  test.test('extra parameters in source should be ignored', t => {
+    const mock_geojson_app = require('express')();
+    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+      res.status(200).send({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              'attribute 1': `feature 1 attribute 1 value`,
+              'attribute 2': `feature 1 attribute 2 value`
+            }
+          }
+        ]
+      });
+
+    });
+
+    const mock_source_server = mock_geojson_app.listen();
+    const mod_server = require('../app')().listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`
+      },
+      json: true
+    }, (error, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: [
+            {
+              'attribute 1': `feature 1 attribute 1 value`,
+              'attribute 2': `feature 1 attribute 2 value`
+            }
+          ]
+        },
+        conform: {
+          type: 'geojson'
+        }
+      });
+      t.end();
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
   test.test('geojson file returning error should return 400 w/message', t => {
     const mock_geojson_app = require('express')();
     mock_geojson_app.get('/file.geojson', (req, res, next) => {
@@ -401,6 +455,55 @@ tape('csv tests', test => {
         source_data: {
           fields: ['attribute 1', 'attribute 2'],
           results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute 1': `feature ${i} attribute 1 value`,
+              'attribute 2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'csv'
+        }
+      });
+
+      t.end();
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('extra parameters in source should be ignored', t => {
+    const mock_csv_app = require('express')();
+    mock_csv_app.get('/file.csv', (req, res, next) => {
+      const rows = _.range(1).reduce((rows, i) => {
+        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+      }, ['attribute 1,attribute 2']);
+
+      res.status(200).send(rows.join('\n'));
+
+    });
+
+    const mock_source_server = mock_csv_app.listen();
+    const mod_server = require('../app')().listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        data: `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: _.range(1).reduce((features, i) => {
             features.push({
               'attribute 1': `feature ${i} attribute 1 value`,
               'attribute 2': `feature ${i} attribute 2 value`
@@ -765,6 +868,123 @@ tape('zip tests', test => {
 
   });
 
+  test.test('extra parameters in source should be ignored', t => {
+    const mock_geojson_app = require('express')();
+    mock_geojson_app.get('/data.zip', (req, res, next) => {
+      const output = new ZipContentsStream();
+
+      output.on('finish', function() {
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
+        res.set('Content-Length', this.buffer.length);
+        res.end(this.buffer, 'binary');
+      });
+
+      const data = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {
+              'attribute 1': 'feature 1 attribute 1 value',
+              'attribute 2': 'feature 1 attribute 2 value'
+            }
+          }
+        ]
+      };
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+      });
+      archive.pipe(output);
+      archive.append('this is the README', { name: 'README.md' });
+      archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
+      archive.finalize();
+
+    });
+
+    const mock_source_server = mock_geojson_app.listen();
+    const mod_server = require('../app')().listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`,
+        source_data: {
+          fields: ['attribute 1', 'attribute 2'],
+          results: [
+            {
+              'attribute 1': 'feature 1 attribute 1 value',
+              'attribute 2': 'feature 1 attribute 2 value'
+            }
+          ]
+        },
+        conform: {
+          type: 'geojson'
+        }
+      });
+
+      t.end();
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('cannot determine type from .zip file', t => {
+    const mock_geojson_app = require('express')();
+    mock_geojson_app.get('/data.zip', (req, res, next) => {
+      const output = new ZipContentsStream();
+
+      output.on('finish', function() {
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
+        res.set('Content-Length', this.buffer.length);
+        res.end(this.buffer, 'binary');
+      });
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+      });
+      archive.pipe(output);
+      archive.append('this is the README', { name: 'README.md' });
+      archive.append('this is an HTML file', { name: 'index.html' });
+      archive.append('this is another file', { name: 'random_file.txt' });
+      archive.finalize();
+
+    });
+
+    const mock_source_server = mock_geojson_app.listen();
+    const mod_server = require('../app')().listen();
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 400);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(body, 'Could not determine type from zip file');
+      t.end();
+
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
 });
 
 tape('error conditions', test => {
@@ -814,52 +1034,8 @@ tape('error conditions', test => {
     }, (err, response, body) => {
       t.equals(response.statusCode, 400);
       t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(body, 'Unsupported type');
+      t.equals(body, 'Unable to parse URL from \'unsupported type\'');
       t.end();
-      mod_server.close();
-
-    });
-
-  });
-
-  test.test('cannot determine type from .zip file', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/data.zip', (req, res, next) => {
-      const output = new ZipContentsStream();
-
-      output.on('finish', function() {
-        res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=data.zip');
-        res.set('Content-Length', this.buffer.length);
-        res.end(this.buffer, 'binary');
-      });
-
-      const archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
-      });
-      archive.pipe(output);
-      archive.append('this is the README', { name: 'README.md' });
-      archive.append('this is an HTML file', { name: 'index.html' });
-      archive.append('this is another file', { name: 'random_file.txt' });
-      archive.finalize();
-
-    });
-
-    const mock_source_server = mock_geojson_app.listen();
-    const mod_server = require('../app')().listen();
-
-    request.get(`http://localhost:${mod_server.address().port}/fields`, {
-      qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
-      },
-      json: true
-    }, (err, response, body) => {
-      t.equals(response.statusCode, 400);
-      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(body, 'Could not determine type from zip file');
-      t.end();
-
-      mock_source_server.close();
       mod_server.close();
 
     });

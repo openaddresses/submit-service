@@ -227,7 +227,7 @@ const sampleCsv = (req, res, next) => {
 
 };
 
-// middleware that requests and streams a compressed .csv file, returning up
+// middleware that requests and streams a compressed .zip file, returning up
 // to the first 10 records
 const sampleZip = (req, res, next) => {
   console.log(`requesting ${res.locals.source.data}`);

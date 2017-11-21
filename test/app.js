@@ -3,6 +3,8 @@ const request = require('request');
 const _ = require('lodash');
 const archiver = require('archiver');
 const ZipContentsStream = require('./ZipContentsStream');
+const io = require('indian-ocean');
+const temp = require('temp');
 
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
@@ -880,6 +882,184 @@ tape('zip tests', test => {
         },
         conform: {
           type: 'csv'
+        }
+      });
+
+      t.end();
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('dbf.zip: fields and sample results, should limit to 10', t => {
+    // THIS TEST IS SO MUCH COMPLICATED
+    // mainly because there apparently are no DBF parsers for node that take a stream, they all take files
+
+    const mock_source_app = require('express')();
+    mock_source_app.get('/data.zip', (req, res, next) => {
+      const records = _.range(11).reduce((features, i) => {
+        features.push(
+          {
+            'attribute1': `feature ${i} attribute 1 value`,
+            'attribute2': `feature ${i} attribute 2 value`
+          }
+        );
+        return features;
+      }, []);
+
+      // create a stream wrapped around a temporary file with .dbf extension
+      const stream = temp.createWriteStream({ suffix: '.dbf' });
+
+      // write out the records to the temporary file
+      io.writeData(stream.path, records, {
+        columns: ['attribute1', 'attribute2']
+      }, (err, dataString) => {
+
+        // once the data has been written, create a stream of zip data from it
+        //  and write out to the response
+        const output = new ZipContentsStream();
+
+        output.on('finish', function() {
+          temp.cleanup(() => {
+            res.set('Content-Type', 'application/zip');
+            res.set('Content-Disposition', 'attachment; filename=data.zip');
+            res.set('Content-Length', this.buffer.length);
+            res.end(this.buffer, 'binary');
+          });
+        });
+
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // Sets the compression level.
+        });
+        archive.pipe(output);
+        archive.append('this is the README', { name: 'README.md' });
+        archive.file(stream.path, { name: 'file.dbf' });
+        archive.finalize();
+
+      });
+
+    });
+
+    const mock_source_server = mock_source_app.listen();
+    const mod_server = require('../app')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: source
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: source,
+        source_data: {
+          fields: ['attribute1', 'attribute2'],
+          results: _.range(10).reduce((features, i) => {
+            features.push({
+              'attribute1': `feature ${i} attribute 1 value`,
+              'attribute2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'shapefile'
+        }
+      });
+
+      t.end();
+      mock_source_server.close();
+      mod_server.close();
+
+    });
+
+  });
+
+  test.test('dbf.zip: file consisting of less than 10 records should return all', t => {
+    // THIS TEST IS SO MUCH COMPLICATED
+    // mainly because there apparently are no DBF parsers for node that take a stream, they all take files
+
+    const mock_source_app = require('express')();
+    mock_source_app.get('/data.zip', (req, res, next) => {
+      // only write out 2 records
+      const records = _.range(2).reduce((features, i) => {
+        features.push(
+          {
+            'attribute1': `feature ${i} attribute 1 value`,
+            'attribute2': `feature ${i} attribute 2 value`
+          }
+        );
+        return features;
+      }, []);
+
+      // create a stream wrapped around a temporary file with .dbf extension
+      const stream = temp.createWriteStream({ suffix: '.dbf' });
+
+      // write out the records to the temporary file
+      io.writeData(stream.path, records, (err, dataString) => {
+        // once the data has been written, create a stream of zip data from it
+        //  and write out to the response
+        const output = new ZipContentsStream();
+
+        output.on('finish', function() {
+          temp.cleanup(() => {
+            res.set('Content-Type', 'application/zip');
+            res.set('Content-Disposition', 'attachment; filename=data.zip');
+            res.set('Content-Length', this.buffer.length);
+            res.end(this.buffer, 'binary');
+          });
+        });
+
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // Sets the compression level.
+        });
+        archive.pipe(output);
+        archive.append('this is the README', { name: 'README.md' });
+        archive.file(stream.path, { name: 'file.dbf' });
+        archive.finalize();
+
+      });
+
+    });
+
+    const mock_source_server = mock_source_app.listen();
+    const mod_server = require('../app')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
+    request.get(`http://localhost:${mod_server.address().port}/fields`, {
+      qs: {
+        source: source
+      },
+      json: true
+    }, (err, response, body) => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(body, {
+        coverage: {},
+        type: 'http',
+        compression: 'zip',
+        data: source,
+        source_data: {
+          fields: ['attribute1', 'attribute2'],
+          results: _.range(2).reduce((features, i) => {
+            features.push({
+              'attribute1': `feature ${i} attribute 1 value`,
+              'attribute2': `feature ${i} attribute 2 value`
+            });
+            return features;
+          }, [])
+        },
+        conform: {
+          type: 'shapefile'
         }
       });
 

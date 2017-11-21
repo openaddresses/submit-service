@@ -17,7 +17,9 @@
   },
   "dependencies": {
     "csv-parse": "^1.1.7",
+    "dbfstream": "^1.0.19",
     "express": "^4.16.2",
+    "indian-ocean": "^3.0.2",
     "lodash": "^4.17.4",
     "morgan": "^1.9.0",
     "oboe": "^2.1.4",

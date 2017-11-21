@@ -9,6 +9,11 @@ const unzip = require('unzip-stream');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
 const { URL } = require('url');
+const fs = require('fs');
+const dbfstream = require('dbfstream');
+const temp = require('temp');
+
+temp.track();
 
 // matches:
 // - MapServer/0
@@ -305,9 +310,60 @@ const sampleZip = (req, res, next) => {
             });
 
         }
+        else if (_.endsWith(entry.path, '.dbf')) {
+          // in the case of a DBF file, because there's no DBF parser that takes a stream,
+          // write to a temporary file and read in that way
+          res.locals.source.conform.type = 'shapefile';
+
+          res.locals.source.source_data.results = [];
+
+          // create a stream for writing the dbf file to
+          const stream = temp.createWriteStream({ suffix: '.dbf' });
+
+          // bookkeeping flag to determine if next() has already been called
+          let next_was_called = false;
+
+          // pipe the dbf contents from the .zip file to a stream
+          entry.pipe(stream).on('finish', () => {
+            const dbf = dbfstream(stream.path, 'utf-8');
+
+            // there's a header so pull the field names from it
+            dbf.on('header', (header) => {
+              res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+            });
+
+            // found a row
+            dbf.on('data', (record) => {
+              // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+              if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
+                // add all the non-@ attributes
+                res.locals.source.source_data.results.push(
+                  _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
+
+              } else if (!next_was_called) {
+                // there are 10 records, so bail now
+                next_was_called = true;
+                return next();
+
+              }
+
+            });
+
+            // stream ended, so call next() if it hasn't already
+            dbf.on('end', () => {
+              if (!next_was_called) {
+                return next();
+              }
+
+            });
+
+          });
+
+        }
         else {
-          // we're not interested in this file, so dispose of its contents
+          // this is a file that's currently unsupported so drain it so memory doesn't get full
           entry.autodrain();
+
         }
 
       })
@@ -315,6 +371,7 @@ const sampleZip = (req, res, next) => {
         if (!res.locals.source.conform.type) {
           res.status(400).type('text/plain').send('Could not determine type from zip file');
         }
+
       });
     }
 

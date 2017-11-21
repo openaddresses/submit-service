@@ -13,6 +13,14 @@ const fs = require('fs');
 const dbfstream = require('dbfstream');
 const temp = require('temp');
 
+const winston = require('winston');
+const logger = winston.createLogger({
+  level: 'debug',
+  transports: [
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+
 temp.track();
 
 // matches:
@@ -26,6 +34,7 @@ const preconditionsCheck = (req, res, next) => {
   if (!req.query.source) {
     res.status(400).type('text/plain').send('\'source\' parameter is required');
   } else {
+    logger.debug({ source: req.query.source });
     next();
   }
 
@@ -64,6 +73,7 @@ const determineType = (req, res, next) => {
     }
 
   } catch (err) {
+    logger.info(`Unable to parse URL from '${req.query.source}'`);
     res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
 
   }
@@ -95,6 +105,8 @@ const isHttpZip = typecheck.bind(null, 'http', undefined, 'zip')();
 
 // middleware that queries an Arcgis server for the first 10 records
 const sampleArcgis = (req, res, next) => {
+  logger.debug(`using arcgis sampler for ${res.locals.source.data}`);
+
   // build up a URL for querying an Arcgis server
   const url = new URL(`${res.locals.source.data}/query`);
   url.searchParams.append('outFields', '*');
@@ -119,6 +131,8 @@ const sampleArcgis = (req, res, next) => {
         error_message += `${err.body} (${err.statusCode})`;
       }
 
+      logger.info(error_message);
+
       res.status(400).type('text/plain').send(error_message);
 
     })
@@ -133,7 +147,7 @@ const sampleArcgis = (req, res, next) => {
 // middleware that requests and streams a .geojson file, returning up to the first
 // 10 records
 const sampleGeojson = (req, res, next) => {
-  console.log(`requesting ${res.locals.source.data}`);
+  logger.debug(`using geojson sampler for ${res.locals.source.data}`);
 
   oboe(res.locals.source.data)
     .node('features[*].properties', properties => {
@@ -156,6 +170,8 @@ const sampleGeojson = (req, res, next) => {
         error_message += `${err.body} (${err.statusCode})`;
       }
 
+      logger.info(error_message);
+
       res.status(400).type('text/plain').send(error_message);
 
     })
@@ -170,7 +186,7 @@ const sampleGeojson = (req, res, next) => {
 // middleware that requests and streams a .csv file, returning up to the first
 // 10 records
 const sampleCsv = (req, res, next) => {
-  console.log(`requesting ${res.locals.source.data}`);
+  logger.debug(`using csv sampler for ${res.locals.source.data}`);
 
   // save off request so it can be error-handled and piped later
   const r = request(res.locals.source.data);
@@ -178,6 +194,8 @@ const sampleCsv = (req, res, next) => {
   // handle catastrophic errors like "connection refused"
   r.on('error', (err) => {
     const error_message = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
+
+    logger.info(error_message);
 
     res.status(400).type('text/plain').send(error_message);
 
@@ -191,11 +209,15 @@ const sampleCsv = (req, res, next) => {
         let error_message = `Error retrieving file ${res.locals.source.data}`;
         error_message += `: ${msg} (${response.statusCode})`;
 
+        logger.info(error_message);
+
         res.status(400).type('text/plain').send(error_message);
 
       });
 
     } else {
+      logger.debug(`successfully retrieved ${res.locals.source.data}`);
+
       // otherwise everything was fine so pipe the response to CSV and collect records
       r.pipe(csvParse({
         skip_empty_lines: true,
@@ -230,13 +252,14 @@ const sampleCsv = (req, res, next) => {
 // middleware that requests and streams a compressed .zip file, returning up
 // to the first 10 records
 const sampleZip = (req, res, next) => {
-  console.log(`requesting ${res.locals.source.data}`);
+  logger.debug(`using zip sampler for ${res.locals.source.data}`);
 
   const r = request(res.locals.source.data);
 
   // handle catastrophic errors like "connection refused"
   r.on('error', (err) => {
     const error_message = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
+    logger.info(error_message);
 
     res.status(400).type('text/plain').send(error_message);
 
@@ -250,15 +273,20 @@ const sampleZip = (req, res, next) => {
         let error_message = `Error retrieving file ${res.locals.source.data}`;
         error_message += `: ${msg} (${response.statusCode})`;
 
+        logger.info(error_message);
+
         res.status(400).type('text/plain').send(error_message);
 
       });
 
     } else {
+      logger.debug(`successfully retrieved ${res.locals.source.data}`);
+
       // otherwise everything was fine so pipe the response to CSV and collect records
       r.pipe(unzip.Parse())
       .on('entry', entry => {
         if (_.endsWith(entry.path, '.csv')) {
+          logger.debug(`treating ${entry.path} as csv`);
           res.locals.source.conform.type = 'csv';
 
           // process the .csv file
@@ -289,6 +317,8 @@ const sampleZip = (req, res, next) => {
 
         }
         else if (_.endsWith(entry.path, '.geojson')) {
+          logger.debug(`treating ${entry.path} as geojson`);
+
           res.locals.source.conform.type = 'geojson';
 
           oboe(entry)
@@ -311,6 +341,8 @@ const sampleZip = (req, res, next) => {
 
         }
         else if (_.endsWith(entry.path, '.dbf')) {
+          logger.debug(`treating ${entry.path} as dbf`);
+
           // in the case of a DBF file, because there's no DBF parser that takes a stream,
           // write to a temporary file and read in that way
           res.locals.source.conform.type = 'shapefile';
@@ -362,6 +394,7 @@ const sampleZip = (req, res, next) => {
         }
         else {
           // this is a file that's currently unsupported so drain it so memory doesn't get full
+          logger.debug(`skipping ${entry.path}`);
           entry.autodrain();
 
         }
@@ -369,6 +402,7 @@ const sampleZip = (req, res, next) => {
       })
       .on('finish', () => {
         if (!res.locals.source.conform.type) {
+          logger.info('Could not determine type from zip file');
           res.status(400).type('text/plain').send('Could not determine type from zip file');
         }
 

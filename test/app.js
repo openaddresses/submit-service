@@ -1325,7 +1325,7 @@ tape('error conditions', test => {
 
 });
 
-tape.only('ftp tests', test => {
+tape('ftp tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // generate 11 features
     const records = _.range(11).reduce((features, i) => {

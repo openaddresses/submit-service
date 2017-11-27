@@ -1,4 +1,5 @@
 const tape = require('tape');
+const express = require('express');
 const request = require('request-promise');
 const _ = require('lodash');
 const archiver = require('archiver');
@@ -24,8 +25,7 @@ class MockFileSystem extends FileSystem {
 
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
-    const mock_arcgis_app = require('express')();
-    mock_arcgis_app.get('/MapServer/0/query', (req, res, next) => {
+    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -56,9 +56,8 @@ tape('arcgis tests', test => {
         ]
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_arcgis_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
@@ -104,12 +103,9 @@ tape('arcgis tests', test => {
   });
 
   test.test('arcgis server returning error should return 400 w/message', t => {
-    const mock_arcgis_app = require('express')();
-    mock_arcgis_app.get('/MapServer/0/query', (req, res, next) => {
+    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
       res.status(404).send('page not found');
-    });
-
-    const mock_source_server = mock_arcgis_app.listen();
+    }).listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
@@ -134,30 +130,31 @@ tape('arcgis tests', test => {
   });
 
   test.test('catastrophic arcgis errors should be handled', t => {
-    const mock_source_server = require('express')().listen();
+    express().listen(function() {
+      const source = `http://localhost:${this.address().port}/MapServer/0`;
 
-    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+      // stop the express server to cause a connection-refused error
+      this.close(() => {
+        // once the server has stopped, make a request that will fail
+        const mod_server = require('../app')().listen();
 
-    // stop the express server to cause a connection-refused error
-    mock_source_server.close(() => {
-      // once the server has stopped, make a request that will fail
-      const mod_server = require('../app')().listen();
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error connecting to Arcgis server ${source}: ECONNREFUSED`);
+        })
+        .finally(() => {
+          mod_server.close(() => t.end());
+        });
 
-      request({
-        uri: `http://localhost:${mod_server.address().port}/fields`,
-        qs: {
-          source: source
-        },
-        json: true,
-        resolveWithFullResponse: true
-      })
-      .catch(err => {
-        t.equals(err.statusCode, 400);
-        t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-        t.equals(err.error, `Error connecting to Arcgis server ${source}: ECONNREFUSED`);
-      })
-      .finally(() => {
-        mod_server.close(() => mock_source_server.close(() => t.end()));
       });
 
     });
@@ -168,8 +165,7 @@ tape('arcgis tests', test => {
 
 tape('geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(11).reduce((features, i) => {
@@ -184,9 +180,8 @@ tape('geojson tests', test => {
         }, [])
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
@@ -229,8 +224,7 @@ tape('geojson tests', test => {
   });
 
   test.test('geojson consisting of less than 10 records should return all', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(2).reduce((features, i) => {
@@ -245,9 +239,8 @@ tape('geojson tests', test => {
         }, [])
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
@@ -290,8 +283,7 @@ tape('geojson tests', test => {
   });
 
   test.test('extra parameters in source should be ignored', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: [
@@ -305,9 +297,8 @@ tape('geojson tests', test => {
         ]
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`;
@@ -348,12 +339,10 @@ tape('geojson tests', test => {
   });
 
   test.test('geojson file returning error should return 400 w/message', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/file.geojson', (req, res, next) => {
+    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(404).send('page not found');
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
@@ -378,33 +367,34 @@ tape('geojson tests', test => {
   });
 
   test.test('catastrophic errors should be handled', t => {
-    const mock_source_server = require('express')().listen();
+    express().listen(function() {
+      const source = `http://localhost:${this.address().port}/file.geojson`;
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+      // stop the express server to cause a connection-refused error
+      this.close(() => {
+        // once the server has stopped, make a request that will fail
+        const mod_server = require('../app')().listen();
 
-    // stop the express server to cause a connection-refused error
-    mock_source_server.close(() => {
-      // once the server has stopped, make a request that will fail
-      const mod_server = require('../app')().listen();
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.fail('request should not have been successful');
+        })
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
+        })
+        .finally(() => {
+          mod_server.close(() => t.end());
+        });
 
-      request({
-        uri: `http://localhost:${mod_server.address().port}/fields`,
-        qs: {
-          source: source
-        },
-        json: true,
-        resolveWithFullResponse: true
-      })
-      .then(response => {
-        t.fail('request should not have been successful');
-      })
-      .catch(err => {
-        t.equals(err.statusCode, 400);
-        t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-        t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
-      })
-      .finally(() => {
-        mod_server.close(() => mock_source_server.close(() => t.end()));
       });
 
     });
@@ -415,17 +405,15 @@ tape('geojson tests', test => {
 
 tape('csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv', (req, res, next) => {
+    const mock_source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(20).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
 
       res.status(200).send(rows.join('\n'));
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
@@ -467,17 +455,15 @@ tape('csv tests', test => {
   });
 
   test.test('csv consisting of less than 10 records should return all', t => {
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv', (req, res, next) => {
+    const mock_source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(2).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
 
       res.status(200).send(rows.join('\n'));
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
@@ -519,17 +505,15 @@ tape('csv tests', test => {
   });
 
   test.test('extra parameters in source should be ignored', t => {
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/file.csv', (req, res, next) => {
+    const mock_source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(1).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
 
       res.status(200).send(rows.join('\n'));
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`;
@@ -571,12 +555,10 @@ tape('csv tests', test => {
   });
 
   test.test('csv file returning error should return 400 w/message', t => {
-    const mock_cvs_app = require('express')();
-    mock_cvs_app.get('/file.csv', (req, res, next) => {
+    const mock_source_server = express().get('/file.csv', (req, res, next) => {
       res.status(404).send('page not found');
-    });
+    }).listen();
 
-    const mock_source_server = mock_cvs_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
@@ -601,33 +583,34 @@ tape('csv tests', test => {
   });
 
   test.test('catastrophic errors should be handled', t => {
-    const mock_source_server = require('express')().listen();
+    express().listen(function() {
+      const source = `http://localhost:${this.address().port}/file.csv`;
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+      // stop the express server to cause a connection-refused error
+      this.close(() => {
+        // once the server has stopped, make a request that will fail
+        const mod_server = require('../app')().listen();
 
-    // stop the express server to cause a connection-refused error
-    mock_source_server.close(() => {
-      // once the server has stopped, make a request that will fail
-      const mod_server = require('../app')().listen();
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.fail('request should not have been successful');
+        })
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
+        })
+        .finally(() => {
+          mod_server.close(() => t.end());
+        });
 
-      request({
-        uri: `http://localhost:${mod_server.address().port}/fields`,
-        qs: {
-          source: source
-        },
-        json: true,
-        resolveWithFullResponse: true
-      })
-      .then(response => {
-        t.fail('request should not have been successful');
-      })
-      .catch(err => {
-        t.equals(err.statusCode, 400);
-        t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-        t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
-      })
-      .finally(() => {
-        mod_server.close(() => t.end());
       });
 
     });
@@ -638,8 +621,7 @@ tape('csv tests', test => {
 
 tape('zip tests', test => {
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -671,9 +653,8 @@ tape('zip tests', test => {
       archive.append(JSON.stringify(data), { name: 'file.geojson' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -716,8 +697,7 @@ tape('zip tests', test => {
   });
 
   test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -749,9 +729,8 @@ tape('zip tests', test => {
       archive.append(JSON.stringify(data), { name: 'file.geojson' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -794,8 +773,7 @@ tape('zip tests', test => {
   });
 
   test.test('csv.zip: fields and sample results, should limit to 10', t => {
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -817,9 +795,8 @@ tape('zip tests', test => {
       archive.append(data.join('\n'), { name: 'file.csv' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -862,8 +839,7 @@ tape('zip tests', test => {
   });
 
   test.test('csv.zip: file consisting of less than 10 records should return all', t => {
-    const mock_csv_app = require('express')();
-    mock_csv_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -885,9 +861,8 @@ tape('zip tests', test => {
       archive.append(data.join('\n'), { name: 'file.csv' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_csv_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -933,8 +908,7 @@ tape('zip tests', test => {
     // THIS TEST IS SO MUCH COMPLICATED
     // mainly because there apparently are no DBF parsers for node that take a stream, they all take files
 
-    const mock_source_app = require('express')();
-    mock_source_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const records = _.range(11).reduce((features, i) => {
         features.push(
           {
@@ -976,9 +950,8 @@ tape('zip tests', test => {
 
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_source_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -1024,8 +997,7 @@ tape('zip tests', test => {
     // THIS TEST IS SO MUCH COMPLICATED
     // mainly because there apparently are no DBF parsers for node that take a stream, they all take files
 
-    const mock_source_app = require('express')();
-    mock_source_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const records = _.range(2).reduce((features, i) => {
         features.push(
           {
@@ -1067,9 +1039,8 @@ tape('zip tests', test => {
 
       });
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_source_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
@@ -1112,12 +1083,10 @@ tape('zip tests', test => {
   });
 
   test.test('zip file returning error should return 400 w/message', t => {
-    const mock_source_app = require('express')();
-    mock_source_app.get('/file.zip', (req, res, next) => {
+    const mock_source_server = express().get('/file.zip', (req, res, next) => {
       res.status(404).send('page not found');
-    });
+    }).listen();
 
-    const mock_source_server = mock_source_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.zip`;
@@ -1145,7 +1114,7 @@ tape('zip tests', test => {
   });
 
   test.test('catastrophic errors should be handled', t => {
-    const mock_source_server = require('express')().listen();
+    const mock_source_server = express().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/file.zip`;
 
@@ -1177,8 +1146,7 @@ tape('zip tests', test => {
   });
 
   test.test('extra parameters in source should be ignored', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1209,9 +1177,8 @@ tape('zip tests', test => {
       archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     const source = `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`;
@@ -1253,8 +1220,7 @@ tape('zip tests', test => {
   });
 
   test.test('cannot determine type from .zip file', t => {
-    const mock_geojson_app = require('express')();
-    mock_geojson_app.get('/data.zip', (req, res, next) => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1273,9 +1239,8 @@ tape('zip tests', test => {
       archive.append('this is another file', { name: 'random_file.txt' });
       archive.finalize();
 
-    });
+    }).listen();
 
-    const mock_source_server = mock_geojson_app.listen();
     const mod_server = require('../app')().listen();
 
     request({

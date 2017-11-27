@@ -1922,9 +1922,10 @@ tape('ftp tests', test => {
     const mod_server = require('../app')().listen();
 
     // generate 1 feature
-    const data = _.range(1).reduce((rows, i) => {
-      return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-    }, ['attribute 1,attribute 2']);
+    const data = [
+      'attribute 1,attribute 2',
+      'feature 1 attribute 1 value,feature 1 attribute 2 value'
+    ];
 
     // once the data has been written, create a stream of zip data from it
     //  and write out to the response
@@ -1975,13 +1976,12 @@ tape('ftp tests', test => {
               compression: 'zip',
               source_data: {
                 fields: ['attribute 1', 'attribute 2'],
-                results: _.range(1).reduce((features, i) => {
-                  features.push({
-                    'attribute 1': `feature ${i} attribute 1 value`,
-                    'attribute 2': `feature ${i} attribute 2 value`
-                  });
-                  return features;
-                }, [])
+                results: [
+                  {
+                    'attribute 1': `feature 1 attribute 1 value`,
+                    'attribute 2': `feature 1 attribute 2 value`
+                  }
+                ]
               },
               conform: {
                 type: 'csv'

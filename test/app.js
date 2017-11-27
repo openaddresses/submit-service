@@ -94,8 +94,8 @@ tape('arcgis tests', test => {
           type: 'geojson'
         }
       });
-
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -118,6 +118,7 @@ tape('arcgis tests', test => {
       json: true,
       resolveWithFullResponse: true
     })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -146,6 +147,7 @@ tape('arcgis tests', test => {
           json: true,
           resolveWithFullResponse: true
         })
+        .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -217,6 +219,7 @@ tape('geojson tests', test => {
       });
 
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -276,6 +279,7 @@ tape('geojson tests', test => {
       });
 
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -332,6 +336,7 @@ tape('geojson tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -355,6 +360,7 @@ tape('geojson tests', test => {
       json: true,
       resolveWithFullResponse: true
     })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -383,9 +389,7 @@ tape('geojson tests', test => {
           json: true,
           resolveWithFullResponse: true
         })
-        .then(response => {
-          t.fail('request should not have been successful');
-        })
+        .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -448,6 +452,7 @@ tape('csv tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -498,6 +503,7 @@ tape('csv tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -548,6 +554,7 @@ tape('csv tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -571,6 +578,7 @@ tape('csv tests', test => {
       json: true,
       resolveWithFullResponse: true
     })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -599,9 +607,7 @@ tape('csv tests', test => {
           json: true,
           resolveWithFullResponse: true
         })
-        .then(response => {
-          t.fail('request should not have been successful');
-        })
+        .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -690,6 +696,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -766,6 +773,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -832,6 +840,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -898,6 +907,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -987,6 +997,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -1076,6 +1087,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -1099,9 +1111,7 @@ tape('zip tests', test => {
       json: true,
       resolveWithFullResponse: true
     })
-    .then(response => {
-      t.fail('request should not have been successful');
-    })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1129,9 +1139,7 @@ tape('zip tests', test => {
         json: true,
         resolveWithFullResponse: true
       })
-      .then(response => {
-        t.fail('request should not have been successful');
-      })
+      .then(response => t.fail('request should not have been successful'))
       .catch(err => {
         t.equals(err.statusCode, 400);
         t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1213,6 +1221,7 @@ tape('zip tests', test => {
         }
       });
     })
+    .catch(err => t.fail(err))
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -1250,6 +1259,7 @@ tape('zip tests', test => {
       },
       json: true
     })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1272,9 +1282,7 @@ tape('error conditions', test => {
       json: true,
       resolveWithFullResponse: true
     })
-    .then(response => {
-      t.fail('request should not have been successful');
-    })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1297,9 +1305,7 @@ tape('error conditions', test => {
       json: true,
       resolveWithFullResponse: true
     })
-    .then(response => {
-      t.fail('request should not have been successful');
-    })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1322,9 +1328,7 @@ tape('error conditions', test => {
       json: true,
       resolveWithFullResponse: true
     })
-    .then(response => {
-      t.fail('request should not have been successful');
-    })
+    .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
@@ -1422,6 +1426,7 @@ tape('ftp tests', test => {
             });
 
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1523,6 +1528,7 @@ tape('ftp tests', test => {
             });
 
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1619,6 +1625,7 @@ tape('ftp tests', test => {
               }
             });
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1715,6 +1722,7 @@ tape('ftp tests', test => {
             });
 
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1802,6 +1810,7 @@ tape('ftp tests', test => {
             });
 
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1889,6 +1898,7 @@ tape('ftp tests', test => {
             });
 
           })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {
@@ -1945,9 +1955,7 @@ tape('ftp tests', test => {
             json: true,
             resolveWithFullResponse: true
           })
-          .then(response => {
-            t.fail('request should not have been successful');
-          })
+          .then(response => t.fail('request should not have been successful'))
           .catch(err => {
             t.equals(err.statusCode, 400);
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');

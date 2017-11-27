@@ -447,7 +447,42 @@ const sampleFtpZip = (req, res, next) => {
 
     zipfile.pipe(unzip.Parse())
     .on('entry', entry => {
-      if (_.endsWith(entry.path, '.dbf')) {
+      if (_.endsWith(entry.path, '.csv')) {
+        logger.debug(`treating ${entry.path} as csv`);
+        res.locals.source.conform.type = 'csv';
+
+        // process the .csv file
+        entry.pipe(csvParse({
+          skip_empty_lines: true,
+          columns: true
+        }))
+        .pipe(through2.obj(function(record, enc, callback) {
+          // must use full function() syntax for "this" reference
+          if (res.locals.source.source_data.results.length < 10) {
+            res.locals.source.source_data.fields = _.keys(record);
+            res.locals.source.source_data.results.push(record);
+            callback();
+          } else {
+            // there are enough records so end the stream prematurely, handle in 'close' event
+            this.destroy();
+          }
+
+        }))
+        .on('close', () => {
+          // stream was closed prematurely
+          ftp.raw('quit', (err, data) => {
+            return next();
+          });
+        })
+        .on('finish', () => {
+          // stream was ended normally
+          ftp.raw('quit', (err, data) => {
+            return next();
+          });
+        });
+
+      }
+      else if (_.endsWith(entry.path, '.dbf')) {
         logger.debug(`treating file as dbf`);
 
         // in the case of a DBF file, because there's no DBF parser that takes a stream,
@@ -505,6 +540,42 @@ const sampleFtpZip = (req, res, next) => {
         });
 
       }
+      else if (_.endsWith(entry.path, '.geojson')) {
+        logger.debug(`treating ${entry.path} as geojson`);
+
+        res.locals.source.conform.type = 'geojson';
+
+        oboe(entry)
+          .node('features.*.properties', properties => {
+            res.locals.source.source_data.fields = _.keys(properties);
+            res.locals.source.source_data.results.push(properties);
+          })
+          .node('features[9]', function() {
+            // bail after the 10th result.  'done' does not get called after .abort()
+            //  so next() must be called explicitly
+            // must use full function() syntax for "this" reference
+            this.abort();
+            ftp.raw('quit', (err, data) => {
+              return next();
+            });
+
+          })
+          .done(() => {
+            // this will happen when the list of results has been processed and
+            // iteration still has no reached the 11th result, which is very unlikely
+            ftp.raw('quit', (err, data) => {
+              return next();
+            });
+          });
+
+      }
+      else {
+        // this is a file that's currently unsupported so drain it so memory doesn't get full
+        logger.debug(`skipping ${entry.path}`);
+        entry.autodrain();
+
+      }
+
     })
     .on('finish', () => {
       if (!res.locals.source.conform.type) {

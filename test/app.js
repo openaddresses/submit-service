@@ -1326,7 +1326,7 @@ tape('error conditions', test => {
 });
 
 tape('ftp tests', test => {
-  test.test('fields and sample results, should limit to 10', t => {
+  test.test('dbf.zip: fields and sample results, should limit to 10', t => {
     // generate 11 features
     const records = _.range(11).reduce((features, i) => {
       features.push(
@@ -1416,4 +1416,470 @@ tape('ftp tests', test => {
 
   });
 
+  // test.test('dbf.zip: file consisting of less than 10 records should return all', t => {
+  //   // generate 2 features
+  //   const records = _.range(2).reduce((features, i) => {
+  //     features.push(
+  //       {
+  //         'attribute1': `feature ${i} attribute 1 value`,
+  //         'attribute2': `feature ${i} attribute 2 value`
+  //       }
+  //     );
+  //     return features;
+  //   }, []);
+  //
+  //   // create a stream wrapped around a temporary file with .dbf extension
+  //   const stream = temp.createWriteStream({ suffix: '.dbf' });
+  //
+  //   // write out the records to the temporary file
+  //   io.writeDataSync(stream.path, records, {
+  //     columns: ['attribute1', 'attribute2']
+  //   });
+  //
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.file(stream.path, { name: 'file.dbf' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       const source = `ftp://127.0.0.1:21000/file.zip`;
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: source
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 200);
+  //         t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+  //         t.deepEquals(body, {
+  //           coverage: {},
+  //           type: 'ftp',
+  //           data: source,
+  //           compression: 'zip',
+  //           source_data: {
+  //             fields: ['attribute1', 'attribute2'],
+  //             results: _.range(2).reduce((features, i) => {
+  //               features.push({
+  //                 attribute1: `feature ${i} attribute 1 value`,
+  //                 attribute2: `feature ${i} attribute 2 value`
+  //               });
+  //               return features;
+  //             }, [])
+  //           },
+  //           conform: {
+  //             type: 'shapefile'
+  //           }
+  //         });
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
+  // test.test('geojson.zip: fields and sample results, should limit to 10', t => {
+  //   // generate 11 features
+  //   const data = {
+  //     type: 'FeatureCollection',
+  //     features: _.range(11).reduce((features, i) => {
+  //       features.push({
+  //         type: 'Feature',
+  //         properties: {
+  //           'attribute 1': `feature ${i} attribute 1 value`,
+  //           'attribute 2': `feature ${i} attribute 2 value`
+  //         }
+  //       });
+  //       return features;
+  //     }, [])
+  //   };
+  //
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       const source = `ftp://127.0.0.1:21000/file.zip`;
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: source
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 200);
+  //         t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+  //         t.deepEquals(body, {
+  //           coverage: {},
+  //           type: 'ftp',
+  //           data: source,
+  //           compression: 'zip',
+  //           source_data: {
+  //             fields: ['attribute 1', 'attribute 2'],
+  //             results: _.range(10).reduce((features, i) => {
+  //               features.push({
+  //                 'attribute 1': `feature ${i} attribute 1 value`,
+  //                 'attribute 2': `feature ${i} attribute 2 value`
+  //               });
+  //               return features;
+  //             }, [])
+  //           },
+  //           conform: {
+  //             type: 'geojson'
+  //           }
+  //         });
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
+  // test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
+  //   // generate 11 features
+  //   const data = {
+  //     type: 'FeatureCollection',
+  //     features: _.range(7).reduce((features, i) => {
+  //       features.push({
+  //         type: 'Feature',
+  //         properties: {
+  //           'attribute 1': `feature ${i} attribute 1 value`,
+  //           'attribute 2': `feature ${i} attribute 2 value`
+  //         }
+  //       });
+  //       return features;
+  //     }, [])
+  //   };
+  //
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.append(JSON.stringify(data, null, 2), { name: 'file.geojson' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       const source = `ftp://127.0.0.1:21000/file.zip`;
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: source
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 200);
+  //         t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+  //         t.deepEquals(body, {
+  //           coverage: {},
+  //           type: 'ftp',
+  //           data: source,
+  //           compression: 'zip',
+  //           source_data: {
+  //             fields: ['attribute 1', 'attribute 2'],
+  //             results: _.range(7).reduce((features, i) => {
+  //               features.push({
+  //                 'attribute 1': `feature ${i} attribute 1 value`,
+  //                 'attribute 2': `feature ${i} attribute 2 value`
+  //               });
+  //               return features;
+  //             }, [])
+  //           },
+  //           conform: {
+  //             type: 'geojson'
+  //           }
+  //         });
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
+  // test.test('csv.zip: fields and sample results, should limit to 10', t => {
+  //   // generate 11 features
+  //   const data = _.range(20).reduce((rows, i) => {
+  //     return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+  //   }, ['attribute 1,attribute 2']);
+  //
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.append(data.join('\n'), { name: 'file.csv' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       const source = `ftp://127.0.0.1:21000/file.zip`;
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: source
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 200);
+  //         t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+  //         t.deepEquals(body, {
+  //           coverage: {},
+  //           type: 'ftp',
+  //           data: source,
+  //           compression: 'zip',
+  //           source_data: {
+  //             fields: ['attribute 1', 'attribute 2'],
+  //             results: _.range(10).reduce((features, i) => {
+  //               features.push({
+  //                 'attribute 1': `feature ${i} attribute 1 value`,
+  //                 'attribute 2': `feature ${i} attribute 2 value`
+  //               });
+  //               return features;
+  //             }, [])
+  //           },
+  //           conform: {
+  //             type: 'csv'
+  //           }
+  //         });
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
+  // test.test('csv.zip: fields and sample results, should limit to 10', t => {
+  //   // generate 11 features
+  //   const data = _.range(6).reduce((rows, i) => {
+  //     return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+  //   }, ['attribute 1,attribute 2']);
+  //
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.append(data.join('\n'), { name: 'file.csv' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       const source = `ftp://127.0.0.1:21000/file.zip`;
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: source
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 200);
+  //         t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+  //         t.deepEquals(body, {
+  //           coverage: {},
+  //           type: 'ftp',
+  //           data: source,
+  //           compression: 'zip',
+  //           source_data: {
+  //             fields: ['attribute 1', 'attribute 2'],
+  //             results: _.range(6).reduce((features, i) => {
+  //               features.push({
+  //                 'attribute 1': `feature ${i} attribute 1 value`,
+  //                 'attribute 2': `feature ${i} attribute 2 value`
+  //               });
+  //               return features;
+  //             }, [])
+  //           },
+  //           conform: {
+  //             type: 'csv'
+  //           }
+  //         });
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
+  // test.test('cannot determine type from .zip file', t => {
+  //   // once the data has been written, create a stream of zip data from it
+  //   //  and write out to the response
+  //   const output = new ZipContentsStream();
+  //
+  //   const archive = archiver('zip', {
+  //     zlib: { level: 9 } // Sets the compression level.
+  //   });
+  //   archive.pipe(output);
+  //   archive.append('this is the README', { name: 'README.md' });
+  //   archive.append('this is an HTML file', { name: 'index.html' });
+  //   archive.append('this is another file', { name: 'random_file.txt' });
+  //   archive.finalize();
+  //
+  //   output.on('finish', function() {
+  //     // convert the buffer to a stream
+  //     const stream = new Duplex();
+  //     stream.push(this.buffer);
+  //     stream.push(null);
+  //
+  //     const ftpServer = new FtpSrv('ftp://127.0.0.1:21000');
+  //
+  //     ftpServer.on('login', ( data , resolve, reject) => {
+  //       resolve( { fs: new MockFileSystem(stream) });
+  //     });
+  //
+  //     // fire up the ftp and submit-service servers and make the request
+  //     ftpServer.listen().then(() => {
+  //       const mod_server = require('../app')().listen();
+  //
+  //       request.get(`http://localhost:${mod_server.address().port}/fields`, {
+  //         qs: {
+  //           source: 'ftp://127.0.0.1:21000/file.zip'
+  //         },
+  //         json: true
+  //       }, (error, response, body) => {
+  //         t.equals(response.statusCode, 400);
+  //         t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+  //         t.equals(body, 'Could not determine type from zip file');
+  //         t.end();
+  //
+  //         ftpServer.quit();
+  //         mod_server.close();
+  //
+  //       });
+  //
+  //     });
+  //
+  //   });
+  //
+  // });
+  //
 });

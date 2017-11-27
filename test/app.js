@@ -1389,6 +1389,8 @@ tape('ftp tests', test => {
         // fire up the ftp and submit-service servers and make the request
         ftpServer.listen().then(() => {
           ftpServer.on('login', (data, resolve) => {
+            t.equals(data.username, 'anonymous');
+            t.equals(data.password, '@anonymous');
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -1885,6 +1887,95 @@ tape('ftp tests', test => {
               source_data: {
                 fields: ['attribute 1', 'attribute 2'],
                 results: _.range(6).reduce((features, i) => {
+                  features.push({
+                    'attribute 1': `feature ${i} attribute 1 value`,
+                    'attribute 2': `feature ${i} attribute 2 value`
+                  });
+                  return features;
+                }, [])
+              },
+              conform: {
+                type: 'csv'
+              }
+            });
+
+          })
+          .catch(err => t.fail(err))
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftpServer.close().then(() => {
+              mod_server.close(() => {
+                t.end();
+              });
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('username and password should be passed to FTP server', t => {
+    const mod_server = require('../app')().listen();
+
+    // generate 1 feature
+    const data = _.range(1).reduce((rows, i) => {
+      return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+    }, ['attribute 1,attribute 2']);
+
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.append(data.join('\n'), { name: 'file.csv' });
+    archive.finalize();
+
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      getPort().then(port => {
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftpServer.listen().then(() => {
+          ftpServer.on('login', ( data , resolve, reject) => {
+            t.equals(data.username, 'UsErNaMe');
+            t.equals(data.password, 'pAsSwOrD');
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.zip`;
+
+          request({
+            uri: `http://localhost:${mod_server.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then(response => {
+            t.equals(response.statusCode, 200);
+            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(response.body, {
+              coverage: {},
+              type: 'ftp',
+              data: source,
+              compression: 'zip',
+              source_data: {
+                fields: ['attribute 1', 'attribute 2'],
+                results: _.range(1).reduce((features, i) => {
                   features.push({
                     'attribute 1': `feature ${i} attribute 1 value`,
                     'attribute 2': `feature ${i} attribute 2 value`

@@ -10,6 +10,7 @@ const {FtpSrv, FileSystem} = require('ftp-srv');
 const fs = require('fs');
 const Duplex = require('stream').Duplex;
 const getPort = require('get-port');
+const string2stream = require('string-to-stream');
 
 class MockFileSystem extends FileSystem {
   constructor(stream) {
@@ -1267,6 +1268,161 @@ tape('http zip tests', test => {
     })
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
+    });
+
+  });
+
+});
+
+tape('ftp geojson tests', test => {
+  test.test('fields and sample results, should limit to 10', t => {
+    const mod_server = require('../app')().listen();
+
+    // generate 11 features to serve back via FTP
+    const features = {
+      type: 'FeatureCollection',
+      features: _.range(11).reduce((features, i) => {
+        features.push({
+          type: 'Feature',
+          properties: {
+            'attribute 1': `feature ${i} attribute 1 value`,
+            'attribute 2': `feature ${i} attribute 2 value`
+          }
+        });
+        return features;
+      }, [])
+    };
+
+    getPort().then(port => {
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
+          resolve( { fs: new MockFileSystem(string2stream(JSON.stringify(features))) });
+        });
+
+        const source = `ftp://127.0.0.1:${port}/file.geojson`;
+
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: _.range(10).reduce((features, i) => {
+                features.push({
+                  'attribute 1': `feature ${i} attribute 1 value`,
+                  'attribute 2': `feature ${i} attribute 2 value`
+                });
+                return features;
+              }, [])
+            },
+            conform: {
+              type: 'geojson'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftpServer.close().then(() => {
+            mod_server.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('geojson consisting of less than 10 records should return all', t => {
+    const mod_server = require('../app')().listen();
+
+    // generate 3 features to serve back via FTP
+    const features = {
+      type: 'FeatureCollection',
+      features: _.range(3).reduce((features, i) => {
+        features.push({
+          type: 'Feature',
+          properties: {
+            'attribute 1': `feature ${i} attribute 1 value`,
+            'attribute 2': `feature ${i} attribute 2 value`
+          }
+        });
+        return features;
+      }, [])
+    };
+
+    getPort().then(port => {
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
+          resolve( { fs: new MockFileSystem(string2stream(JSON.stringify(features))) });
+        });
+
+        const source = `ftp://127.0.0.1:${port}/file.geojson`;
+
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: _.range(3).reduce((features, i) => {
+                features.push({
+                  'attribute 1': `feature ${i} attribute 1 value`,
+                  'attribute 2': `feature ${i} attribute 2 value`
+                });
+                return features;
+              }, [])
+            },
+            conform: {
+              type: 'geojson'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftpServer.close().then(() => {
+            mod_server.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
     });
 
   });

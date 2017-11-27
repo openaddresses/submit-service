@@ -37,6 +37,7 @@
     "jshint": "^2.8.0",
     "precommit-hook": "^3.0.0",
     "request-promise": "^4.2.2",
+    "string-to-stream": "^1.1.0",
     "tap-dot": "^1.0.1",
     "tape": "^4.2.2",
     "temp": "^0.8.3"

@@ -433,7 +433,7 @@ const sampleFtpZip = (req, res, next) => {
   const options = {
     host: url.hostname,
     port: url.port,
-    user: url.username | 'anonymous',
+    user: url.username || 'anonymous',
     pass: url.password
   };
 

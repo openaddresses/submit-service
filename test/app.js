@@ -165,7 +165,7 @@ tape('arcgis tests', test => {
 
 });
 
-tape('geojson tests', test => {
+tape('http geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
@@ -407,7 +407,7 @@ tape('geojson tests', test => {
 
 });
 
-tape('csv tests', test => {
+tape('http csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     const mock_source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(20).reduce((rows, i) => {
@@ -625,7 +625,7 @@ tape('csv tests', test => {
 
 });
 
-tape('zip tests', test => {
+tape('http zip tests', test => {
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
     const mock_source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
@@ -1273,76 +1273,7 @@ tape('zip tests', test => {
 
 });
 
-tape('error conditions', test => {
-  test.test('missing source parameter should return 400 and message', t => {
-    const mod_server = require('../app')().listen();
-
-    request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(response => t.fail('request should not have been successful'))
-    .catch(err => {
-      t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, '\'source\' parameter is required');
-    })
-    .finally(() => {
-      mod_server.close(() => t.end());
-    });
-
-  });
-
-  test.test('empty source parameter should return 400 and message', t => {
-    const mod_server = require('../app')().listen();
-
-    request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
-      qs: {
-        source: ''
-      },
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(response => t.fail('request should not have been successful'))
-    .catch(err => {
-      t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, '\'source\' parameter is required');
-    })
-    .finally(() => {
-      mod_server.close(() => t.end());
-    });
-
-  });
-
-  test.test('unknown protocol/type should return 400 and message', t => {
-    const mod_server = require('../app')().listen();
-
-    request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
-      qs: {
-        source: 'unsupported type'
-      },
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(response => t.fail('request should not have been successful'))
-    .catch(err => {
-      t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
-    })
-    .finally(() => {
-      mod_server.close(() => t.end());
-    });
-
-  });
-
-});
-
-tape('ftp tests', test => {
+tape('ftp zip tests', test => {
   test.test('dbf.zip: fields and sample results, should limit to 10', t => {
     const mod_server = require('../app')().listen();
 
@@ -2065,6 +1996,75 @@ tape('ftp tests', test => {
 
       });
 
+    });
+
+  });
+
+});
+
+tape('error conditions', test => {
+  test.test('missing source parameter should return 400 and message', t => {
+    const mod_server = require('../app')().listen();
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, '\'source\' parameter is required');
+    })
+    .finally(() => {
+      mod_server.close(() => t.end());
+    });
+
+  });
+
+  test.test('empty source parameter should return 400 and message', t => {
+    const mod_server = require('../app')().listen();
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: ''
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, '\'source\' parameter is required');
+    })
+    .finally(() => {
+      mod_server.close(() => t.end());
+    });
+
+  });
+
+  test.test('unknown protocol/type should return 400 and message', t => {
+    const mod_server = require('../app')().listen();
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: 'unsupported type'
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
+    })
+    .finally(() => {
+      mod_server.close(() => t.end());
     });
 
   });

@@ -156,7 +156,7 @@ const sampleArcgis = (req, res, next) => {
 
 // middleware that requests and streams a .geojson file, returning up to the first
 // 10 records
-const sampleGeojson = (req, res, next) => {
+const sampleHttpGeojson = (req, res, next) => {
   logger.debug(`using geojson sampler for ${res.locals.source.data}`);
 
   oboe(res.locals.source.data)
@@ -195,7 +195,7 @@ const sampleGeojson = (req, res, next) => {
 
 // middleware that requests and streams a .csv file, returning up to the first
 // 10 records
-const sampleCsv = (req, res, next) => {
+const sampleHttpCsv = (req, res, next) => {
   logger.debug(`using csv sampler for ${res.locals.source.data}`);
 
   // save off request so it can be error-handled and piped later
@@ -604,12 +604,12 @@ module.exports = () => {
   arcgisRouter.get('/fields', isArcgis, sampleArcgis);
 
   // setup a router that only handles .geojson files
-  const geojsonRouter = express.Router();
-  geojsonRouter.get('/fields', isHttpGeojson, sampleGeojson);
+  const httpGeojsonRouter = express.Router();
+  httpGeojsonRouter.get('/fields', isHttpGeojson, sampleHttpGeojson);
 
   // setup a router that only handles .csv files
-  const csvRouter = express.Router();
-  csvRouter.get('/fields', isHttpCsv, sampleCsv);
+  const httpCsvRouter = express.Router();
+  httpCsvRouter.get('/fields', isHttpCsv, sampleHttpCsv);
 
   // setup a router that only handles .zip files
   const httpZipRouter = express.Router();
@@ -623,8 +623,8 @@ module.exports = () => {
     preconditionsCheck,
     determineType,
     arcgisRouter,
-    geojsonRouter,
-    csvRouter,
+    httpGeojsonRouter,
+    httpCsvRouter,
     httpZipRouter,
     ftpZipRouter,
     output

@@ -756,9 +756,17 @@ module.exports = () => {
   const httpGeojsonRouter = express.Router();
   httpGeojsonRouter.get('/fields', isHttpGeojson, sampleHttpGeojson);
 
+  // setup a router that only handles .geojson files via FTP
+  const ftpGeojsonRouter = express.Router();
+  ftpGeojsonRouter.get('/fields', isFtpGeojson, sampleFtpGeojson);
+
   // setup a router that only handles .csv files
   const httpCsvRouter = express.Router();
   httpCsvRouter.get('/fields', isHttpCsv, sampleHttpCsv);
+
+  // setup a router that only handles .csv files via FTP
+  const ftpCsvRouter = express.Router();
+  ftpCsvRouter.get('/fields', isFtpCsv, sampleFtpCsv);
 
   // setup a router that only handles .zip files
   const httpZipRouter = express.Router();
@@ -768,24 +776,16 @@ module.exports = () => {
   const ftpZipRouter = express.Router();
   ftpZipRouter.get('/fields', isFtpZip, sampleFtpZip);
 
-  // setup a router that only handles .geojson files via FTP
-  const ftpGeojsonRouter = express.Router();
-  ftpGeojsonRouter.get('/fields', isFtpGeojson, sampleFtpGeojson);
-
-  // setup a router that only handles .csv files via FTP
-  const ftpCsvRouter = express.Router();
-  ftpCsvRouter.get('/fields', isFtpCsv, sampleFtpCsv);
-
   app.get('/fields',
     preconditionsCheck,
     determineType,
     arcgisRouter,
     httpGeojsonRouter,
+    ftpGeojsonRouter,
     httpCsvRouter,
+    ftpCsvRouter,
     httpZipRouter,
     ftpZipRouter,
-    ftpGeojsonRouter,
-    ftpCsvRouter,
     output
   );
 

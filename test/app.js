@@ -27,7 +27,7 @@ class MockFileSystem extends FileSystem {
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
     // startup an ArcGIS server that will respond with a 200 and valid JSON
-    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -59,7 +59,7 @@ tape('arcgis tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
@@ -97,14 +97,14 @@ tape('arcgis tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('arcgis server returning 200 non-JSON response should return error', t => {
     // startup an ArcGIS server that will respond with a 200 and invalid JSON
-    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -117,7 +117,7 @@ tape('arcgis tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
@@ -135,21 +135,21 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('arcgis server returning error should return 400 w/message', t => {
     // startup an ArcGIS server that will respond with a non-200
-    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
       res.status(404).send('page not found');
     }).listen();
 
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
@@ -167,7 +167,7 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -212,7 +212,7 @@ tape('arcgis tests', test => {
 tape('http geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+    const source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(11).reduce((features, i) => {
@@ -232,7 +232,7 @@ tape('http geojson tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
@@ -268,14 +268,14 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('geojson consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+    const source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(2).reduce((features, i) => {
@@ -295,7 +295,7 @@ tape('http geojson tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
@@ -331,14 +331,14 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+    const source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: [
@@ -357,7 +357,7 @@ tape('http geojson tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson?param=value`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson?param=value`;
 
     // make a request to the submit service
     request({
@@ -391,21 +391,21 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('response unparseable as json should response with message', t => {
     // startup an HTTP server that will respond to file.geojson requests with invalid JSON
-    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+    const source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send('this is not parseable as JSON');
     }).listen();
 
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
@@ -423,21 +423,21 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('geojson file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
-    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+    const source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(404).send('page not found');
     }).listen();
 
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
@@ -455,7 +455,7 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -500,7 +500,7 @@ tape('http geojson tests', test => {
 tape('http csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const mock_source_server = express().get('/file.csv', (req, res, next) => {
+    const source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(20).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -512,7 +512,7 @@ tape('http csv tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+    const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
@@ -547,14 +547,14 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('csv consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const mock_source_server = express().get('/file.csv', (req, res, next) => {
+    const source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(2).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -566,7 +566,7 @@ tape('http csv tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+    const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
@@ -601,14 +601,14 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const mock_source_server = express().get('/file.csv', (req, res, next) => {
+    const source_server = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(1).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -621,7 +621,7 @@ tape('http csv tests', test => {
     const mod_server = require('../app')().listen();
 
     // source has extra parameters
-    const source = `http://localhost:${mock_source_server.address().port}/file.csv?parameter=value`;
+    const source = `http://localhost:${source_server.address().port}/file.csv?parameter=value`;
 
     // make a request to the submit service
     request({
@@ -656,21 +656,21 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('csv file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
-    const mock_source_server = express().get('/file.csv', (req, res, next) => {
+    const source_server = express().get('/file.csv', (req, res, next) => {
       res.status(404).send('page not found');
     }).listen();
 
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.csv`;
+    const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
@@ -688,7 +688,7 @@ tape('http csv tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -734,7 +734,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       // create an output stream that will contain the zip file contents
       const output = new ZipContentsStream();
 
@@ -772,7 +772,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -808,7 +808,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -816,7 +816,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -853,7 +853,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -889,7 +889,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -897,7 +897,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: response unparseable as json should response with message', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an unparseable .geojson file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -920,7 +920,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -938,7 +938,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -946,7 +946,7 @@ tape('http zip tests', test => {
   test.test('csv.zip: fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .csv file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -973,7 +973,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -1009,7 +1009,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1017,7 +1017,7 @@ tape('http zip tests', test => {
   test.test('csv.zip: file consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .csv file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1044,7 +1044,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -1080,7 +1080,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1091,7 +1091,7 @@ tape('http zip tests', test => {
 
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .dbf file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const records = _.range(11).reduce((features, i) => {
         features.push(
           {
@@ -1138,7 +1138,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -1174,7 +1174,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1185,7 +1185,7 @@ tape('http zip tests', test => {
 
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .dbf file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const records = _.range(2).reduce((features, i) => {
         features.push(
           {
@@ -1232,7 +1232,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
@@ -1268,21 +1268,21 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('zip file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
-    const mock_source_server = express().get('/file.zip', (req, res, next) => {
+    const source_server = express().get('/file.zip', (req, res, next) => {
       res.status(404).send('page not found');
     }).listen();
 
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/file.zip`;
+    const source = `http://localhost:${source_server.address().port}/file.zip`;
 
     // make a request to the submit service
     request({
@@ -1300,7 +1300,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1342,7 +1342,7 @@ tape('http zip tests', test => {
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1378,7 +1378,7 @@ tape('http zip tests', test => {
     // start the submit service
     const mod_server = require('../app')().listen();
 
-    const source = `http://localhost:${mock_source_server.address().port}/data.zip?parameter=value`;
+    const source = `http://localhost:${source_server.address().port}/data.zip?parameter=value`;
 
     // make a request to the submit service
     request({
@@ -1413,13 +1413,13 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
 
   test.test('cannot determine type from .zip file', t => {
-    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1447,7 +1447,7 @@ tape('http zip tests', test => {
     request({
       uri: `http://localhost:${mod_server.address().port}/fields`,
       qs: {
-        source: `http://localhost:${mock_source_server.address().port}/data.zip`
+        source: `http://localhost:${source_server.address().port}/data.zip`
       },
       json: true
     })
@@ -1458,7 +1458,7 @@ tape('http zip tests', test => {
       t.equals(err.error, 'Could not determine type from zip file');
     })
     .finally(() => {
-      mod_server.close(() => mock_source_server.close(() => t.end()));
+      mod_server.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1469,11 +1469,11 @@ tape('ftp geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const features = {
             type: 'FeatureCollection',
@@ -1531,7 +1531,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftpServer.close().then(() => {
+          ftp_server.close().then(() => {
             mod_server.close(() => {
               t.end();
             });
@@ -1548,11 +1548,11 @@ tape('ftp geojson tests', test => {
   test.test('geojson consisting of less than 10 records should return all', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
           // generate 3 features to serve back via FTP
           const features = {
             type: 'FeatureCollection',
@@ -1610,7 +1610,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftpServer.close().then(() => {
+          ftp_server.close().then(() => {
             mod_server.close(() => {
               t.end();
             });
@@ -1627,11 +1627,11 @@ tape('ftp geojson tests', test => {
   test.test('response unparseable as json should response with message', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
           resolve( { fs: new MockFileSystem(string2stream('this is not parseable as JSON')) });
         });
 
@@ -1657,7 +1657,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftpServer.close().then(() => {
+          ftp_server.close().then(() => {
             mod_server.close(() => {
               t.end();
             });
@@ -1677,11 +1677,11 @@ tape('ftp csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const rows = _.range(11).reduce((rows, i) => {
             return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
@@ -1729,7 +1729,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftpServer.close().then(() => {
+          ftp_server.close().then(() => {
             mod_server.close(() => {
               t.end();
             });
@@ -1746,11 +1746,11 @@ tape('ftp csv tests', test => {
   test.test('csv consisting of less than 10 records should return all', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const rows = _.range(5).reduce((rows, i) => {
             return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
@@ -1798,7 +1798,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftpServer.close().then(() => {
+          ftp_server.close().then(() => {
             mod_server.close(() => {
               t.end();
             });
@@ -1856,13 +1856,13 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // verify that the login was anonymous
-          ftpServer.on('login', (data, resolve) => {
+          ftp_server.on('login', (data, resolve) => {
             t.equals(data.username, 'anonymous');
             t.equals(data.password, '@anonymous');
             resolve( { fs: new MockFileSystem(stream) });
@@ -1909,7 +1909,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -1966,12 +1966,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', (data, resolve) => {
+          ftp_server.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2016,7 +2016,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2069,12 +2069,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', (data, resolve) => {
+          ftp_server.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2118,7 +2118,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2171,12 +2171,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', ( data , resolve, reject) => {
+          ftp_server.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2220,7 +2220,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2258,12 +2258,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', (data, resolve) => {
+          ftp_server.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2289,7 +2289,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2332,12 +2332,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', ( data , resolve, reject) => {
+          ftp_server.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2382,7 +2382,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2425,12 +2425,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', ( data , resolve, reject) => {
+          ftp_server.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2475,7 +2475,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2518,13 +2518,13 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // also verify the username/password
-          ftpServer.on('login', ( data , resolve, reject) => {
+          ftp_server.on('login', ( data , resolve, reject) => {
             t.equals(data.username, 'UsErNaMe');
             t.equals(data.password, 'pAsSwOrD');
             resolve( { fs: new MockFileSystem(stream) });
@@ -2570,7 +2570,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });
@@ -2608,12 +2608,12 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftpServer.listen().then(() => {
+        ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftpServer.on('login', ( data , resolve, reject) => {
+          ftp_server.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2637,7 +2637,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftpServer.close().then(() => {
+            ftp_server.close().then(() => {
               mod_server.close(() => {
                 t.end();
               });

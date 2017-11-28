@@ -1409,6 +1409,40 @@ tape('http zip tests', test => {
 
   });
 
+  test.test('non-zip file returned should respond with error', t => {
+    const source_server = express().get('/data.zip', (req, res, next) => {
+      res.set('Content-Type', 'application/zip');
+      res.set('Content-Disposition', 'attachment; filename=data.zip');
+      res.set('Content-Length', 'this is not a zip file'.length);
+      res.end('this is not a zip file', 'binary');
+
+    }).listen();
+
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${submit_service.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: Error: Invalid signature in zip file`);
+    })
+    .finally(() => {
+      submit_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('catastrophic errors should be handled', t => {
     // startup an HTTP server that will immediately be closed
     express().listen(function() {

@@ -253,6 +253,10 @@ const sampleHttpCsv = (req, res, next) => {
         skip_empty_lines: true,
         columns: true
       }))
+      .on('error', (err) => {
+        const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+        res.status(400).type('text/plain').send(error_message);
+      })
       .pipe(through2.obj(function(record, enc, callback) {
         if (res.locals.source.source_data.results.length < 10) {
           res.locals.source.source_data.fields = _.keys(record);

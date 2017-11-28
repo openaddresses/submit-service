@@ -671,6 +671,44 @@ tape('http csv tests', test => {
 
   });
 
+  test.test('response unparseable as csv should respond with error', t => {
+    // startup an HTTP server that will respond to file.geojson requests with valid CSV
+    const source_server = express().get('/file.csv', (req, res, next) => {
+      const data = [
+        'attribute 1',
+        'feature 1 attribute 1 value,feature 1 attribute 2 value'
+      ].join('\n');
+
+      res.status(200).send(data);
+
+    }).listen();
+
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const source = `http://localhost:${source_server.address().port}/file.csv`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${submit_service.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+    })
+    .finally(() => {
+      submit_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('csv file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
     const source_server = express().get('/file.csv', (req, res, next) => {

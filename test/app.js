@@ -1429,6 +1429,141 @@ tape('ftp geojson tests', test => {
 
 });
 
+tape('ftp csv tests', test => {
+  test.test('fields and sample results, should limit to 10', t => {
+    const mod_server = require('../app')().listen();
+
+    // generate 11 features to serve back via FTP
+    const rows = _.range(11).reduce((rows, i) => {
+      return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+    }, ['attribute 1,attribute 2']);
+
+    getPort().then(port => {
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
+          resolve( { fs: new MockFileSystem(string2stream(rows.join('\n'))) });
+        });
+
+        const source = `ftp://127.0.0.1:${port}/file.csv`;
+
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: _.range(10).reduce((features, i) => {
+                features.push({
+                  'attribute 1': `feature ${i} attribute 1 value`,
+                  'attribute 2': `feature ${i} attribute 2 value`
+                });
+                return features;
+              }, [])
+            },
+            conform: {
+              type: 'csv'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftpServer.close().then(() => {
+            mod_server.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('csv consisting of less than 10 records should return all', t => {
+    const mod_server = require('../app')().listen();
+
+    // generate 11 features to serve back via FTP
+    const rows = _.range(5).reduce((rows, i) => {
+      return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
+    }, ['attribute 1,attribute 2']);
+
+    getPort().then(port => {
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
+          resolve( { fs: new MockFileSystem(string2stream(rows.join('\n'))) });
+        });
+
+        const source = `ftp://127.0.0.1:${port}/file.csv`;
+
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: _.range(5).reduce((features, i) => {
+                features.push({
+                  'attribute 1': `feature ${i} attribute 1 value`,
+                  'attribute 2': `feature ${i} attribute 2 value`
+                });
+                return features;
+              }, [])
+            },
+            conform: {
+              type: 'csv'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftpServer.close().then(() => {
+            mod_server.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+});
+
 tape('ftp zip tests', test => {
   test.test('dbf.zip: fields and sample results, should limit to 10', t => {
     const mod_server = require('../app')().listen();

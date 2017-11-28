@@ -114,6 +114,7 @@ const isHttpCsv = typecheck.bind(null, 'http', 'csv')();
 const isHttpZip = typecheck.bind(null, 'http', undefined, 'zip')();
 const isFtpZip = typecheck.bind(null, 'ftp', undefined, 'zip')();
 const isFtpGeojson = typecheck.bind(null, 'ftp', 'geojson')();
+const isFtpCsv = typecheck.bind(null, 'ftp', 'csv')();
 
 // middleware that queries an Arcgis server for the first 10 records
 const sampleArcgis = (req, res, next) => {
@@ -648,6 +649,64 @@ const sampleFtpGeojson = (req, res, next) => {
 
 };
 
+// middleware that requests and streams a compressed .zip file, returning up
+// to the first 10 records
+const sampleFtpCsv = (req, res, next) => {
+  logger.debug(`using csv sampler for ${res.locals.source.data}`);
+
+  const url = new URL(res.locals.source.data);
+
+  const options = {
+    host: url.hostname,
+    port: url.port,
+    user: url.username,
+    pass: url.password
+  };
+
+  const ftp = new JSFtp(options);
+
+  ftp.get(url.pathname, (err, csv_stream) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    // get() returns a paused stream, so resume it
+    csv_stream.resume();
+
+    // otherwise everything was fine so pipe the response to CSV and collect records
+    csv_stream.pipe(csvParse({
+      skip_empty_lines: true,
+      columns: true
+    }))
+    .pipe(through2.obj(function(record, enc, callback) {
+      if (res.locals.source.source_data.results.length < 10) {
+        res.locals.source.source_data.fields = _.keys(record);
+        res.locals.source.source_data.results.push(record);
+        callback();
+      } else {
+        // there are enough records so end the stream prematurely, handle in 'close' event
+        this.destroy();
+      }
+
+    }))
+    .on('close', () => {
+      // stream was closed prematurely
+      ftp.raw('quit', (err, data) => {
+        return next();
+      });
+    })
+    .on('finish', () => {
+      // stream was ended normally
+      ftp.raw('quit', (err, data) => {
+        return next();
+      });
+    });
+
+  });
+
+};
+
 // middleware that outputs the accumulated metadata, fields, and sample results
 const output = (req, res, next) => {
   res.status(200).send(res.locals.source);
@@ -681,6 +740,10 @@ module.exports = () => {
   const ftpGeojsonRouter = express.Router();
   ftpGeojsonRouter.get('/fields', isFtpGeojson, sampleFtpGeojson);
 
+  // setup a router that only handles .csv files via FTP
+  const ftpCsvRouter = express.Router();
+  ftpCsvRouter.get('/fields', isFtpCsv, sampleFtpCsv);
+
   app.get('/fields',
     preconditionsCheck,
     determineType,
@@ -690,6 +753,7 @@ module.exports = () => {
     httpZipRouter,
     ftpZipRouter,
     ftpGeojsonRouter,
+    ftpCsvRouter,
     output
   );
 

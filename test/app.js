@@ -1686,6 +1686,86 @@ tape('ftp geojson tests', test => {
 
   });
 
+  test.test('username and password should be passed to FTP server', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
+          t.equals(credentials.username, 'UsErNaMe');
+          t.equals(credentials.password, 'pAsSwOrD');
+
+          // generate 11 features to serve back via FTP
+          const features = {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {
+                  'attribute 1': 'feature 1 attribute 1 value',
+                  'attribute 2': 'feature 1 attribute 2 value'
+                }
+              }
+            ]
+          };
+
+          resolve( { fs: new MockFileSystem(string2stream(JSON.stringify(features))) });
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.geojson`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: [
+                {
+                  'attribute 1': 'feature 1 attribute 1 value',
+                  'attribute 2': 'feature 1 attribute 2 value'
+                }
+              ]
+            },
+            conform: {
+              type: 'geojson'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('invalid login credentials should return error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
@@ -1851,6 +1931,77 @@ tape('ftp csv tests', test => {
                 });
                 return features;
               }, [])
+            },
+            conform: {
+              type: 'csv'
+            }
+          });
+        })
+        .catch(err => t.fail(err))
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('username and password should be passed to FTP server', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
+          t.equals(credentials.username, 'UsErNaMe');
+          t.equals(credentials.password, 'pAsSwOrD');
+
+          const data = [
+            'attribute 1,attribute 2',
+            'feature 1 attribute 1 value,feature 1 attribute 2 value'
+          ].join('\n');
+
+          resolve( { fs: new MockFileSystem(string2stream(data)) });
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.csv`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => {
+          t.equals(response.statusCode, 200);
+          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(response.body, {
+            coverage: {},
+            type: 'ftp',
+            data: source,
+            source_data: {
+              fields: ['attribute 1', 'attribute 2'],
+              results: [
+                {
+                  'attribute 1': 'feature 1 attribute 1 value',
+                  'attribute 2': 'feature 1 attribute 2 value'
+                }
+              ]
             },
             conform: {
               type: 'csv'

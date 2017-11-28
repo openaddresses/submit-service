@@ -22,6 +22,7 @@ const logger = winston.createLogger({
   ]
 });
 
+// track all created temporary files for deletion
 temp.track();
 
 // matches:
@@ -752,27 +753,27 @@ module.exports = () => {
   const arcgisRouter = express.Router();
   arcgisRouter.get('/fields', isArcgis, sampleArcgis);
 
-  // setup a router that only handles .geojson files
+  // setup a router that only handles HTTP .geojson files
   const httpGeojsonRouter = express.Router();
   httpGeojsonRouter.get('/fields', isHttpGeojson, sampleHttpGeojson);
 
-  // setup a router that only handles .geojson files via FTP
+  // setup a router that only handles FTP .geojson files
   const ftpGeojsonRouter = express.Router();
   ftpGeojsonRouter.get('/fields', isFtpGeojson, sampleFtpGeojson);
 
-  // setup a router that only handles .csv files
+  // setup a router that only handles HTTP .csv files
   const httpCsvRouter = express.Router();
   httpCsvRouter.get('/fields', isHttpCsv, sampleHttpCsv);
 
-  // setup a router that only handles .csv files via FTP
+  // setup a router that only handles FTP .csv files via
   const ftpCsvRouter = express.Router();
   ftpCsvRouter.get('/fields', isFtpCsv, sampleFtpCsv);
 
-  // setup a router that only handles .zip files
+  // setup a router that only handles HTTP .zip files
   const httpZipRouter = express.Router();
   httpZipRouter.get('/fields', isHttpZip, sampleHttpZip);
 
-  // setup a router that only handles .zip files
+  // setup a router that only handles FTP .zip files
   const ftpZipRouter = express.Router();
   ftpZipRouter.get('/fields', isFtpZip, sampleFtpZip);
 

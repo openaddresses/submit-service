@@ -700,9 +700,10 @@ tape('http csv tests', test => {
 
       // stop the express server to cause a connection-refused error
       this.close(() => {
-        // make a request to the submit service
+        // start the submit service
         const mod_server = require('../app')().listen();
 
+        // make a request to the submit service
         request({
           uri: `http://localhost:${mod_server.address().port}/fields`,
           qs: {

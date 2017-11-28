@@ -495,6 +495,10 @@ const sampleFtpZip = (req, res, next) => {
     }
 
     zipfile.pipe(unzip.Parse())
+    .on('error', err => {
+      const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+      res.status(400).type('text/plain').send(error_message);
+    })
     .on('entry', entry => {
       if (_.endsWith(entry.path, '.csv')) {
         logger.debug(`treating ${entry.path} as csv`);

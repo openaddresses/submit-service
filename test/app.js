@@ -103,6 +103,41 @@ tape('arcgis tests', test => {
 
   });
 
+  test.test('arcgis server returning 200 non-JSON response should return error', t => {
+    const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
+      t.equals(req.query.outFields, '*');
+      t.equals(req.query.where, '1=1');
+      t.equals(req.query.resultRecordCount, '10');
+      t.equals(req.query.resultOffset, '0');
+
+      res.status(200).send('this is not parseable as JSON');
+
+    }).listen();
+
+    const mod_server = require('../app')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/MapServer/0`;
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error connecting to Arcgis server ${source}: Could not parse as JSON`);
+    })
+    .finally(() => {
+      mod_server.close(() => mock_source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('arcgis server returning error should return 400 w/message', t => {
     const mock_source_server = express().get('/MapServer/0/query', (req, res, next) => {
       res.status(404).send('page not found');

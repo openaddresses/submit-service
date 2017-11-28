@@ -139,8 +139,12 @@ const sampleArcgis = (req, res, next) => {
     .fail((err) => {
       let error_message = `Error connecting to Arcgis server ${res.locals.source.data}: `;
 
-      if (err.thrown) {
+      if (_.has(err, 'thrown.code')) {
+        // connection refused, etc
         error_message += err.thrown.code;
+      } else if (err.thrown) {
+        // unparseable JSON (but no code)
+        error_message += 'Could not parse as JSON';
       } else {
         error_message += `${err.body} (${err.statusCode})`;
       }
@@ -151,9 +155,11 @@ const sampleArcgis = (req, res, next) => {
 
     })
     .done(() => {
-      // this will happen when the list of results has been processed and
-      // iteration still has no reached the 11th result, which is very unlikely
-      next();
+      if (!res.headersSent) {
+        // this will happen when the list of results has been processed and
+        // iteration still has no reached the 11th result, which is very unlikely
+        next();
+      }
     });
 
 };

@@ -57,13 +57,13 @@ tape('arcgis tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -97,7 +97,7 @@ tape('arcgis tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -115,13 +115,13 @@ tape('arcgis tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -135,7 +135,7 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -147,13 +147,13 @@ tape('arcgis tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -167,7 +167,7 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -180,11 +180,11 @@ tape('arcgis tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -198,7 +198,7 @@ tape('arcgis tests', test => {
           t.equals(err.error, `Error connecting to Arcgis server ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          mod_server.close(() => t.end());
+          submit_service.close(() => t.end());
         });
 
       });
@@ -230,13 +230,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -268,7 +268,7 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -293,13 +293,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -331,7 +331,7 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -355,13 +355,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.geojson?param=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -391,7 +391,7 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -403,13 +403,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -423,7 +423,7 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -435,13 +435,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -455,7 +455,7 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -468,11 +468,11 @@ tape('http geojson tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -486,7 +486,7 @@ tape('http geojson tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          mod_server.close(() => t.end());
+          submit_service.close(() => t.end());
         });
 
       });
@@ -510,13 +510,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -547,7 +547,7 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -564,13 +564,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -601,7 +601,7 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -618,14 +618,14 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     // source has extra parameters
     const source = `http://localhost:${source_server.address().port}/file.csv?parameter=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -656,7 +656,7 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -668,13 +668,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -688,7 +688,7 @@ tape('http csv tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -701,11 +701,11 @@ tape('http csv tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -719,7 +719,7 @@ tape('http csv tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          mod_server.close(() => t.end());
+          submit_service.close(() => t.end());
         });
 
       });
@@ -770,13 +770,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -808,7 +808,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -851,13 +851,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -889,7 +889,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -918,13 +918,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -938,7 +938,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -971,13 +971,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1009,7 +1009,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1042,13 +1042,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1080,7 +1080,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1136,13 +1136,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1174,7 +1174,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1230,13 +1230,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1268,7 +1268,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1280,13 +1280,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/file.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1300,7 +1300,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1312,11 +1312,11 @@ tape('http zip tests', test => {
 
       this.close(() => {
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1330,7 +1330,7 @@ tape('http zip tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          mod_server.close(() => t.end());
+          submit_service.close(() => t.end());
         });
 
       });
@@ -1376,13 +1376,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     const source = `http://localhost:${source_server.address().port}/data.zip?parameter=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: source
       },
@@ -1413,7 +1413,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1441,11 +1441,11 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: `http://localhost:${source_server.address().port}/data.zip`
       },
@@ -1458,7 +1458,7 @@ tape('http zip tests', test => {
       t.equals(err.error, 'Could not determine type from zip file');
     })
     .finally(() => {
-      mod_server.close(() => source_server.close(() => t.end()));
+      submit_service.close(() => source_server.close(() => t.end()));
     });
 
   });
@@ -1493,13 +1493,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1532,7 +1532,7 @@ tape('ftp geojson tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => {
-            mod_server.close(() => {
+            submit_service.close(() => {
               t.end();
             });
           });
@@ -1572,13 +1572,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1611,7 +1611,7 @@ tape('ftp geojson tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => {
-            mod_server.close(() => {
+            submit_service.close(() => {
               t.end();
             });
           });
@@ -1636,13 +1636,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1658,7 +1658,7 @@ tape('ftp geojson tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => {
-            mod_server.close(() => {
+            submit_service.close(() => {
               t.end();
             });
           });
@@ -1691,13 +1691,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1730,7 +1730,7 @@ tape('ftp csv tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => {
-            mod_server.close(() => {
+            submit_service.close(() => {
               t.end();
             });
           });
@@ -1760,13 +1760,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the submit service
-        const mod_server = require('../app')().listen();
+        const submit_service = require('../app')().listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${mod_server.address().port}/fields`,
+          uri: `http://localhost:${submit_service.address().port}/fields`,
           qs: {
             source: source
           },
@@ -1799,7 +1799,7 @@ tape('ftp csv tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => {
-            mod_server.close(() => {
+            submit_service.close(() => {
               t.end();
             });
           });
@@ -1869,13 +1869,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -1910,7 +1910,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -1976,13 +1976,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2017,7 +2017,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2079,13 +2079,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2119,7 +2119,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2181,13 +2181,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2221,7 +2221,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2268,13 +2268,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2290,7 +2290,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2342,13 +2342,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2383,7 +2383,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2435,13 +2435,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2476,7 +2476,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2531,13 +2531,13 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: source
             },
@@ -2571,7 +2571,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2618,11 +2618,11 @@ tape('ftp zip tests', test => {
           });
 
           // start the submit service
-          const mod_server = require('../app')().listen();
+          const submit_service = require('../app')().listen();
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${mod_server.address().port}/fields`,
+            uri: `http://localhost:${submit_service.address().port}/fields`,
             qs: {
               source: `ftp://127.0.0.1:${port}/file.zip`
             },
@@ -2638,7 +2638,7 @@ tape('ftp zip tests', test => {
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => {
-              mod_server.close(() => {
+              submit_service.close(() => {
                 t.end();
               });
             });
@@ -2657,11 +2657,11 @@ tape('ftp zip tests', test => {
 tape('error conditions', test => {
   test.test('missing source parameter should return 400 and message', t => {
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       json: true,
       resolveWithFullResponse: true
     })
@@ -2672,18 +2672,18 @@ tape('error conditions', test => {
       t.equals(err.error, '\'source\' parameter is required');
     })
     .finally(() => {
-      mod_server.close(() => t.end());
+      submit_service.close(() => t.end());
     });
 
   });
 
   test.test('empty source parameter should return 400 and message', t => {
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     // make a request to the submit service with an empty 'source' parameter
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: ''
       },
@@ -2697,18 +2697,18 @@ tape('error conditions', test => {
       t.equals(err.error, '\'source\' parameter is required');
     })
     .finally(() => {
-      mod_server.close(() => t.end());
+      submit_service.close(() => t.end());
     });
 
   });
 
   test.test('unknown protocol/type should return 400 and message', t => {
     // start the submit service
-    const mod_server = require('../app')().listen();
+    const submit_service = require('../app')().listen();
 
     // make a request to the submit service with an unsupported type
     request({
-      uri: `http://localhost:${mod_server.address().port}/fields`,
+      uri: `http://localhost:${submit_service.address().port}/fields`,
       qs: {
         source: 'unsupported type'
       },
@@ -2722,7 +2722,7 @@ tape('error conditions', test => {
       t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
     })
     .finally(() => {
-      mod_server.close(() => t.end());
+      submit_service.close(() => t.end());
     });
 
   });

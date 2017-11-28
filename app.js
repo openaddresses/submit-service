@@ -178,10 +178,13 @@ const sampleHttpGeojson = (req, res, next) => {
       let error_message = `Error retrieving file ${res.locals.source.data}: `;
 
       if (_.has(err, 'thrown.code')) {
+        // connection refused, etc
         error_message += err.thrown.code;
       } else if (err.thrown) {
+        // unparseable JSON (but no code)
         error_message += 'Could not parse as JSON';
       } else {
+        // something like a 404
         error_message += `${err.body} (${err.statusCode})`;
       }
       logger.info(error_message);
@@ -190,9 +193,9 @@ const sampleHttpGeojson = (req, res, next) => {
 
     })
     .done(() => {
+      // this will happen when the list of results has been processed and
+      // iteration still has no reached the 11th result, which is very unlikely
       if (!res.headersSent) {
-        // this will happen when the list of results has been processed and
-        // iteration still has no reached the 11th result, which is very unlikely
         next();
       }
     });

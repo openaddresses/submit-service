@@ -646,49 +646,60 @@ const sampleFtpGeojson = (req, res, next) => {
 
   const ftp = new JSFtp(options);
 
-  ftp.get(url.pathname, (err, geojson_stream) => {
-    if (err) {
-      console.error(err);
+  ftp.auth(options.user, options.pass, (auth_err) => {
+    if (auth_err) {
+      res.status(400).type('text/plain')
+        .send(`Error retrieving file ${res.locals.source.data}: Authentication error`);
       return;
     }
 
-    // get() returns a paused stream, so resume it
-    geojson_stream.resume();
+    ftp.get(url.pathname, (get_err, geojson_stream) => {
+      if (get_err) {
+        console.error(get_err);
+        return next();
+      }
 
-    oboe(geojson_stream)
-      .node('features.*.properties', properties => {
-        res.locals.source.source_data.fields = _.keys(properties);
-        res.locals.source.source_data.results.push(properties);
-      })
-      .node('features[9]', function() {
-        // bail after the 10th result.  'done' does not get called after .abort()
-        //  so next() must be called explicitly
-        // must use full function() syntax for "this" reference
-        this.abort();
-        ftp.raw('quit', (err, data) => {
-          return next();
-        });
+      // get() returns a paused stream, so resume it
+      geojson_stream.resume();
 
-      })
-      .fail(err => {
-        let error_message = `Error retrieving file ${res.locals.source.data}: `;
-        error_message += 'Could not parse as JSON';
-        logger.info(error_message);
-
-        res.status(400).type('text/plain').send(error_message);
-
-      })
-      .done(() => {
-        // this will happen when the list of results has been processed and
-        // iteration still has no reached the 11th result, which is very unlikely
-        ftp.raw('quit', (err, data) => {
-          if (!res.headersSent) {
+      oboe(geojson_stream)
+        .node('features.*.properties', properties => {
+          res.locals.source.source_data.fields = _.keys(properties);
+          res.locals.source.source_data.results.push(properties);
+        })
+        .node('features[9]', function() {
+          // bail after the 10th result.  'done' does not get called after .abort()
+          //  so next() must be called explicitly
+          // must use full function() syntax for "this" reference
+          this.abort();
+          ftp.raw('quit', (quit_err, data) => {
             return next();
-          }
+          });
+
+        })
+        .fail(parse_err => {
+          let error_message = `Error retrieving file ${res.locals.source.data}: `;
+          error_message += 'Could not parse as JSON';
+          logger.info(error_message);
+
+          res.status(400).type('text/plain').send(error_message);
+
+        })
+        .done(() => {
+          // this will happen when the list of results has been processed and
+          // iteration still has no reached the 11th result, which is very unlikely
+          ftp.raw('quit', (quit_err, data) => {
+            if (!res.headersSent) {
+              return next();
+            }
+          });
         });
-      });
+
+    });
+
 
   });
+
 
 };
 

@@ -469,7 +469,14 @@ const sampleFtpZip = (req, res, next) => {
 
   const ftp = new JSFtp(options);
 
-  ftp.get(url.pathname, (err, zipfile) => {
+  ftp.auth(options.user, options.pass, (auth_err) => {
+    if (auth_err) {
+      res.status(400).type('text/plain')
+        .send(`Error retrieving file ${res.locals.source.data}: Authentication error`);
+      return;
+    }
+
+    ftp.get(url.pathname, (err, zipfile) => {
     if (err) {
       console.error(err);
       return;
@@ -628,6 +635,7 @@ const sampleFtpZip = (req, res, next) => {
 
   });
 
+  });
 };
 
 // middleware that requests and streams a compressed .zip file, returning up

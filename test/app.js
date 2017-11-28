@@ -2694,6 +2694,53 @@ tape('ftp zip tests', test => {
 
   });
 
+  test.test('invalid login credentials should return error', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp server that will fail authentication
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve, reject) => {
+          reject( { message: 'Invalid username/password'} );
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: Authentication error`);
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('cannot determine type from .zip file', t => {
     // once the data has been written, create a stream of zip data from it
     //  and write out to the response

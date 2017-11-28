@@ -177,21 +177,24 @@ const sampleHttpGeojson = (req, res, next) => {
     .fail((err) => {
       let error_message = `Error retrieving file ${res.locals.source.data}: `;
 
-      if (err.thrown) {
+      if (_.has(err, 'thrown.code')) {
         error_message += err.thrown.code;
+      } else if (err.thrown) {
+        error_message += 'Could not parse as JSON';
       } else {
         error_message += `${err.body} (${err.statusCode})`;
       }
-
       logger.info(error_message);
 
       res.status(400).type('text/plain').send(error_message);
 
     })
     .done(() => {
-      // this will happen when the list of results has been processed and
-      // iteration still has no reached the 11th result, which is very unlikely
-      next();
+      if (!res.headersSent) {
+        // this will happen when the list of results has been processed and
+        // iteration still has no reached the 11th result, which is very unlikely
+        next();
+      }
     });
 
 };
@@ -346,10 +349,20 @@ const sampleHttpZip = (req, res, next) => {
               this.abort();
               next();
             })
+            .fail(err => {
+              let error_message = `Error retrieving file ${res.locals.source.data}: `;
+              error_message += 'Could not parse as JSON';
+              logger.info(error_message);
+
+              res.status(400).type('text/plain').send(error_message);
+
+            })
             .done(() => {
-              // this will happen when the list of results has been processed and
-              // iteration still has no reached the 11th result, which is very unlikely
-              next();
+              if (!res.headersSent) {
+                // this will happen when the list of results has been processed and
+                // iteration still has no reached the 11th result, which is very unlikely
+                next();
+              }
             });
 
         }
@@ -563,11 +576,21 @@ const sampleFtpZip = (req, res, next) => {
             });
 
           })
+          .fail(err => {
+            let error_message = `Error retrieving file ${res.locals.source.data}: `;
+            error_message += 'Could not parse as JSON';
+            logger.info(error_message);
+
+            res.status(400).type('text/plain').send(error_message);
+
+          })
           .done(() => {
             // this will happen when the list of results has been processed and
             // iteration still has no reached the 11th result, which is very unlikely
             ftp.raw('quit', (err, data) => {
-              return next();
+              if (!res.headersSent) {
+                return next();
+              }
             });
           });
 
@@ -634,14 +657,20 @@ const sampleFtpGeojson = (req, res, next) => {
 
       })
       .fail(err => {
-        console.error(err);
-        return next();
+        let error_message = `Error retrieving file ${res.locals.source.data}: `;
+        error_message += 'Could not parse as JSON';
+        logger.info(error_message);
+
+        res.status(400).type('text/plain').send(error_message);
+
       })
       .done(() => {
         // this will happen when the list of results has been processed and
         // iteration still has no reached the 11th result, which is very unlikely
         ftp.raw('quit', (err, data) => {
-          return next();
+          if (!res.headersSent) {
+            return next();
+          }
         });
       });
 

@@ -344,6 +344,35 @@ tape('http geojson tests', test => {
 
   });
 
+  test.test('response unparseable as json should response with message', t => {
+    const mock_source_server = express().get('/file.geojson', (req, res, next) => {
+      res.status(200).send('this is not parseable as JSON');
+    }).listen();
+
+    const mod_server = require('../app')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/file.geojson`;
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+    })
+    .finally(() => {
+      mod_server.close(() => mock_source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('geojson file returning error should return 400 w/message', t => {
     const mock_source_server = express().get('/file.geojson', (req, res, next) => {
       res.status(404).send('page not found');
@@ -775,6 +804,51 @@ tape('http zip tests', test => {
       });
     })
     .catch(err => t.fail(err))
+    .finally(() => {
+      mod_server.close(() => mock_source_server.close(() => t.end()));
+    });
+
+  });
+
+  test.test('geojson.zip: response unparseable as json should response with message', t => {
+    const mock_source_server = express().get('/data.zip', (req, res, next) => {
+      const output = new ZipContentsStream();
+
+      output.on('finish', function() {
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
+        res.set('Content-Length', this.buffer.length);
+        res.end(this.buffer, 'binary');
+      });
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+      });
+      archive.pipe(output);
+      archive.append('this is the README', { name: 'README.md' });
+      archive.append('this is not parseable as JSON', { name: 'file.geojson' });
+      archive.finalize();
+
+    }).listen();
+
+    const mod_server = require('../app')().listen();
+
+    const source = `http://localhost:${mock_source_server.address().port}/data.zip`;
+
+    request({
+      uri: `http://localhost:${mod_server.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+    })
     .finally(() => {
       mod_server.close(() => mock_source_server.close(() => t.end()));
     });
@@ -1427,6 +1501,50 @@ tape('ftp geojson tests', test => {
 
   });
 
+  test.test('response unparseable as json should response with message', t => {
+    const mod_server = require('../app')().listen();
+
+    getPort().then(port => {
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
+          resolve( { fs: new MockFileSystem(string2stream('this is not parseable as JSON')) });
+        });
+
+        const source = `ftp://127.0.0.1:${port}/file.geojson`;
+
+        request({
+          uri: `http://localhost:${mod_server.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftpServer.close().then(() => {
+            mod_server.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
 });
 
 tape('ftp csv tests', test => {
@@ -1947,6 +2065,70 @@ tape('ftp zip tests', test => {
 
           })
           .catch(err => t.fail(err))
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftpServer.close().then(() => {
+              mod_server.close(() => {
+                t.end();
+              });
+            });
+
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('geojson.zip: response unparseable as json should response with message', t => {
+    const mod_server = require('../app')().listen();
+
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.append('this is not parseable as JSON', { name: 'file.geojson' });
+    archive.finalize();
+
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      getPort().then(port => {
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftpServer.listen().then(() => {
+          ftpServer.on('login', (data, resolve) => {
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+          request({
+            uri: `http://localhost:${mod_server.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then(response => t.fail('request should not have been successful'))
+          .catch(err => {
+            t.equals(err.statusCode, 400);
+            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+            t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+          })
           .finally(() => {
             // close ftp server -> app server -> tape
             ftpServer.close().then(() => {

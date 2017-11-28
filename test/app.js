@@ -2122,9 +2122,9 @@ tape('ftp zip tests', test => {
         ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // verify that the login was anonymous
-          ftp_server.on('login', (data, resolve) => {
-            t.equals(data.username, 'anonymous');
-            t.equals(data.password, '@anonymous');
+          ftp_server.on('login', (credentials, resolve) => {
+            t.equals(credentials.username, 'anonymous');
+            t.equals(credentials.password, '@anonymous');
             resolve( { fs: new MockFileSystem(stream) });
           });
 
@@ -2784,9 +2784,9 @@ tape('ftp zip tests', test => {
         ftp_server.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // also verify the username/password
-          ftp_server.on('login', ( data , resolve, reject) => {
-            t.equals(data.username, 'UsErNaMe');
-            t.equals(data.password, 'pAsSwOrD');
+          ftp_server.on('login', ( credentials , resolve, reject) => {
+            t.equals(credentials.username, 'UsErNaMe');
+            t.equals(credentials.password, 'pAsSwOrD');
             resolve( { fs: new MockFileSystem(stream) });
           });
 

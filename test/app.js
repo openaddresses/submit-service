@@ -339,6 +339,11 @@ tape('http geojson tests', test => {
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
     const source_server = express().get('/file.geojson', (req, res, next) => {
+      // verify that any extra parameters supplied were actually passed to the source
+      t.deepEquals(req.query, {
+        parameter: 'value'
+      });
+
       res.status(200).send({
         type: 'FeatureCollection',
         features: [
@@ -357,7 +362,7 @@ tape('http geojson tests', test => {
     // start the submit service
     const submit_service = require('../app')().listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson?param=value`;
+    const source = `http://localhost:${source_server.address().port}/file.geojson?parameter=value`;
 
     // make a request to the submit service
     request({
@@ -609,6 +614,11 @@ tape('http csv tests', test => {
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
     const source_server = express().get('/file.csv', (req, res, next) => {
+      // verify that any extra parameters supplied were actually passed to the source
+      t.deepEquals(req.query, {
+        parameter: 'value'
+      });
+
       const rows = _.range(1).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -1343,6 +1353,11 @@ tape('http zip tests', test => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
     const source_server = express().get('/data.zip', (req, res, next) => {
+      // verify that any extra parameters supplied were actually passed to the source
+      t.deepEquals(req.query, {
+        parameter: 'value'
+      });
+
       const output = new ZipContentsStream();
 
       output.on('finish', function() {

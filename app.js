@@ -11,7 +11,6 @@ const toString = require('stream-to-string');
 const { URL } = require('url');
 const fs = require('fs');
 const dbfstream = require('dbfstream');
-const temp = require('temp');
 const JSFtp = require('jsftp');
 
 const winston = require('winston');
@@ -21,9 +20,6 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'combined.log' })
   ]
 });
-
-// track all created temporary files for deletion
-temp.track();
 
 // matches:
 // - MapServer/0
@@ -90,6 +86,12 @@ const determineType = (req, res, next) => {
 
   // only call next() if no response was previously sent (due to error or unsupported type)
   if (!res.headersSent) {
+    // make temp scoped to individual requests so that calls to cleanup affect only
+    // the files created in the request.  temp.track() cleans up on process exit
+    // but that could lead to lots of file laying around needlessly until the
+    // service eventually stops.  Initialize with .track() anyway in the case
+    // where the service errored out before manual cleanup in middleware fires.
+    res.locals.temp = require('temp').track();
     next();
   }
 
@@ -386,7 +388,7 @@ const sampleHttpZip = (req, res, next) => {
           res.locals.source.source_data.results = [];
 
           // create a stream for writing the dbf file to
-          const stream = temp.createWriteStream({ suffix: '.dbf' });
+          const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
 
           // bookkeeping flag to determine if next() has already been called
           let next_was_called = false;
@@ -518,7 +520,7 @@ const sampleFtpZip = (req, res, next) => {
         res.locals.source.source_data.results = [];
 
         // create a stream for writing the dbf file to
-        const stream = temp.createWriteStream({ suffix: '.dbf' });
+        const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
 
         // bookkeeping flag to determine if next() has already been called
         let next_was_called = false;
@@ -746,6 +748,15 @@ const sampleFtpCsv = (req, res, next) => {
 
 };
 
+// middleware that cleans up any temp files that were created in the course
+// of the request
+const cleanupTemp = (req, res, next) => {
+  res.locals.temp.cleanup((err, stats) => {
+    logger.debug(`temp clean up: ${JSON.stringify(stats)}`);
+    next();
+  });
+};
+
 // middleware that outputs the accumulated metadata, fields, and sample results
 const output = (req, res, next) => {
   res.status(200).send(res.locals.source);
@@ -793,6 +804,7 @@ module.exports = () => {
     ftpCsvRouter,
     httpZipRouter,
     ftpZipRouter,
+    cleanupTemp,
     output
   );
 

@@ -2931,6 +2931,53 @@ tape('ftp zip tests', test => {
 
   });
 
+  test.test('non-zip file returned should respond with error', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftp_server.listen().then(() => {
+        // when a login is attempted on the FTP server, respond with a mock filesystem
+        ftp_server.on('login', ( data , resolve, reject) => {
+          resolve( { fs: new MockFileSystem(string2stream('this is not a zip file')) });
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: Error: Invalid signature in zip file`);
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('csv.zip: response unparseable as csv should respond with error', t => {
     // generate invalid CSV (not enough columns)
     const data = [

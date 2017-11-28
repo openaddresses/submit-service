@@ -1134,6 +1134,61 @@ tape('http zip tests', test => {
 
   });
 
+  test.test('csv.zip: response unparseable as csv should respond with error', t => {
+    // startup an HTTP server that will respond to data.zip requests with .zip
+    // file containing an parseable .csv file
+    const source_server = express().get('/data.zip', (req, res, next) => {
+      const output = new ZipContentsStream();
+
+      output.on('finish', function() {
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', 'attachment; filename=data.zip');
+        res.set('Content-Length', this.buffer.length);
+        res.end(this.buffer, 'binary');
+      });
+
+      // generate invalid CSV (not enough columns)
+      const data = [
+        'attribute 1',
+        'feature 1 attribute 1 value,feature 1 attribute 2 value'
+      ].join('\n');
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+      });
+      archive.pipe(output);
+      archive.append('this is the README', { name: 'README.md' });
+      archive.append(data, { name: 'file.csv' });
+      archive.finalize();
+
+    }).listen();
+
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${submit_service.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+    })
+    .finally(() => {
+      submit_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('dbf.zip: fields and sample results, should limit to 10', t => {
     // THIS TEST IS SO MUCH COMPLICATED
     // mainly because there apparently are no DBF parsers for node that take a stream, they all take files

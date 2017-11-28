@@ -697,9 +697,7 @@ const sampleFtpGeojson = (req, res, next) => {
 
     });
 
-
   });
-
 
 };
 
@@ -719,42 +717,51 @@ const sampleFtpCsv = (req, res, next) => {
 
   const ftp = new JSFtp(options);
 
-  ftp.get(url.pathname, (err, csv_stream) => {
-    if (err) {
-      console.error(err);
+  ftp.auth(options.user, options.pass, (auth_err) => {
+    if (auth_err) {
+      res.status(400).type('text/plain')
+        .send(`Error retrieving file ${res.locals.source.data}: Authentication error`);
       return;
     }
 
-    // get() returns a paused stream, so resume it
-    csv_stream.resume();
-
-    // otherwise everything was fine so pipe the response to CSV and collect records
-    csv_stream.pipe(csvParse({
-      skip_empty_lines: true,
-      columns: true
-    }))
-    .pipe(through2.obj(function(record, enc, callback) {
-      if (res.locals.source.source_data.results.length < 10) {
-        res.locals.source.source_data.fields = _.keys(record);
-        res.locals.source.source_data.results.push(record);
-        callback();
-      } else {
-        // there are enough records so end the stream prematurely, handle in 'close' event
-        this.destroy();
+    ftp.get(url.pathname, (err, csv_stream) => {
+      if (err) {
+        console.error(err);
+        return;
       }
 
-    }))
-    .on('close', () => {
-      // stream was closed prematurely
-      ftp.raw('quit', (err, data) => {
-        return next();
+      // get() returns a paused stream, so resume it
+      csv_stream.resume();
+
+      // otherwise everything was fine so pipe the response to CSV and collect records
+      csv_stream.pipe(csvParse({
+        skip_empty_lines: true,
+        columns: true
+      }))
+      .pipe(through2.obj(function(record, enc, callback) {
+        if (res.locals.source.source_data.results.length < 10) {
+          res.locals.source.source_data.fields = _.keys(record);
+          res.locals.source.source_data.results.push(record);
+          callback();
+        } else {
+          // there are enough records so end the stream prematurely, handle in 'close' event
+          this.destroy();
+        }
+
+      }))
+      .on('close', () => {
+        // stream was closed prematurely
+        ftp.raw('quit', (err, data) => {
+          return next();
+        });
+      })
+      .on('finish', () => {
+        // stream was ended normally
+        ftp.raw('quit', (err, data) => {
+          return next();
+        });
       });
-    })
-    .on('finish', () => {
-      // stream was ended normally
-      ftp.raw('quit', (err, data) => {
-        return next();
-      });
+
     });
 
   });

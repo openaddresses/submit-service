@@ -1992,6 +1992,59 @@ tape('ftp csv tests', test => {
 
   });
 
+  test.test('fields and sample results, should limit to 10', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp and submit-service servers and make the request
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
+          // generate invalid CSV (not enough columns)
+          const data = [
+            'attribute 1',
+            'feature 1 attribute 1 value,feature 1 attribute 2 value'
+          ].join('\n');
+
+          resolve( { fs: new MockFileSystem(string2stream(data)) });
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://127.0.0.1:${port}/file.csv`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('username and password should be passed to FTP server', t => {
     // get a random port for the FTP server
     getPort().then(port => {

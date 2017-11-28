@@ -91,6 +91,8 @@ const determineType = (req, res, next) => {
     // but that could lead to lots of file laying around needlessly until the
     // service eventually stops.  Initialize with .track() anyway in the case
     // where the service errored out before manual cleanup in middleware fires.
+    // Additionally, don't make temp global and cleanup on each request since it
+    // may delete files that are currently being used by other requests.
     res.locals.temp = require('temp').track();
     next();
   }

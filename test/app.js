@@ -1685,12 +1685,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -1764,12 +1759,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -1811,12 +1801,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -1858,12 +1843,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -1938,12 +1918,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -1985,12 +1960,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2057,12 +2027,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2126,12 +2091,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2221,12 +2181,7 @@ tape('ftp csv tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2292,12 +2247,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2339,12 +2289,7 @@ tape('ftp csv tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -2450,12 +2395,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -2557,12 +2497,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -2659,12 +2594,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -2761,12 +2691,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -2830,12 +2755,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -2923,12 +2843,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -3016,11 +2931,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -3090,12 +3001,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -3140,11 +3046,7 @@ tape('ftp zip tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -3277,11 +3179,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });
@@ -3325,12 +3223,7 @@ tape('ftp zip tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => {
-            submit_service.close(() => {
-              t.end();
-            });
-          });
-
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });
@@ -3391,11 +3284,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
           });
 
         });

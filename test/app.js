@@ -12,6 +12,8 @@ const Duplex = require('stream').Duplex;
 const getPort = require('get-port');
 const string2stream = require('string-to-stream');
 
+// FileSystem implementation used by the FTP server that just returns the
+// supplied stream
 class MockFileSystem extends FileSystem {
   constructor(stream) {
     super(...arguments);
@@ -24,6 +26,8 @@ class MockFileSystem extends FileSystem {
 
 }
 
+// FileSystem implementation used by the FTP server for forcing an error
+// when performing a get()
 class FileNotFoundFileSystem extends FileSystem {
   constructor() {
     super(...arguments);

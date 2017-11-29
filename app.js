@@ -250,6 +250,8 @@ const sampleHttpCsv = (req, res, next) => {
 
       // otherwise everything was fine so pipe the response to CSV and collect records
       r.pipe(csvParse({
+        // DO NOT USE `from` and `to` to limit records since it downloads the entire
+        // file whereas this way simply stops the download after 10 records
         skip_empty_lines: true,
         columns: true
       }))
@@ -329,6 +331,8 @@ const sampleHttpZip = (req, res, next) => {
 
           // process the .csv file
           entry.pipe(csvParse({
+            // DO NOT USE `from` and `to` to limit records since it downloads the entire
+            // file whereas this way simply stops the download after 10 records
             skip_empty_lines: true,
             columns: true
           }))
@@ -574,6 +578,8 @@ const sampleFtpCsv = (req, res, next) => {
 
       // otherwise everything was fine so pipe the response to CSV and collect records
       csv_stream.pipe(csvParse({
+        // DO NOT USE `from` and `to` to limit records since it downloads the entire
+        // file whereas this way simply stops the download after 10 records
         skip_empty_lines: true,
         columns: true
       }))
@@ -654,6 +660,8 @@ const sampleFtpZip = (req, res, next) => {
 
             // process the .csv file
             entry.pipe(csvParse({
+              // DO NOT USE `from` and `to` to limit records since it downloads the entire
+              // file whereas this way simply stops the download after 10 records
               skip_empty_lines: true,
               columns: true
             }))

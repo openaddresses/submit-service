@@ -1774,6 +1774,53 @@ tape('ftp geojson tests', test => {
 
   });
 
+  test.test('get returning error should respond with error', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // fire up the ftp server with a filesystem that will force an error
+      ftp_server.listen().then(() => {
+        ftp_server.on('login', (credentials, resolve) => {
+          resolve( { fs: new FileNotFoundFileSystem() });
+        });
+
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://127.0.0.1:${port}/file.geojson`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.ok(_.startsWith(err.error, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => {
+            submit_service.close(() => {
+              t.end();
+            });
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('response unparseable as json should response with message', t => {
     // get a random port for the FTP server
     getPort().then(port => {

@@ -1,5 +1,8 @@
 FROM node:8-alpine
 
+# git is needed for JSFTP branch
+RUN apk add --no-cache git
+
 # Where the app is built and run inside the docker fs
 ENV WORK=/opt/pelias
 
@@ -10,7 +13,7 @@ WORKDIR ${WORK}
 
 COPY package.json ${WORK}
 
-RUN npm install
+RUN npm install --production
 
 COPY . ${WORK}
 

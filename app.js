@@ -140,7 +140,7 @@ const sampleArcgis = (req, res, next) => {
     .node('features.*.attributes', attributes => {
       res.locals.source.source_data.results.push(attributes);
     })
-    .fail((err) => {
+    .fail(err => {
       let error_message = `Error connecting to Arcgis server ${res.locals.source.data}: `;
 
       if (_.has(err, 'thrown.code')) {
@@ -185,7 +185,7 @@ const sampleHttpGeojson = (req, res, next) => {
       this.abort();
       next();
     })
-    .fail((err) => {
+    .fail(err => {
       let error_message = `Error retrieving file ${res.locals.source.data}: `;
 
       if (_.has(err, 'thrown.code')) {
@@ -222,7 +222,7 @@ const sampleHttpCsv = (req, res, next) => {
   const r = request(res.locals.source.data);
 
   // handle catastrophic errors like "connection refused"
-  r.on('error', (err) => {
+  r.on('error', err => {
     const error_message = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
 
     logger.info(error_message);
@@ -232,7 +232,7 @@ const sampleHttpCsv = (req, res, next) => {
   });
 
   // handle normal responses (including HTTP errors)
-  r.on('response', (response) => {
+  r.on('response', response => {
     if (response.statusCode !== 200) {
       // something went wrong so save up the response text and return an error
       toString(r, (err, msg) => {
@@ -255,7 +255,7 @@ const sampleHttpCsv = (req, res, next) => {
         skip_empty_lines: true,
         columns: true
       }))
-      .on('error', (err) => {
+      .on('error', err => {
         const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
         res.status(400).type('text/plain').send(error_message);
       })
@@ -293,7 +293,7 @@ const sampleHttpZip = (req, res, next) => {
   const r = request(res.locals.source.data);
 
   // handle catastrophic errors like "connection refused"
-  r.on('error', (err) => {
+  r.on('error', err => {
     const error_message = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
     logger.info(error_message);
 
@@ -302,7 +302,7 @@ const sampleHttpZip = (req, res, next) => {
   });
 
   // handle normal responses (including HTTP errors)
-  r.on('response', (response) => {
+  r.on('response', response => {
     if (response.statusCode !== 200) {
       // something went wrong so save up the response text and return an error
       toString(r, (err, msg) => {
@@ -336,7 +336,7 @@ const sampleHttpZip = (req, res, next) => {
             skip_empty_lines: true,
             columns: true
           }))
-          .on('error', (err) => {
+          .on('error', err => {
             const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
             res.status(400).type('text/plain').send(error_message);
           })
@@ -416,12 +416,12 @@ const sampleHttpZip = (req, res, next) => {
             const dbf = dbfstream(stream.path, 'utf-8');
 
             // there's a header so pull the field names from it
-            dbf.on('header', (header) => {
+            dbf.on('header', header => {
               res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
             });
 
             // found a row
-            dbf.on('data', (record) => {
+            dbf.on('data', record => {
               // if there aren't 10 records in the array yet and the record isn't deleted, then add it
               if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
                 // add all the non-@ attributes
@@ -583,7 +583,7 @@ const sampleFtpCsv = (req, res, next) => {
         skip_empty_lines: true,
         columns: true
       }))
-      .on('error', (err) => {
+      .on('error', err => {
         const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
         res.status(400).type('text/plain').send(error_message);
       })
@@ -665,7 +665,7 @@ const sampleFtpZip = (req, res, next) => {
               skip_empty_lines: true,
               columns: true
             }))
-            .on('error', (err) => {
+            .on('error', err => {
               const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
               res.status(400).type('text/plain').send(error_message);
             })
@@ -715,12 +715,12 @@ const sampleFtpZip = (req, res, next) => {
               const dbf = dbfstream(stream.path, 'utf-8');
 
               // there's a header so pull the field names from it
-              dbf.on('header', (header) => {
+              dbf.on('header', header => {
                 res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
               });
 
               // found a row
-              dbf.on('data', (record) => {
+              dbf.on('data', record => {
                 // if there aren't 10 records in the array yet and the record isn't deleted, then add it
                 if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
                   // add all the non-@ attributes

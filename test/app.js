@@ -24,6 +24,13 @@ class MockFileSystem extends FileSystem {
 
 }
 
+class FileNotFoundFileSystem extends FileSystem {
+  constructor() {
+    super(...arguments);
+  }
+
+}
+
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
     // startup an ArcGIS server that will respond with a 200 and valid JSON
@@ -2970,6 +2977,50 @@ tape('ftp zip tests', test => {
               t.end();
             });
           });
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('get returning error should respond with error', t => {
+    // get a random port for the FTP server
+    getPort().then(port => {
+      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+      // when a login is attempted on the FTP server, respond with a mock filesystem
+      ftp_server.on('login', ( data , resolve, reject) => {
+        // resolve( { root: '/' });
+        resolve( { fs: new FileNotFoundFileSystem() });
+      });
+
+      // fire up the ftp and submit-service servers and make the request
+      ftp_server.listen().then(() => {
+        // start the submit service
+        const submit_service = require('../app')().listen();
+
+        const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+        // make a request to the submit service
+        request({
+          uri: `http://localhost:${submit_service.address().port}/fields`,
+          qs: {
+            source: source
+          },
+          json: true,
+          resolveWithFullResponse: true
+        })
+        .then(response => t.fail('request should not have been successful'))
+        .catch(err => {
+          t.equals(err.statusCode, 400);
+          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+          t.ok(_.startsWith(err.error, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
+        })
+        .finally(() => {
+          // close ftp server -> app server -> tape
+          ftp_server.close().then(() => submit_service.close(err => t.end()));
         });
 
       });

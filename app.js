@@ -467,199 +467,6 @@ const sampleHttpZip = (req, res, next) => {
 
 // middleware that requests and streams a compressed .zip file, returning up
 // to the first 10 records
-const sampleFtpZip = (req, res, next) => {
-  logger.debug(`using zip sampler for ${res.locals.source.data}`);
-
-  const url = new URL(res.locals.source.data);
-
-  const options = {
-    host: url.hostname,
-    port: url.port,
-    user: url.username,
-    pass: url.password
-  };
-
-  const ftp = new JSFtp(options);
-
-  ftp.auth(options.user, options.pass, (auth_err) => {
-    if (auth_err) {
-      res.status(400).type('text/plain')
-        .send(`Error retrieving file ${res.locals.source.data}: Authentication error`);
-      return;
-    }
-
-    ftp.get(url.pathname, (err, zipfile) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    zipfile.pipe(unzip.Parse())
-    .on('error', err => {
-      const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-      res.status(400).type('text/plain').send(error_message);
-    })
-    .on('entry', entry => {
-      if (_.endsWith(entry.path, '.csv')) {
-        logger.debug(`treating ${entry.path} as csv`);
-        res.locals.source.conform.type = 'csv';
-
-        // process the .csv file
-        entry.pipe(csvParse({
-          skip_empty_lines: true,
-          columns: true
-        }))
-        .on('error', (err) => {
-          const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-          res.status(400).type('text/plain').send(error_message);
-        })
-        .pipe(through2.obj(function(record, enc, callback) {
-          // must use full function() syntax for "this" reference
-          if (res.locals.source.source_data.results.length < 10) {
-            res.locals.source.source_data.fields = _.keys(record);
-            res.locals.source.source_data.results.push(record);
-            callback();
-          } else {
-            // there are enough records so end the stream prematurely, handle in 'close' event
-            this.destroy();
-          }
-
-        }))
-        .on('close', () => {
-          // stream was closed prematurely
-          ftp.raw('quit', (err, data) => {
-            return next();
-          });
-        })
-        .on('finish', () => {
-          // stream was ended normally
-          ftp.raw('quit', (err, data) => {
-            return next();
-          });
-        });
-
-      }
-      else if (_.endsWith(entry.path, '.dbf')) {
-        logger.debug(`treating file as dbf`);
-
-        // in the case of a DBF file, because there's no DBF parser that takes a stream,
-        // write to a temporary file and read in that way
-        res.locals.source.conform.type = 'shapefile';
-
-        res.locals.source.source_data.results = [];
-
-        // create a stream for writing the dbf file to
-        const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
-
-        // bookkeeping flag to determine if next() has already been called
-        let next_was_called = false;
-
-        // pipe the dbf contents from the .zip file to a stream
-        entry.pipe(stream).on('finish', () => {
-          const dbf = dbfstream(stream.path, 'utf-8');
-
-          // there's a header so pull the field names from it
-          dbf.on('header', (header) => {
-            res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
-          });
-
-          // found a row
-          dbf.on('data', (record) => {
-            // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-            if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
-              // add all the non-@ attributes
-              res.locals.source.source_data.results.push(
-                _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
-
-            } else if (!next_was_called) {
-              // there are 10 records, so bail now
-              next_was_called = true;
-
-              ftp.raw('quit', (err, data) => {
-                return next();
-              });
-
-            }
-
-          });
-
-          // stream ended, so call next() if it hasn't already
-          dbf.on('end', () => {
-            if (!next_was_called) {
-              ftp.raw('quit', (err, data) => {
-                return next();
-              });
-
-            }
-
-          });
-
-        });
-
-      }
-      else if (_.endsWith(entry.path, '.geojson')) {
-        logger.debug(`treating ${entry.path} as geojson`);
-
-        res.locals.source.conform.type = 'geojson';
-
-        oboe(entry)
-          .node('features.*.properties', properties => {
-            res.locals.source.source_data.fields = _.keys(properties);
-            res.locals.source.source_data.results.push(properties);
-          })
-          .node('features[9]', function() {
-            // bail after the 10th result.  'done' does not get called after .abort()
-            //  so next() must be called explicitly
-            // must use full function() syntax for "this" reference
-            this.abort();
-            ftp.raw('quit', (err, data) => {
-              return next();
-            });
-
-          })
-          .fail(err => {
-            let error_message = `Error retrieving file ${res.locals.source.data}: `;
-            error_message += 'Could not parse as JSON';
-            logger.info(error_message);
-
-            res.status(400).type('text/plain').send(error_message);
-
-          })
-          .done(() => {
-            // this will happen when the list of results has been processed and
-            // iteration still has no reached the 11th result, which is very unlikely
-            ftp.raw('quit', (err, data) => {
-              if (!res.headersSent) {
-                return next();
-              }
-            });
-          });
-
-      }
-      else {
-        // this is a file that's currently unsupported so drain it so memory doesn't get full
-        logger.debug(`skipping ${entry.path}`);
-        entry.autodrain();
-
-      }
-
-    })
-    .on('finish', () => {
-      if (!res.locals.source.conform.type) {
-        logger.info('Could not determine type from zip file');
-        res.status(400).type('text/plain').send('Could not determine type from zip file');
-      }
-
-    });
-
-
-  });
-
-  });
-};
-
-// middleware that requests and streams a compressed .zip file, returning up
-// to the first 10 records
 const sampleFtpGeojson = (req, res, next) => {
   logger.debug(`using geojson sampler for ${res.locals.source.data}`);
 
@@ -798,6 +605,202 @@ const sampleFtpCsv = (req, res, next) => {
 
   });
 
+};
+
+// middleware that requests and streams a compressed .zip file, returning up
+// to the first 10 records
+const sampleFtpZip = (req, res, next) => {
+  logger.debug(`using zip sampler for ${res.locals.source.data}`);
+
+  const url = new URL(res.locals.source.data);
+
+  const options = {
+    host: url.hostname,
+    port: url.port,
+    user: url.username,
+    pass: url.password,
+    debugMode: true
+  };
+
+  const ftp = new JSFtp(options);
+
+  ftp.auth(options.user, options.pass, (auth_err) => {
+    if (auth_err) {
+      res.status(400).type('text/plain')
+        .send(`Error retrieving file ${res.locals.source.data}: Authentication error`);
+      return;
+    }
+
+    ftp.get(url.pathname, function(get_err, zipfile) {
+      if (get_err) {
+        res.status(400).type('text/plain')
+          .send(`Error retrieving file ${res.locals.source.data}: ${get_err}`);
+        return;
+
+      } else {
+        zipfile.pipe(unzip.Parse())
+        .on('error', err => {
+          const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+          res.status(400).type('text/plain').send(error_message);
+        })
+        .on('entry', entry => {
+          if (_.endsWith(entry.path, '.csv')) {
+            logger.debug(`treating ${entry.path} as csv`);
+            res.locals.source.conform.type = 'csv';
+
+            // process the .csv file
+            entry.pipe(csvParse({
+              skip_empty_lines: true,
+              columns: true
+            }))
+            .on('error', (err) => {
+              const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+              res.status(400).type('text/plain').send(error_message);
+            })
+            .pipe(through2.obj(function(record, enc, callback) {
+              // must use full function() syntax for "this" reference
+              if (res.locals.source.source_data.results.length < 10) {
+                res.locals.source.source_data.fields = _.keys(record);
+                res.locals.source.source_data.results.push(record);
+                callback();
+              } else {
+                // there are enough records so end the stream prematurely, handle in 'close' event
+                this.destroy();
+              }
+
+            }))
+            .on('close', () => {
+              // stream was closed prematurely
+              ftp.raw('quit', (err, data) => {
+                return next();
+              });
+            })
+            .on('finish', () => {
+              // stream was ended normally
+              ftp.raw('quit', (err, data) => {
+                return next();
+              });
+            });
+
+          }
+          else if (_.endsWith(entry.path, '.dbf')) {
+            logger.debug(`treating file as dbf`);
+
+            // in the case of a DBF file, because there's no DBF parser that takes a stream,
+            // write to a temporary file and read in that way
+            res.locals.source.conform.type = 'shapefile';
+
+            res.locals.source.source_data.results = [];
+
+            // create a stream for writing the dbf file to
+            const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
+
+            // bookkeeping flag to determine if next() has already been called
+            let next_was_called = false;
+
+            // pipe the dbf contents from the .zip file to a stream
+            entry.pipe(stream).on('finish', () => {
+              const dbf = dbfstream(stream.path, 'utf-8');
+
+              // there's a header so pull the field names from it
+              dbf.on('header', (header) => {
+                res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+              });
+
+              // found a row
+              dbf.on('data', (record) => {
+                // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+                if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
+                  // add all the non-@ attributes
+                  res.locals.source.source_data.results.push(
+                    _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
+
+                } else if (!next_was_called) {
+                  // there are 10 records, so bail now
+                  next_was_called = true;
+
+                  ftp.raw('quit', (err, data) => {
+                    return next();
+                  });
+
+                }
+
+              });
+
+              // stream ended, so call next() if it hasn't already
+              dbf.on('end', () => {
+                if (!next_was_called) {
+                  ftp.raw('quit', (err, data) => {
+                    return next();
+                  });
+
+                }
+
+              });
+
+            });
+
+          }
+          else if (_.endsWith(entry.path, '.geojson')) {
+            logger.debug(`treating ${entry.path} as geojson`);
+
+            res.locals.source.conform.type = 'geojson';
+
+            oboe(entry)
+              .node('features.*.properties', properties => {
+                res.locals.source.source_data.fields = _.keys(properties);
+                res.locals.source.source_data.results.push(properties);
+              })
+              .node('features[9]', function() {
+                // bail after the 10th result.  'done' does not get called after .abort()
+                //  so next() must be called explicitly
+                // must use full function() syntax for "this" reference
+                this.abort();
+                ftp.raw('quit', (err, data) => {
+                  return next();
+                });
+
+              })
+              .fail(err => {
+                let error_message = `Error retrieving file ${res.locals.source.data}: `;
+                error_message += 'Could not parse as JSON';
+                logger.info(error_message);
+
+                res.status(400).type('text/plain').send(error_message);
+
+              })
+              .done(() => {
+                // this will happen when the list of results has been processed and
+                // iteration still has no reached the 11th result, which is very unlikely
+                ftp.raw('quit', (err, data) => {
+                  if (!res.headersSent) {
+                    return next();
+                  }
+                });
+              });
+
+          }
+          else {
+            // this is a file that's currently unsupported so drain it so memory doesn't get full
+            logger.debug(`skipping ${entry.path}`);
+            entry.autodrain();
+
+          }
+
+        })
+        .on('finish', () => {
+          if (!res.locals.source.conform.type) {
+            logger.info('Could not determine type from zip file');
+            res.status(400).type('text/plain').send('Could not determine type from zip file');
+          }
+
+        });
+
+      }
+
+    });
+
+  });
 };
 
 // middleware that cleans up any temp files that were created in the course

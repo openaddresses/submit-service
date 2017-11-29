@@ -489,9 +489,11 @@ const sampleFtpGeojson = (req, res, next) => {
     }
 
     ftp.get(url.pathname, (get_err, geojson_stream) => {
+      // bail early if there's an error, such as non-existent file
       if (get_err) {
-        console.error(get_err);
-        return next();
+        res.status(400).type('text/plain')
+          .send(`Error retrieving file ${res.locals.source.data}: ${get_err}`);
+        return;
       }
 
       // get() returns a paused stream, so resume it

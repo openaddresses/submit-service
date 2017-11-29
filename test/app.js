@@ -3027,6 +3027,81 @@ tape('ftp zip tests', test => {
 
   });
 
+  test.test('csv.zip: response unparseable as csv should respond with error', t => {
+    // generate invalid CSV (not enough columns)
+    const data = [
+      'attribute 1',
+      'feature 1 attribute 1 value,feature 1 attribute 2 value'
+    ].join('\n');
+
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.append(data, { name: 'file.csv' });
+    archive.finalize();
+
+    // when the zip stream has been written, proceed
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      // get a random port for the FTP server
+      getPort().then(port => {
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftp_server.listen().then(() => {
+          // when a login is attempted on the FTP server, respond with a mock filesystem
+          ftp_server.on('login', ( data , resolve, reject) => {
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          // start the submit service
+          const submit_service = require('../app')().listen();
+
+          const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+          // make a request to the submit service
+          request({
+            uri: `http://localhost:${submit_service.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then(response => t.fail('request should not have been successful'))
+          .catch(err => {
+            t.equals(err.statusCode, 400);
+            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+            t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+          })
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftp_server.close().then(() => {
+              submit_service.close(() => {
+                t.end();
+              });
+            });
+
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
   test.test('non-zip file returned should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
@@ -3110,81 +3185,6 @@ tape('ftp zip tests', test => {
         .finally(() => {
           // close ftp server -> app server -> tape
           ftp_server.close().then(() => submit_service.close(err => t.end()));
-        });
-
-      });
-
-    });
-
-  });
-
-  test.test('csv.zip: response unparseable as csv should respond with error', t => {
-    // generate invalid CSV (not enough columns)
-    const data = [
-      'attribute 1',
-      'feature 1 attribute 1 value,feature 1 attribute 2 value'
-    ].join('\n');
-
-    // once the data has been written, create a stream of zip data from it
-    //  and write out to the response
-    const output = new ZipContentsStream();
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Sets the compression level.
-    });
-    archive.pipe(output);
-    archive.append('this is the README', { name: 'README.md' });
-    archive.append(data, { name: 'file.csv' });
-    archive.finalize();
-
-    // when the zip stream has been written, proceed
-    output.on('finish', function() {
-      // convert the buffer to a stream
-      const stream = new Duplex();
-      stream.push(this.buffer);
-      stream.push(null);
-
-      // get a random port for the FTP server
-      getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
-
-        // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
-          // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
-            resolve( { fs: new MockFileSystem(stream) });
-          });
-
-          // start the submit service
-          const submit_service = require('../app')().listen();
-
-          const source = `ftp://127.0.0.1:${port}/file.zip`;
-
-          // make a request to the submit service
-          request({
-            uri: `http://localhost:${submit_service.address().port}/fields`,
-            qs: {
-              source: source
-            },
-            json: true,
-            resolveWithFullResponse: true
-          })
-          .then(response => t.fail('request should not have been successful'))
-          .catch(err => {
-            t.equals(err.statusCode, 400);
-            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
-          })
-          .finally(() => {
-            // close ftp server -> app server -> tape
-            ftp_server.close().then(() => {
-              submit_service.close(() => {
-                t.end();
-              });
-            });
-
-          });
-
         });
 
       });

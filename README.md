@@ -42,16 +42,15 @@ An example response from the `/fields` endpoint is:
 
 ```json
 {
-	coverage: {},
-	type: "http",
-	compression: "zip",
-	data: "http://https://s3.amazonaws.com/data.openaddresses.io/cache/uploads/file.csv.zip",
-	conform: {
-		type: "csv"
+	"coverage": {},
+	"type": "ESRI",
+	"data": "http://arcweb.ycpc.org/arcgis/rest/services/Emergency_Services/Address_Pts/MapServer/0",
+	"conform": {
+		"type": "geojson"
 	},
-	source_data: {
-		fields: ["id", "number", "street", "city"],
-		results: [
+	"source_data": {
+		"fields": ["id", "number", "street", "city"],
+		"results": [
 			{
 				"id": "1001",
 				"number": "123",
@@ -71,8 +70,8 @@ An example response from the `/fields` endpoint is:
 
 The populated portions would be properties that can be inferred from the source:
 
-- `type`: (either `ESRI` or `http`)
-- `conform.type`: (one of `geojson` or `csv`)
+- `type`: (either `ESRI`, `http`, or `ftp`)
+- `conform.type`: (one of `geojson`, `csv`, or `shapefile`)
 - `compression`: (`zip` is source is a .zip file)
 - `data` (the value of the `source` parameter)
 
@@ -87,6 +86,7 @@ There are several supported source types:
 - ESRI/Arcgis
 - CSV (optionally .zip compressed)
 - GeoJSON (optionally .zip compressed)
+- Shapefiles (.zip compressed)
 
 ## Development
 
@@ -100,9 +100,14 @@ For local testing, the service also provides a [UI](http://localhost:3103/) that
 $ npm test
 ```
 
-
 ## Contributing
 
 Please fork and pull request against upstream master on a feature branch.
 
 Provide unit tests in the `test` directory.
+
+## Continuous Integration
+
+Travis tests every release against Node.js version `8`.
+
+[![Build Status](https://travis-ci.org/openaddresses/submit-service.png?branch=master)](https://travis-ci.org/openaddresses/submit-service)

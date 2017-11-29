@@ -3,7 +3,7 @@ try {
   const port = ( parseInt(process.env.PORT) || 3103 );
 
   app.listen(port, () => {
-    console.log(`mod-service is now running on port ${port}`);
+    console.log(`submit-service is now running on port ${port}`);
   });
 
 } catch (err) {

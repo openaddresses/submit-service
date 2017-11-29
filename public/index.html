@@ -64,7 +64,7 @@
             $('#results').append(data_table);
 
           }).fail(r => {
-            // request failed, 
+            // request failed,
             $('#results').html(`<h3>${r.responseText}</h3><h4>${r.status} (${r.statusText})</h4>`);
           });
 
@@ -77,10 +77,10 @@
   </head>
 
   <body>
-    <h1>MOD Service</h1>
+    <h1>OpenAddresses Submit Service</h1>
 
     <form>
-      <input type="text" id="source" value="https://services.arcgis.com/f4rR7WnIfGBdVYFd/arcgis/rest/services/Valid_Address_Points_FNSB/FeatureServer/0"></input><p/>
+      <input type="text" id="source" value=""></input><p/>
       <input type="button" id="lookup" value="Lookup"></input>
     </form>
 

@@ -559,9 +559,11 @@ const sampleFtpCsv = (req, res, next) => {
       return;
     }
 
-    ftp.get(url.pathname, (err, csv_stream) => {
-      if (err) {
-        console.error(err);
+    ftp.get(url.pathname, (get_err, csv_stream) => {
+      // bail early if there's an error, such as non-existent file
+      if (get_err) {
+        res.status(400).type('text/plain')
+          .send(`Error retrieving file ${res.locals.source.data}: ${get_err}`);
         return;
       }
 

@@ -1,5 +1,7 @@
 # OpenAddress Submit Service
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/openaddresses/submit-service.svg)](https://greenkeeper.io/)
+
 This project provides an HTTP service that can be used to back a website that makes submitting new data sources to OpenAddresses easier for those unfamiliar with JSON and github.
 
 

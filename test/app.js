@@ -11,6 +11,7 @@ const fs = require('fs');
 const Duplex = require('stream').Duplex;
 const getPort = require('get-port');
 const string2stream = require('string-to-stream');
+const sha1 = require('sha1');
 
 // FileSystem implementation used by the FTP server that just returns the
 // supplied stream
@@ -3363,6 +3364,69 @@ tape('error conditions', test => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
       t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
+    })
+    .finally(() => {
+      submit_service.close(() => t.end());
+    });
+
+  });
+
+});
+
+tape('file uploads', test => {
+  test.test('successful upload should respond with tmp filename', t => {
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    // make a request to the submit service without a 'source' parameter
+    request({
+      uri: `http://localhost:${submit_service.address().port}/upload`,
+      method: 'POST',
+      formData: {
+        datafile: {
+          value: fs.createReadStream('./LICENSE'),
+          options: {
+            filename: 'file.txt',
+            contentType: 'text/plain'
+          }
+        }
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      resolveWithFullResponse: true
+    })
+    .then(response => {
+      t.equals(response.statusCode, 200);
+      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(response.body, sha1(fs.readFileSync('./LICENSE')));
+    })
+    .catch(err => t.fail(err))
+    .finally(() => {
+      submit_service.close(() => t.end());
+    });
+
+  });
+
+  test.test('request without dataFile parameter should return 400', t => {
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    // make a request to the submit service without a 'source' parameter
+    request({
+      uri: `http://localhost:${submit_service.address().port}/upload`,
+      method: 'POST',
+      formData: {},
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, '\'datafile\' parameter is required');
     })
     .finally(() => {
       submit_service.close(() => t.end());

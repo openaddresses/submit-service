@@ -16,7 +16,11 @@ In either scenario, the service starts on [http://localhost:3103](http://localho
 
 ### Docker
 
-TBD
+To run using docker on port 3103, install docker and run:
+
+```bash
+$ docker run -p 3103:3103 openaddr/submit-service:master
+```
 
 ### node.js
 

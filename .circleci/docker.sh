@@ -3,7 +3,7 @@ set -u
 
 # collect params from ENV vars
 DATE=`date +%Y-%m-%d`
-DOCKER_REPOSITORY="openaddresses"
+DOCKER_REPOSITORY="openaddr"
 DOCKER_PROJECT="${DOCKER_REPOSITORY}/${CIRCLE_PROJECT_REPONAME}"
 
 # skip builds on greenkeeper branches

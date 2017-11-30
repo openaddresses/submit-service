@@ -12,6 +12,9 @@ const { URL } = require('url');
 const fs = require('fs');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
+const fileUpload = require('express-fileupload');
+const temp = require('temp');
+const sha1 = require('sha1');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -45,6 +48,18 @@ function getProtocol(protocol) {
     return 'ftp';
   }
 }
+
+// make temp scoped to individual requests so that calls to cleanup affect only
+// the files created in the request.  temp.track() cleans up on process exit
+// but that could lead to lots of file laying around needlessly until the
+// service eventually stops.  Initialize with .track() anyway in the case
+// where the service errored out before manual cleanup in middleware fires.
+// Additionally, don't make temp global and cleanup on each request since it
+// may delete files that are currently being used by other requests.
+const setupTemp = (req, res, next) => {
+  res.locals.temp = require('temp').track();
+  next();
+};
 
 // determine the protocol, type, and compression to make decisions easier later on
 const determineType = (req, res, next) => {
@@ -86,14 +101,6 @@ const determineType = (req, res, next) => {
 
   // only call next() if no response was previously sent (due to error or unsupported type)
   if (!res.headersSent) {
-    // make temp scoped to individual requests so that calls to cleanup affect only
-    // the files created in the request.  temp.track() cleans up on process exit
-    // but that could lead to lots of file laying around needlessly until the
-    // service eventually stops.  Initialize with .track() anyway in the case
-    // where the service errored out before manual cleanup in middleware fires.
-    // Additionally, don't make temp global and cleanup on each request since it
-    // may delete files that are currently being used by other requests.
-    res.locals.temp = require('temp').track();
     next();
   }
 
@@ -829,9 +836,48 @@ const output = (req, res, next) => {
   res.status(200).send(res.locals.source);
 };
 
+
+// ALL THE MIDDLEWARE AVAILABLE FOR THE /upload ENDPOINT
+
+// if no datafile parameter was supplied, bail immediately
+const uploadPreconditionsCheck = (req, res, next) => {
+  if (!_.has(req, 'files.datafile')) {
+    res.status(400).type('text/plain').send('\'datafile\' parameter is required');
+  } else {
+    next();
+  }
+
+};
+
+const handleFileUpload = (req, res, next) => {
+  // get a temporary file to write to
+  const tmpFile = temp.path();
+
+  req.files.datafile.mv(tmpFile, err => {
+    if (err) {
+      return res.status(500).type('text/plain').send('Could not upload file');
+    }
+
+    // save off the sha1 so it can be output later and temp can still be cleaned up
+    fs.readFile(tmpFile, (err, contents) => {
+      res.locals.sha1 = sha1(contents);
+      next();
+    });
+
+  });
+
+};
+
+const outputSha1 = (req, res, next) => {
+  res.status(200).type('text/plain').send(res.locals.sha1);
+};
+
 module.exports = () => {
   const app = express();
   app.use(morgan('combined'));
+
+  // use express-fileupload for handling uploads
+  app.use(fileUpload());
 
   // setup a router that only handles Arcgis sources
   const arcgisRouter = express.Router();
@@ -864,6 +910,7 @@ module.exports = () => {
   app.get('/fields',
     preconditionsCheck,
     determineType,
+    setupTemp,
     arcgisRouter,
     httpGeojsonRouter,
     ftpGeojsonRouter,
@@ -873,6 +920,15 @@ module.exports = () => {
     ftpZipRouter,
     cleanupTemp,
     output
+  );
+
+  // handle POST requests to the /upload endpoint
+  app.post('/upload',
+    uploadPreconditionsCheck,
+    setupTemp,
+    handleFileUpload,
+    cleanupTemp,
+    outputSha1
   );
 
   // expose testing UI

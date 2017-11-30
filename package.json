@@ -17,7 +17,7 @@
     "node": ">= 8.0.0"
   },
   "dependencies": {
-    "csv-parse": "^1.1.7",
+    "csv-parse": "^2.0.0",
     "dbfstream": "^1.0.19",
     "express": "^4.16.2",
     "indian-ocean": "^3.0.2",

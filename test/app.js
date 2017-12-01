@@ -114,6 +114,46 @@ tape('arcgis tests', test => {
 
   });
 
+  test.test('arcgis server returning 200 response but with error should return error', t => {
+    // startup an ArcGIS server that will respond with a 200 and invalid JSON
+    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
+      const error_response = {
+        error: {
+          code: 500,
+          message: 'Error handling service request'
+        }
+      };
+
+      res.status(200).send(JSON.stringify(error_response));
+
+    }).listen();
+
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${submit_service.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error connecting to Arcgis server ${source}: Error handling service request (500)`);
+    })
+    .finally(() => {
+      submit_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('arcgis server returning 200 non-JSON response should return error', t => {
     // startup an ArcGIS server that will respond with a 200 and invalid JSON
     const source_server = express().get('/MapServer/0/query', (req, res, next) => {

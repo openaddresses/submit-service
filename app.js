@@ -141,6 +141,10 @@ const sampleArcgis = (req, res, next) => {
   url.searchParams.append('f', 'json');
 
   oboe(url.href)
+    .node('error', err => {
+      res.status(400).type('text/plain').send(
+        `Error connecting to Arcgis server ${res.locals.source.data}: ${err.message} (${err.code})`);
+    })
     .node('fields.*.name', name => {
       res.locals.source.source_data.fields.push(name);
     })

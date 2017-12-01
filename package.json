@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "csv-parse": "^2.0.0",
-    "dbfstream": "^1.0.19",
+    "dbfstream": "git://github.com/trescube/dbfstream#support-stream-input",
     "express": "^4.16.2",
     "express-fileupload": "^0.3.0",
     "indian-ocean": "^3.0.2",

@@ -1359,7 +1359,6 @@ tape('http zip tests', test => {
       io.writeData(stream.path, records, {
         columns: ['attribute1', 'attribute2']
       }, (err, dataString) => {
-
         // once the data has been written, create a stream of zip data from it
         //  and write out to the response
         const output = new ZipContentsStream();
@@ -2342,213 +2341,6 @@ tape('ftp csv tests', test => {
 });
 
 tape('ftp zip tests', test => {
-  test.test('dbf.zip: fields and sample results, should limit to 10', t => {
-    // generate 11 features
-    const records = _.range(11).reduce((features, i) => {
-      features.push(
-        {
-          'attribute1': `feature ${i} attribute 1 value`,
-          'attribute2': `feature ${i} attribute 2 value`
-        }
-      );
-      return features;
-    }, []);
-
-    // create a stream wrapped around a temporary file with .dbf extension
-    const stream = temp.createWriteStream({ suffix: '.dbf' });
-
-    // write out the records to the temporary file
-    io.writeDataSync(stream.path, records, {
-      columns: ['attribute1', 'attribute2']
-    });
-
-    // once the data has been written, create a stream of zip data from it
-    //  and write out to the response
-    const output = new ZipContentsStream();
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Sets the compression level.
-    });
-    archive.pipe(output);
-    archive.append('this is the README', { name: 'README.md' });
-    archive.file(stream.path, { name: 'file.dbf' });
-    archive.finalize();
-
-    // when the zip stream has been written, proceed
-    output.on('finish', function() {
-      // convert the buffer to a stream
-      const stream = new Duplex();
-      stream.push(this.buffer);
-      stream.push(null);
-
-      // get a random port for the FTP server
-      getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
-
-        // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
-          // when a login is attempted on the FTP server, respond with a mock filesystem
-          // verify that the login was anonymous
-          ftp_server.on('login', (credentials, resolve) => {
-            t.equals(credentials.username, 'anonymous');
-            t.equals(credentials.password, '@anonymous');
-            resolve( { fs: new MockFileSystem(stream) });
-          });
-
-          // start the submit service
-          const submit_service = require('../app')().listen();
-
-          const source = `ftp://127.0.0.1:${port}/file.zip`;
-
-          // make a request to the submit service
-          request({
-            uri: `http://localhost:${submit_service.address().port}/fields`,
-            qs: {
-              source: source
-            },
-            json: true,
-            resolveWithFullResponse: true
-          })
-          .then((response, body) => {
-            t.equals(response.statusCode, 200);
-            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
-            t.deepEquals(response.body, {
-              coverage: {},
-              type: 'ftp',
-              data: source,
-              compression: 'zip',
-              source_data: {
-                fields: ['attribute1', 'attribute2'],
-                results: _.range(10).reduce((features, i) => {
-                  features.push({
-                    attribute1: `feature ${i} attribute 1 value`,
-                    attribute2: `feature ${i} attribute 2 value`
-                  });
-                  return features;
-                }, [])
-              },
-              conform: {
-                type: 'shapefile'
-              }
-            });
-
-          })
-          .catch(err => t.fail(err))
-          .finally(() => {
-            // close ftp server -> app server -> tape
-            ftp_server.close().then(() => submit_service.close(err => t.end()));
-          });
-
-        });
-
-      });
-
-    });
-
-  });
-
-  test.test('dbf.zip: file consisting of less than 10 records should return all', t => {
-    // generate 2 features
-    const records = _.range(2).reduce((features, i) => {
-      features.push(
-        {
-          'attribute1': `feature ${i} attribute 1 value`,
-          'attribute2': `feature ${i} attribute 2 value`
-        }
-      );
-      return features;
-    }, []);
-
-    // create a stream wrapped around a temporary file with .dbf extension
-    const stream = temp.createWriteStream({ suffix: '.dbf' });
-
-    // write out the records to the temporary file
-    io.writeDataSync(stream.path, records, {
-      columns: ['attribute1', 'attribute2']
-    });
-
-    // once the data has been written, create a stream of zip data from it
-    //  and write out to the response
-    const output = new ZipContentsStream();
-
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Sets the compression level.
-    });
-    archive.pipe(output);
-    archive.append('this is the README', { name: 'README.md' });
-    archive.file(stream.path, { name: 'file.dbf' });
-    archive.finalize();
-
-    // when the zip stream has been written, proceed
-    output.on('finish', function() {
-      // convert the buffer to a stream
-      const stream = new Duplex();
-      stream.push(this.buffer);
-      stream.push(null);
-
-      // get a random port for the FTP server
-      getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
-
-        // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
-          // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', (data, resolve) => {
-            resolve( { fs: new MockFileSystem(stream) });
-          });
-
-          // start the submit service
-          const submit_service = require('../app')().listen();
-
-          const source = `ftp://127.0.0.1:${port}/file.zip`;
-
-          // make a request to the submit service
-          request({
-            uri: `http://localhost:${submit_service.address().port}/fields`,
-            qs: {
-              source: source
-            },
-            json: true,
-            resolveWithFullResponse: true
-          })
-          .then((response, body) => {
-            t.equals(response.statusCode, 200);
-            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
-            t.deepEquals(response.body, {
-              coverage: {},
-              type: 'ftp',
-              data: source,
-              compression: 'zip',
-              source_data: {
-                fields: ['attribute1', 'attribute2'],
-                results: _.range(2).reduce((features, i) => {
-                  features.push({
-                    attribute1: `feature ${i} attribute 1 value`,
-                    attribute2: `feature ${i} attribute 2 value`
-                  });
-                  return features;
-                }, [])
-              },
-              conform: {
-                type: 'shapefile'
-              }
-            });
-
-          })
-          .catch(err => t.fail(err))
-          .finally(() => {
-            // close ftp server -> app server -> tape
-            ftp_server.close().then(() => submit_service.close(err => t.end()));
-          });
-
-        });
-
-      });
-
-    });
-
-  });
-
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
     // generate 11 features
     const data = {
@@ -3040,6 +2832,213 @@ tape('ftp zip tests', test => {
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
             t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
           })
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('dbf.zip: fields and sample results, should limit to 10', t => {
+    // generate 11 features
+    const records = _.range(11).reduce((features, i) => {
+      features.push(
+        {
+          'attribute1': `feature ${i} attribute 1 value`,
+          'attribute2': `feature ${i} attribute 2 value`
+        }
+      );
+      return features;
+    }, []);
+
+    // create a stream wrapped around a temporary file with .dbf extension
+    const stream = temp.createWriteStream({ suffix: '.dbf' });
+
+    // write out the records to the temporary file
+    io.writeDataSync(stream.path, records, {
+      columns: ['attribute1', 'attribute2']
+    });
+
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.file(stream.path, { name: 'file.dbf' });
+    archive.finalize();
+
+    // when the zip stream has been written, proceed
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      // get a random port for the FTP server
+      getPort().then(port => {
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftp_server.listen().then(() => {
+          // when a login is attempted on the FTP server, respond with a mock filesystem
+          // verify that the login was anonymous
+          ftp_server.on('login', (credentials, resolve) => {
+            t.equals(credentials.username, 'anonymous');
+            t.equals(credentials.password, '@anonymous');
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          // start the submit service
+          const submit_service = require('../app')().listen();
+
+          const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+          // make a request to the submit service
+          request({
+            uri: `http://localhost:${submit_service.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then((response, body) => {
+            t.equals(response.statusCode, 200);
+            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(response.body, {
+              coverage: {},
+              type: 'ftp',
+              data: source,
+              compression: 'zip',
+              source_data: {
+                fields: ['attribute1', 'attribute2'],
+                results: _.range(10).reduce((features, i) => {
+                  features.push({
+                    attribute1: `feature ${i} attribute 1 value`,
+                    attribute2: `feature ${i} attribute 2 value`
+                  });
+                  return features;
+                }, [])
+              },
+              conform: {
+                type: 'shapefile'
+              }
+            });
+
+          })
+          .catch(err => t.fail(err))
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('dbf.zip: file consisting of less than 10 records should return all', t => {
+    // generate 2 features
+    const records = _.range(2).reduce((features, i) => {
+      features.push(
+        {
+          'attribute1': `feature ${i} attribute 1 value`,
+          'attribute2': `feature ${i} attribute 2 value`
+        }
+      );
+      return features;
+    }, []);
+
+    // create a stream wrapped around a temporary file with .dbf extension
+    const stream = temp.createWriteStream({ suffix: '.dbf' });
+
+    // write out the records to the temporary file
+    io.writeDataSync(stream.path, records, {
+      columns: ['attribute1', 'attribute2']
+    });
+
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.file(stream.path, { name: 'file.dbf' });
+    archive.finalize();
+
+    // when the zip stream has been written, proceed
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      // get a random port for the FTP server
+      getPort().then(port => {
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftp_server.listen().then(() => {
+          // when a login is attempted on the FTP server, respond with a mock filesystem
+          ftp_server.on('login', (data, resolve) => {
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          // start the submit service
+          const submit_service = require('../app')().listen();
+
+          const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+          // make a request to the submit service
+          request({
+            uri: `http://localhost:${submit_service.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then((response, body) => {
+            t.equals(response.statusCode, 200);
+            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(response.body, {
+              coverage: {},
+              type: 'ftp',
+              data: source,
+              compression: 'zip',
+              source_data: {
+                fields: ['attribute1', 'attribute2'],
+                results: _.range(2).reduce((features, i) => {
+                  features.push({
+                    attribute1: `feature ${i} attribute 1 value`,
+                    attribute2: `feature ${i} attribute 2 value`
+                  });
+                  return features;
+                }, [])
+              },
+              conform: {
+                type: 'shapefile'
+              }
+            });
+
+          })
+          .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => submit_service.close(err => t.end()));

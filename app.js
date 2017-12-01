@@ -416,46 +416,37 @@ const sampleHttpZip = (req, res, next) => {
 
           res.locals.source.source_data.results = [];
 
-          // create a stream for writing the dbf file to
-          const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
-
-          // bookkeeping flag to determine if next() has already been called
-          let next_was_called = false;
-
           // pipe the dbf contents from the .zip file to a stream
-          entry.pipe(stream).on('finish', () => {
-            const dbf = dbfstream(stream.path, 'utf-8');
-
+          dbfstream(entry)
+          .on('header', header => {
             // there's a header so pull the field names from it
-            dbf.on('header', header => {
-              res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
-            });
+            res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+          })
+          .on('data', function(record) {
+            // use long form function declaration for access to pause and resume
+            this.pause();
 
-            // found a row
-            dbf.on('data', record => {
-              // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-              if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
+            // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+            if (res.locals.source.source_data.results.length < 10) {
+              if (!record['@deleted']) {
                 // add all the non-@ attributes
                 res.locals.source.source_data.results.push(
                   _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
-
-              } else if (!next_was_called) {
-                // there are 10 records, so bail now
-                next_was_called = true;
-                return next();
-
               }
 
-            });
+              // resume the stream to get more records
+              this.resume();
 
-            // stream ended, so call next() if it hasn't already
-            dbf.on('end', () => {
-              if (!next_was_called) {
-                return next();
-              }
+            } else {
+              // there are 10 records, so call next()
+              return next();
 
-            });
+            }
 
+          })
+          .on('end', () => {
+            // ran out of records before 10, so call next()
+            return next();
           });
 
         }
@@ -706,64 +697,6 @@ const sampleFtpZip = (req, res, next) => {
             });
 
           }
-          else if (_.endsWith(entry.path, '.dbf')) {
-            logger.debug(`treating file as dbf`);
-
-            // in the case of a DBF file, because there's no DBF parser that takes a stream,
-            // write to a temporary file and read in that way
-            res.locals.source.conform.type = 'shapefile';
-
-            res.locals.source.source_data.results = [];
-
-            // create a stream for writing the dbf file to
-            const stream = res.locals.temp.createWriteStream({ suffix: '.dbf' });
-
-            // bookkeeping flag to determine if next() has already been called
-            let next_was_called = false;
-
-            // pipe the dbf contents from the .zip file to a stream
-            entry.pipe(stream).on('finish', () => {
-              const dbf = dbfstream(stream.path, 'utf-8');
-
-              // there's a header so pull the field names from it
-              dbf.on('header', header => {
-                res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
-              });
-
-              // found a row
-              dbf.on('data', record => {
-                // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-                if (res.locals.source.source_data.results.length < 10 && !record['@deleted']) {
-                  // add all the non-@ attributes
-                  res.locals.source.source_data.results.push(
-                    _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
-
-                } else if (!next_was_called) {
-                  // there are 10 records, so bail now
-                  next_was_called = true;
-
-                  ftp.raw('quit', (err, data) => {
-                    return next();
-                  });
-
-                }
-
-              });
-
-              // stream ended, so call next() if it hasn't already
-              dbf.on('end', () => {
-                if (!next_was_called) {
-                  ftp.raw('quit', (err, data) => {
-                    return next();
-                  });
-
-                }
-
-              });
-
-            });
-
-          }
           else if (_.endsWith(entry.path, '.geojson')) {
             logger.debug(`treating ${entry.path} as geojson`);
 
@@ -801,6 +734,46 @@ const sampleFtpZip = (req, res, next) => {
                   }
                 });
               });
+
+          }
+          else if (_.endsWith(entry.path, '.dbf')) {
+            logger.debug(`treating file as dbf`);
+
+            // in the case of a DBF file, because there's no DBF parser that takes a stream,
+            // write to a temporary file and read in that way
+            res.locals.source.conform.type = 'shapefile';
+
+            res.locals.source.source_data.results = [];
+
+            // pipe the dbf contents from the .zip file to a stream
+            const dbf = dbfstream(entry)
+            // there's a header so pull the field names from it
+            .on('header', header => {
+              res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+            })
+            .on('data', function(record) {
+              // use long form function declaration for access to pause and resume
+              this.pause();
+
+              // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+              if (res.locals.source.source_data.results.length < 10) {
+                if (!record['@deleted']) {
+                  // add all the non-@ attributes
+                  res.locals.source.source_data.results.push(
+                    _.pickBy(record, (value, key) => !_.startsWith(key, '@')));
+                }
+
+                this.resume();
+
+              } else {
+                // there are 10 records, so bail now
+                ftp.raw('quit', (err, data) => next());
+              }
+
+            })
+            .on('end', () => {
+              ftp.raw('quit', (err, data) => next());
+            });
 
           }
           else {

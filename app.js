@@ -9,11 +9,9 @@ const unzip = require('unzip-stream');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
 const { URL } = require('url');
-const fs = require('fs');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
 const fileUpload = require('express-fileupload');
-const temp = require('temp');
 const sha1 = require('sha1');
 
 const winston = require('winston');
@@ -833,23 +831,10 @@ const uploadPreconditionsCheck = (req, res, next) => {
 
 };
 
+// calculate the sha1 from the contents of the upload
 const handleFileUpload = (req, res, next) => {
-  // get a temporary file to write to
-  const tmpFile = temp.path();
-
-  req.files.datafile.mv(tmpFile, err => {
-    if (err) {
-      return res.status(500).type('text/plain').send('Could not upload file');
-    }
-
-    // save off the sha1 so it can be output later and temp can still be cleaned up
-    fs.readFile(tmpFile, (err, contents) => {
-      res.locals.sha1 = sha1(contents);
-      next();
-    });
-
-  });
-
+  res.locals.sha1 = sha1(req.files.datafile.data.toString());
+  next();
 };
 
 const outputSha1 = (req, res, next) => {
@@ -909,9 +894,7 @@ module.exports = () => {
   // handle POST requests to the /upload endpoint
   app.post('/upload',
     uploadPreconditionsCheck,
-    setupTemp,
     handleFileUpload,
-    cleanupTemp,
     outputSha1
   );
 

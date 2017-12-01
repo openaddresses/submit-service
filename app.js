@@ -438,6 +438,9 @@ const sampleHttpZip = (req, res, next) => {
               this.resume();
 
             } else {
+              // discard the remains of the .dbf file
+              entry.autodrain();
+
               // there are 10 records, so call next()
               return next();
 
@@ -766,8 +769,12 @@ const sampleFtpZip = (req, res, next) => {
                 this.resume();
 
               } else {
+                // discard the remains of the .dbf file
+                entry.autodrain();
+
                 // there are 10 records, so bail now
                 ftp.raw('quit', (err, data) => next());
+
               }
 
             })

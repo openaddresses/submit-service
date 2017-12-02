@@ -1233,7 +1233,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, `Error parsing file file.csv: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
       submit_service.close(() => source_server.close(() => t.end()));

@@ -1428,6 +1428,62 @@ tape('http zip tests', test => {
 
   });
 
+  test.test('dbf.zip: response unparseable as dbf should respond with error', t => {
+    // THIS TEST IS SO MUCH COMPLICATED
+    // mainly because there apparently are no DBF parsers for node that take a stream, they all take files
+
+    // startup an HTTP server that will respond to data.zip requests with .zip
+    // file containing an unparseable .dbf file
+    const source_server = express().get('/data.zip', (req, res, next) => {
+      // once the data has been written, create a stream of zip data from it
+      //  and write out to the response
+      const output = new ZipContentsStream();
+
+      output.on('finish', function() {
+        temp.cleanup(() => {
+          res.set('Content-Type', 'application/zip');
+          res.set('Content-Disposition', 'attachment; filename=data.zip');
+          res.set('Content-Length', this.buffer.length);
+          res.end(this.buffer, 'binary');
+        });
+      });
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+      });
+      archive.pipe(output);
+      archive.append('this is the README', { name: 'README.md' });
+      archive.append('unparseable as dbf', { name: 'file.dbf' });
+      archive.finalize();
+
+    }).listen();
+
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const source = `http://localhost:${source_server.address().port}/data.zip`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${submit_service.address().port}/fields`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error parsing file file.dbf from ${source}: Could not parse as shapefile`);
+    })
+    .finally(() => {
+      submit_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
   test.test('zip file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
     const source_server = express().get('/file.zip', (req, res, next) => {
@@ -3039,6 +3095,70 @@ tape('ftp zip tests', test => {
 
           })
           .catch(err => t.fail(err))
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftp_server.close().then(() => submit_service.close(err => t.end()));
+          });
+
+        });
+
+      });
+
+    });
+
+  });
+
+  test.test('dbf.zip: response unparseable as dbf should respond with error', t => {
+    // once the data has been written, create a stream of zip data from it
+    //  and write out to the response
+    const output = new ZipContentsStream();
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level.
+    });
+    archive.pipe(output);
+    archive.append('this is the README', { name: 'README.md' });
+    archive.append('unparseable as dbf', { name: 'file.dbf' });
+    archive.finalize();
+
+    // when the zip stream has been written, proceed
+    output.on('finish', function() {
+      // convert the buffer to a stream
+      const stream = new Duplex();
+      stream.push(this.buffer);
+      stream.push(null);
+
+      // get a random port for the FTP server
+      getPort().then(port => {
+        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+
+        // fire up the ftp and submit-service servers and make the request
+        ftp_server.listen().then(() => {
+          // when a login is attempted on the FTP server, respond with a mock filesystem
+          ftp_server.on('login', (data, resolve) => {
+            resolve( { fs: new MockFileSystem(stream) });
+          });
+
+          // start the submit service
+          const submit_service = require('../app')().listen();
+
+          const source = `ftp://127.0.0.1:${port}/file.zip`;
+
+          // make a request to the submit service
+          request({
+            uri: `http://localhost:${submit_service.address().port}/fields`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then(response => t.fail('request should not have been successful'))
+          .catch(err => {
+            t.equals(err.statusCode, 400);
+            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+            t.equals(err.error, `Error parsing file file.dbf from ${source}: Could not parse as shapefile`);
+          })
           .finally(() => {
             // close ftp server -> app server -> tape
             ftp_server.close().then(() => submit_service.close(err => t.end()));

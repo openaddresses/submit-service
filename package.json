@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "csv-parse": "^2.0.0",
-    "dbfstream": "git://github.com/trescube/dbfstream",
+    "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
     "express": "^4.16.2",
     "express-fileupload": "^0.3.0",
     "indian-ocean": "^3.0.2",

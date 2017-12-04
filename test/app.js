@@ -4,6 +4,7 @@ const request = require('request-promise');
 const _ = require('lodash');
 const archiver = require('archiver');
 const ZipContentsStream = require('./ZipContentsStream');
+const NLengthStream = require('./NLengthStream');
 const io = require('indian-ocean');
 const temp = require('temp');
 const {FtpSrv, FileSystem} = require('ftp-srv');
@@ -3533,36 +3534,42 @@ tape('error conditions', test => {
 });
 
 tape('file uploads', test => {
-  test.test('successful upload should respond with tmp filename', t => {
-    // start the submit service
-    const submit_service = require('../app')().listen();
+  test.test('zip/csv/geojson extensions: successful upload should respond with tmp filename', t => {
+    t.plan(3 + 3 + 3); // 3 assertions for each file type
 
-    // make a request to the submit service without a 'source' parameter
-    request({
-      uri: `http://localhost:${submit_service.address().port}/upload`,
-      method: 'POST',
-      formData: {
-        datafile: {
-          value: fs.createReadStream('./LICENSE'),
-          options: {
-            filename: 'file.txt',
-            contentType: 'text/plain'
+    ['zip', 'csv', 'geojson'].forEach(extension => {
+      // start the submit service
+      const submit_service = require('../app')().listen();
+
+      // make a request to the submit service without a 'source' parameter
+      request({
+        uri: `http://localhost:${submit_service.address().port}/upload`,
+        method: 'POST',
+        formData: {
+          datafile: {
+            value: fs.createReadStream('./LICENSE'),
+            options: {
+              filename: `file.${extension}`,
+              contentType: 'text/plain'
+            }
           }
-        }
-      },
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded'
-      },
-      resolveWithFullResponse: true
-    })
-    .then(response => {
-      t.equals(response.statusCode, 200);
-      t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(response.body, sha1(fs.readFileSync('./LICENSE')));
-    })
-    .catch(err => t.fail(err))
-    .finally(() => {
-      submit_service.close(() => t.end());
+        },
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded'
+        },
+        resolveWithFullResponse: true
+      })
+      .then(response => {
+        t.equals(response.statusCode, 200);
+        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
+        t.equals(response.body, sha1(fs.readFileSync('./LICENSE')));
+      })
+      .catch(err => t.fail(err))
+      .finally(() => {
+        // don't call t.end() here because the test will be closed multiple times
+        submit_service.close();
+      });
+
     });
 
   });
@@ -3586,6 +3593,76 @@ tape('file uploads', test => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
       t.equals(err.error, '\'datafile\' parameter is required');
+    })
+    .finally(() => {
+      submit_service.close(() => t.end());
+    });
+
+  });
+
+  test.test('non-zip/geojson/csv file extension should return error', t => {
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    // make a request to the submit service without a 'source' parameter
+    request({
+      uri: `http://localhost:${submit_service.address().port}/upload`,
+      method: 'POST',
+      formData: {
+        datafile: {
+          value: fs.createReadStream('./LICENSE'),
+          options: {
+            filename: `file.txt`,
+            contentType: 'text/plain'
+          }
+        }
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, 'supported extensions are .zip, .csv, and .geojson');
+    })
+    .finally(() => {
+      submit_service.close(() => t.end());
+    });
+
+  });
+
+  test.test('file upload size greater than 50MB should return error', t => {
+    // start the submit service
+    const submit_service = require('../app')().listen();
+
+    const size = 50*1024*1024+1;
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/upload`,
+      method: 'POST',
+      formData: {
+        datafile: {
+          value: new NLengthStream({}, size),
+          options: {
+            filename: 'file.zip',
+            contentType: 'text/plain',
+            knownLength: size
+          }
+        }
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, 'max upload size is blah');
     })
     .finally(() => {
       submit_service.close(() => t.end());

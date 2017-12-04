@@ -18,11 +18,11 @@
   },
   "dependencies": {
     "csv-parse": "^2.0.0",
-    "dbfstream": "git://github.com/trescube/dbfstream#support-stream-input",
+    "dbfstream": "git://github.com/trescube/dbfstream",
     "express": "^4.16.2",
     "express-fileupload": "^0.3.0",
     "indian-ocean": "^3.0.2",
-    "jsftp": "git://github.com/trescube/jsftp",
+    "jsftp": "^2.1.1",
     "lodash": "^4.17.4",
     "morgan": "^1.9.0",
     "oboe": "^2.1.4",

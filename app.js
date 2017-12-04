@@ -461,6 +461,14 @@ const sampleHttpZip = (req, res, next) => {
 
           // pipe the dbf contents from the .zip file to a stream
           dbfstream(entry)
+          .on('error', err => {
+            let error_message = `Error parsing file ${entry.path} from ${res.locals.source.data}: `;
+            error_message += 'Could not parse as shapefile';
+            logger.info(`HTTP ZIP DBF: ${error_message}`);
+
+            res.status(400).type('text/plain').send(error_message);
+
+          })
           .on('header', header => {
             // there's a header so pull the field names from it
             res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
@@ -501,7 +509,9 @@ const sampleHttpZip = (req, res, next) => {
           })
           .on('end', () => {
             // ran out of records before 10, so call next()
-            return next();
+            if (!res.headersSent) {
+              return next();
+            }
           });
 
         }
@@ -846,6 +856,14 @@ const sampleFtpZip = (req, res, next) => {
 
             // pipe the dbf contents from the .zip file to a stream
             const dbf = dbfstream(entry)
+            .on('error', err => {
+              let error_message = `Error parsing file ${entry.path} from ${res.locals.source.data}: `;
+              error_message += 'Could not parse as shapefile';
+              logger.info(`HTTP ZIP DBF: ${error_message}`);
+
+              res.status(400).type('text/plain').send(error_message);
+
+            })
             .on('header', header => {
               // there's a header so pull the field names from it
               res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
@@ -884,8 +902,10 @@ const sampleFtpZip = (req, res, next) => {
 
             })
             .on('end', () => {
-              // ran out of records before 10, so call next()
-              ftp.raw('quit', (err, data) => next());
+              if (!res.headersSent) {
+                // ran out of records before 10, so call next()
+                ftp.raw('quit', (err, data) => next());
+              }
             });
 
           }

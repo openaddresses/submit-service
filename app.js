@@ -13,6 +13,7 @@ const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
 const fileUpload = require('express-fileupload');
 const sha1 = require('sha1');
+const path = require('path');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -21,6 +22,8 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'combined.log' })
   ]
 });
+
+const acceptableUploadFileExtensions = ['.zip', '.csv', '.geojson'];
 
 // matches:
 // - MapServer/0
@@ -953,8 +956,13 @@ const output = (req, res, next) => {
 const uploadPreconditionsCheck = (req, res, next) => {
   if (!_.has(req, 'files.datafile')) {
     res.status(400).type('text/plain').send('\'datafile\' parameter is required');
+  } else if (!_.includes(acceptableUploadFileExtensions, path.extname(req.files.datafile.name))) {
+    res.status(400).type('text/plain').send('supported extensions are .zip, .csv, and .geojson');
+  } else if (req.files.datafile.data.length > 50*1024*1024) {
+    res.status(400).type('text/plain').send('max upload size is blah');
   } else {
-    next();
+    // console.error(req.files.datafile.data.length);
+    return next();
   }
 
 };

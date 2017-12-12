@@ -29,7 +29,7 @@
           // clear out the existing results
           $('#results').html('<h4>Working...</h4>');
 
-          $.get(`/fields`, {source: $("#source").val()}, r => {
+          $.get(`/sample`, {source: $("#source").val()}, r => {
             // clear out the existing results
             const data_table = $('<table/>');
 

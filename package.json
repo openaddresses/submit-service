@@ -21,7 +21,9 @@
     "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
     "express": "^4.16.2",
     "express-fileupload": "^0.3.0",
+    "github": "^12.1.0",
     "indian-ocean": "^3.0.2",
+    "js-base64": "^2.4.0",
     "jsftp": "^2.1.1",
     "lodash": "^4.17.4",
     "morgan": "^1.9.0",
@@ -29,6 +31,7 @@
     "request": "^2.83.0",
     "sha1": "^1.1.1",
     "stream-to-string": "^1.1.0",
+    "temp": "^0.8.3",
     "through2": "^2.0.3",
     "unzip-stream": "^0.2.1",
     "winston": "^3.0.0-rc1"
@@ -37,16 +40,15 @@
     "archiver": "^2.1.0",
     "ftp-srv": "^2.13.3",
     "get-port": "^3.2.0",
-    "jshint": "^2.8.0",
+    "jshint": "^2.9.5",
     "precommit-hook": "^3.0.0",
+    "proxyquire": "^1.8.0",
     "request-promise": "^4.2.2",
     "string-to-stream": "^1.1.0",
     "tap-dot": "^1.0.1",
-    "tape": "^4.2.2",
-    "temp": "^0.8.3"
+    "tape": "^4.2.2"
   },
   "pre-commit": [
-    "lint",
     "validate",
     "test"
   ]

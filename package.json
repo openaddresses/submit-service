@@ -23,7 +23,6 @@
     "express-fileupload": "^0.3.0",
     "github": "^12.1.0",
     "indian-ocean": "^3.0.2",
-    "js-base64": "^2.4.0",
     "jsftp": "^2.1.1",
     "lodash": "^4.17.4",
     "morgan": "^1.9.0",

@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const GitHubApi = require('github');
 const fileUpload = require('express-fileupload');
 
@@ -14,7 +13,6 @@ const logger = winston.createLogger({
 async function createBranch(req, res, next) {
   const github = new GitHubApi();
 
-  const token = 'my super secret token';
   const reference_name = 'submit_service_test';
   const commit_message = 'this is the commit message';
   const path = 'sources/us/nh/city_of_auburn_test.json';
@@ -24,7 +22,7 @@ async function createBranch(req, res, next) {
   // first, authenticate the user
   github.authenticate({
     type: 'oauth',
-    token: token
+    token: req.app.locals.github.accessToken
   });
 
   // second, get the github username for this authentication
@@ -137,9 +135,4 @@ async function createBranch(req, res, next) {
 
 }
 
-// use express-fileupload for handling uploads
-router.use(fileUpload());
-
-router.post('/', createBranch);
-
-module.exports = router;
+module.exports = express.Router().use(fileUpload()).post('/', createBranch);

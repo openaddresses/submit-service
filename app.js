@@ -1,8 +1,18 @@
 const express = require('express');
 const morgan = require('morgan');
 
-module.exports = () => {
+module.exports = credentials => {
   const app = express();
+
+  // set credentials into the application-wide settings
+  app.locals.s3 = {
+    accessKeyId: credentials.s3AccessKeyId,
+    secretAccessKey: credentials.s3SecretAccessKey
+  };
+  app.locals.github = {
+    accessToken: credentials.githubAccessToken
+  };
+
   app.use(morgan('combined'));
 
   app.use('/sample', require('./sample'));

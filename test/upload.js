@@ -37,7 +37,9 @@ tape('/upload tests', test => {
 
     ['zip', 'csv', 'geojson'].forEach(extension => {
       // start the service with the upload endpoint
-      const upload_service = express().use('/', require('../upload')).listen();
+      const upload_service = express()
+        .use('/', require('../upload'))
+        .listen();
 
       // make a request to the submit service without a 'source' parameter
       request({
@@ -74,7 +76,9 @@ tape('/upload tests', test => {
 
   test.test('request without dataFile parameter should return 400', t => {
     // start the service with the upload endpoint
-    const upload_service = express().use('/', require('../upload')).listen();
+    const upload_service = express()
+      .use('/', require('../upload'))
+      .listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
@@ -100,7 +104,9 @@ tape('/upload tests', test => {
 
   test.test('non-zip/geojson/csv file extension should return error', t => {
     // start the service with the upload endpoint
-    const upload_service = express().use('/', require('../upload')).listen();
+    const upload_service = express()
+      .use('/', require('../upload'))
+      .listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
@@ -134,7 +140,9 @@ tape('/upload tests', test => {
 
   test.test('file upload size greater than 50MB should return error', t => {
     // start the service with the upload endpoint
-    const upload_service = express().use('/', require('../upload')).listen();
+    const upload_service = express()
+      .use('/', require('../upload'))
+      .listen();
 
     const size = 50*1024*1024+1;
 

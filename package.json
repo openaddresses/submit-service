@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "archiver": "^2.1.0",
+    "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.13.3",
     "get-port": "^3.2.0",
     "jshint": "^2.9.5",

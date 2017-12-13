@@ -40,7 +40,11 @@ tape('/submit tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
@@ -67,29 +71,19 @@ tape('/submit tests', test => {
   });
 
   test.test('request failing to look up master reference should respond with 400 and error message', t => {
-    t.plan(6);
+    t.plan(4);
 
     // mock the github in the submit route
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
+          authenticate: () => {},
           users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => resolve({
+            get: (users_get_params) => new Promise((resolve, reject) => resolve({
                 data: {
                   login: 'submit_service username'
                 }
-              }));
-
-            }
+              }))
           },
           gitdata: {
             getReference: (o) => {
@@ -114,7 +108,11 @@ tape('/submit tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
@@ -141,47 +139,28 @@ tape('/submit tests', test => {
   });
 
   test.test('request failing to create local reference should respond with 400 and error message', t => {
-    t.plan(7);
+    t.plan(4);
 
     // mock the github in the submit route
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
+          authenticate: () => {},
           users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => resolve({
+            get: (users_get_params) => new Promise((resolve, reject) => resolve({
                 data: {
                   login: 'submit_service username'
                 }
-              }));
-
-            }
+              }))
           },
           gitdata: {
-            getReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'openaddresses',
-                repo: 'openaddresses',
-                ref: 'heads/master'
-              });
-
-              return new Promise((resolve, reject) => resolve({
+            getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              }));
-
-            },
+              })),
             createReference: (o) => {
               t.deepEquals(o, {
                 owner: 'submit_service username',
@@ -204,7 +183,11 @@ tape('/submit tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
@@ -231,58 +214,29 @@ tape('/submit tests', test => {
   });
 
   test.test('request failing to create file in local reference should respond with 400 and error message', t => {
-    t.plan(8);
+    t.plan(4);
 
     // mock the github in the submit route
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
+          authenticate: () => {},
           users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => resolve({
+            get: (users_get_params) => new Promise((resolve, reject) => resolve({
                 data: {
                   login: 'submit_service username'
                 }
-              }));
-
-            }
+              }))
           },
           gitdata: {
-            getReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'openaddresses',
-                repo: 'openaddresses',
-                ref: 'heads/master'
-              });
-
-              return new Promise((resolve, reject) => resolve({
+            getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              }));
-
-            },
-            createReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'submit_service username',
-                repo: 'openaddresses',
-                ref: 'refs/heads/submit_service_test',
-                sha: 'master sha'
-              });
-
-              return new Promise((resolve, reject) => resolve());
-
-            }
+              })),
+            createReference: o => new Promise((resolve, reject) => resolve())
           },
           repos: {
             createFile: (o) => {
@@ -306,7 +260,11 @@ tape('/submit tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     const post_content = 'this is the POST content for /submit';
 
@@ -317,7 +275,7 @@ tape('/submit tests', test => {
         source: {
           value: string2stream(post_content),
           options: {
-            filename: `file.json`,
+            filename: 'file.json',
             contentType: 'application/json',
             knownLength: post_content.length
           }
@@ -347,7 +305,7 @@ tape('/submit tests', test => {
   });
 
   test.test('request failing to create pull request should respond with 400 and error message', t => {
-    t.plan(9);
+    t.plan(4);
 
     const post_content = 'this is the POST content for /submit';
 
@@ -355,67 +313,26 @@ tape('/submit tests', test => {
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
+          authenticate: () => {},
           users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => resolve({
+            get: () => new Promise((resolve, reject) => resolve({
                 data: {
                   login: 'submit_service username'
                 }
-              }));
-
-            }
+              }))
           },
           gitdata: {
-            getReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'openaddresses',
-                repo: 'openaddresses',
-                ref: 'heads/master'
-              });
-
-              return new Promise((resolve, reject) => resolve({
+            getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              }));
-
-            },
-            createReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'submit_service username',
-                repo: 'openaddresses',
-                ref: 'refs/heads/submit_service_test',
-                sha: 'master sha'
-              });
-
-              return new Promise((resolve, reject) => resolve());
-
-            }
+              })),
+            createReference: o => new Promise((resolve, reject) => resolve())
           },
           repos: {
-            createFile: (o) => {
-              t.deepEquals(o, {
-                owner: 'submit_service username',
-                repo: 'openaddresses',
-                path: 'sources/us/nh/city_of_auburn_test.json',
-                message: 'this is the commit message',
-                content: Buffer.from(post_content).toString('base64'),
-                branch: 'submit_service_test'
-              });
-
-              return new Promise((resolve, reject) => resolve());
-
-            }
+            createFile: o => new Promise((resolve, reject) => resolve())
           },
           pullRequests: {
             create: (o) => {
@@ -437,7 +354,11 @@ tape('/submit tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
@@ -476,7 +397,7 @@ tape('/submit tests', test => {
   });
 
   test.test('request creating pull request should return 200 and PR link', t => {
-    t.plan(9);
+    t.plan(3);
 
     const post_content = 'this is the POST content for /submit';
 
@@ -484,93 +405,43 @@ tape('/submit tests', test => {
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
+          authenticate: () => {},
           users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => resolve({
+            get: () => new Promise((resolve, reject) => resolve({
                 data: {
                   login: 'submit_service username'
                 }
-              }));
-
-            }
+              }))
           },
           gitdata: {
-            getReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'openaddresses',
-                repo: 'openaddresses',
-                ref: 'heads/master'
-              });
-
-              return new Promise((resolve, reject) => resolve({
+            getReference: (o) => new Promise((resolve, reject) => resolve({
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              }));
-
-            },
-            createReference: (o) => {
-              t.deepEquals(o, {
-                owner: 'submit_service username',
-                repo: 'openaddresses',
-                ref: 'refs/heads/submit_service_test',
-                sha: 'master sha'
-              });
-
-              return new Promise((resolve, reject) => resolve());
-
-            }
+              })),
+            createReference: (o) => new Promise((resolve, reject) => resolve())
           },
           repos: {
-            createFile: (o) => {
-              t.deepEquals(o, {
-                owner: 'submit_service username',
-                repo: 'openaddresses',
-                path: 'sources/us/nh/city_of_auburn_test.json',
-                message: 'this is the commit message',
-                content: Buffer.from(post_content).toString('base64'),
-                branch: 'submit_service_test'
-              });
-
-              return new Promise((resolve, reject) => resolve());
-
-            }
+            createFile: o => new Promise((resolve, reject) => resolve())
           },
           pullRequests: {
-            create: (o) => {
-              t.deepEquals(o, {
-                owner: 'openaddresses',
-                repo: 'openaddresses',
-                title: 'Submit Service Pull Request',
-                head: 'submit_service username:submit_service_test',
-                base: 'master',
-                body: 'This pull request contains changes requested by the Submit Service',
-                maintainer_can_modify: true
-              });
-
-              return new Promise((resolve, reject) => resolve({
+            create: o => new Promise((resolve, reject) => resolve({
                 data: {
                   html_url: 'this is the html url for the pull request'
                 }
-              }));
-
-            }
+              }))
           }
         };
       }
     });
 
-    const submit_service = express().use('/', submit_route).listen();
+    const app = express().use('/', submit_route);
+    app.locals.github = {
+      accessToken: 'my super secret token'
+    };
+    const submit_service = app.listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,

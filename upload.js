@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const _ = require('lodash');
 const sha1 = require('sha1');
 const path = require('path');
@@ -31,13 +30,10 @@ const outputSha1 = (req, res, next) => {
   res.status(200).type('text/plain').send(res.locals.sha1);
 };
 
-// use express-fileupload for handling uploads
-router.use(fileUpload());
-
-router.post('/',
-  uploadPreconditionsCheck,
-  handleFileUpload,
-  outputSha1
-);
-
-module.exports = router;
+module.exports = express.Router()
+  .use(fileUpload())
+  .post('/',
+    uploadPreconditionsCheck,
+    handleFileUpload,
+    outputSha1
+  );

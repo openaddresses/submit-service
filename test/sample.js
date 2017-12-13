@@ -9,7 +9,6 @@ const {FtpSrv, FileSystem} = require('ftp-srv');
 const Duplex = require('stream').Duplex;
 const getPort = require('get-port');
 const string2stream = require('string-to-stream');
-const proxyquire = require('proxyquire').noCallThru();
 const Writable = require('stream').Writable;
 
 // FileSystem implementation used by the FTP server that just returns the

@@ -1,3 +1,5 @@
-require('./sample.js');
-require('./submit.js');
-require('./upload.js');
+require('./app');
+require('./index');
+require('./sample');
+require('./submit');
+require('./upload');

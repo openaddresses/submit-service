@@ -37,14 +37,14 @@ By default, the service starts on port 3103, but this can be changed by setting 
 
 The service exposes two endpoints for programmatic access:
 
-- `/fields`: looks up the available fields and sample records from a source
+- `/sample`: looks up the field names and first 10 records from a source
 - `/submit`: submits a pull request to the OpenAddresses repo
 
-### `/fields`
+### `/sample`
 
-The `/fields` endpoint accepts a single parameter named `source`.  The response format is the basic shell of an OpenAddresses source, for example [York County, PA, USA](http://arcweb.ycpc.org/arcgis/rest/services/Emergency_Services/Address_Pts/MapServer/0).  
+The `/sample` endpoint accepts a single parameter named `source`.  The response format is the basic shell of an OpenAddresses source, for example [York County, PA, USA](http://arcweb.ycpc.org/arcgis/rest/services/Emergency_Services/Address_Pts/MapServer/0).  
 
-An example response from the `/fields` endpoint is:
+An example response from the `/sample` endpoint is:
 
 ```json
 {

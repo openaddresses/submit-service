@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const GitHubApi = require('github');
-const Base64 = require('js-base64').Base64;
 const fileUpload = require('express-fileupload');
 
 const winston = require('winston');
@@ -90,7 +89,7 @@ async function createBranch(req, res, next) {
       repo: 'openaddresses',
       path: path,
       message: commit_message,
-      content: Base64.encode(req.files.source.data),
+      content: Buffer.from(req.files.source.data).toString('base64'),
       branch: reference_name
     });
 

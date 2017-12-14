@@ -4,34 +4,27 @@
 
 This project provides an HTTP service that can be used to back a website that makes submitting new data sources to OpenAddresses easier for those unfamiliar with JSON and github.
 
-
 ## Usage
 
-The service can be run in two ways:
+While the service can be run directly from node, the preferred method is using docker.
 
-- Docker
-- node.js
-
-In either scenario, the service starts on [http://localhost:3103](http://localhost:3103) (unless the port is overridden).
-
-### Docker
-
-To run using docker on port 3103, install docker and run:
+To run using docker, enter:
 
 ```bash
-$ docker run -p 3103:3103 openaddr/submit-service:master
+$ docker-compose up
 ```
 
-### node.js
+The service starts on [http://localhost:3103](http://localhost:3103) (unless the port is overridden).
 
-To run using node.js and npm, simply enter the following to install dependencies and start the service:
+### Credentials
+
+This service performs operations on github and uploads file to s3, so the credentials for both of these services must be available in the docker environment.  Docker uses the .env file to store these values.  For security concerns, the .env file is not stored in the git repository and must be populated before running docker.  A sample .env file is:
 
 ```bash
-$ npm install
-$ npm start
+GITHUB_ACCESS_TOKEN=<github access token>
+AWS_ACCESS_KEY_ID=<AWS access key id>
+AWS_SECRET_ACCESS_KEY=<AWS secret access key>
 ```
-
-By default, the service starts on port 3103, but this can be changed by setting the `PORT` environmental variable.
 
 ## Endpoints
 

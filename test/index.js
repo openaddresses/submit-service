@@ -9,8 +9,8 @@ tape('error condition tests', test => {
     fork('./index', [], {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
-        S3_ACCESS_KEY_ID: 'obviously fake s3 access key id',
-        S3_SECRET_ACCESS_KEY: 'obviously fake s3 secret access key'
+        AWS_ACCESS_KEY_ID: 'obviously fake aws access key id',
+        AWS_SECRET_ACCESS_KEY: 'obviously fake aws secret access key'
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
@@ -28,8 +28,8 @@ tape('error condition tests', test => {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
         GITHUB_ACCESS_TOKEN: '',
-        S3_ACCESS_KEY_ID: 'obviously fake s3 access key id',
-        S3_SECRET_ACCESS_KEY: 'obviously fake s3 secret access key'
+        AWS_ACCESS_KEY_ID: 'obviously fake aws access key id',
+        AWS_SECRET_ACCESS_KEY: 'obviously fake aws secret access key'
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
@@ -42,74 +42,74 @@ tape('error condition tests', test => {
 
   });
 
-  test.test('undefined S3_ACCESS_KEY_ID in credentials should throw error', t => {
+  test.test('undefined AWS_ACCESS_KEY_ID in credentials should throw error', t => {
     fork('./index', [], {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
         GITHUB_ACCESS_TOKEN: 'obviously fake github access token',
-        S3_SECRET_ACCESS_KEY: 'obviously fake s3 secret access key'
+        AWS_SECRET_ACCESS_KEY: 'obviously fake aws secret access key'
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
 
       toString(this.stderr, (err, msg) => {
-        t.equals(msg, 'Error: S3_ACCESS_KEY_ID is required\n');
+        t.equals(msg, 'Error: AWS_ACCESS_KEY_ID is required\n');
         t.end();
       });
     });
 
   });
 
-  test.test('empty S3_ACCESS_KEY_ID in credentials should throw error', t => {
+  test.test('empty AWS_ACCESS_KEY_ID in credentials should throw error', t => {
     fork('./index', [], {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
         GITHUB_ACCESS_TOKEN: 'obviously fake github access token',
-        S3_ACCESS_KEY_ID: '',
-        S3_SECRET_ACCESS_KEY: 'obviously fake s3 secret access key'
+        AWS_ACCESS_KEY_ID: '',
+        AWS_SECRET_ACCESS_KEY: 'obviously fake aws secret access key'
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
 
       toString(this.stderr, (err, msg) => {
-        t.equals(msg, 'Error: S3_ACCESS_KEY_ID is required\n');
+        t.equals(msg, 'Error: AWS_ACCESS_KEY_ID is required\n');
         t.end();
       });
     });
 
   });
 
-  test.test('undefined S3_SECRET_ACCESS_KEY in credentials should throw error', t => {
+  test.test('undefined AWS_SECRET_ACCESS_KEY in credentials should throw error', t => {
     fork('./index', [], {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
         GITHUB_ACCESS_TOKEN: 'obviously fake github access token',
-        S3_ACCESS_KEY_ID: 'obviously fake s3 access key id'
+        AWS_ACCESS_KEY_ID: 'obviously fake aws access key id'
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
 
       toString(this.stderr, (err, msg) => {
-        t.equals(msg, 'Error: S3_SECRET_ACCESS_KEY is required\n');
+        t.equals(msg, 'Error: AWS_SECRET_ACCESS_KEY is required\n');
         t.end();
       });
     });
 
   });
 
-  test.test('empty S3_SECRET_ACCESS_KEY in credentials should throw error', t => {
+  test.test('empty AWS_SECRET_ACCESS_KEY in credentials should throw error', t => {
     fork('./index', [], {
       stdio: ['ipc', 'pipe', 'pipe'],
       env: {
         GITHUB_ACCESS_TOKEN: 'obviously fake github access token',
-        S3_ACCESS_KEY_ID: 'obviously fake s3 access key id',
-        S3_SECRET_ACCESS_KEY: ''
+        AWS_ACCESS_KEY_ID: 'obviously fake aws access key id',
+        AWS_SECRET_ACCESS_KEY: ''
       }
     }).on('exit', function(code, signal) {
       t.equals(code, 1);
 
       toString(this.stderr, (err, msg) => {
-        t.equals(msg, 'Error: S3_SECRET_ACCESS_KEY is required\n');
+        t.equals(msg, 'Error: AWS_SECRET_ACCESS_KEY is required\n');
         t.end();
       });
     });
@@ -123,16 +123,14 @@ tape('success conditions', test => {
     t.plan(2);
 
     process.env.GITHUB_ACCESS_TOKEN = 'obviously fake github access token';
-    process.env.S3_ACCESS_KEY_ID = 'obviously fake s3 access key id';
-    process.env.S3_SECRET_ACCESS_KEY = 'obviously fake s3 secret access key';
+    process.env.AWS_ACCESS_KEY_ID = 'obviously fake aws access key id';
+    process.env.AWS_SECRET_ACCESS_KEY = 'obviously fake aws secret access key';
     process.env.PORT = undefined;
 
     proxyquire('../index', {
       './app': credentials => {
         t.deepEquals(credentials, {
-          githubAccessToken: 'obviously fake github access token',
-          s3AccessKeyId: 'obviously fake s3 access key id',
-          s3SecretAccessKey: 'obviously fake s3 secret access key'
+          githubAccessToken: 'obviously fake github access token'
         });
 
         return {
@@ -151,16 +149,14 @@ tape('success conditions', test => {
 
     getPort().then(random_port => {
       process.env.GITHUB_ACCESS_TOKEN = 'obviously fake github access token';
-      process.env.S3_ACCESS_KEY_ID = 'obviously fake s3 access key id';
-      process.env.S3_SECRET_ACCESS_KEY = 'obviously fake s3 secret access key';
+      process.env.AWS_ACCESS_KEY_ID = 'obviously fake aws access key id';
+      process.env.AWS_SECRET_ACCESS_KEY = 'obviously fake aws secret access key';
       process.env.PORT = random_port;
 
       proxyquire('../index', {
         './app': credentials => {
           t.deepEquals(credentials, {
-            githubAccessToken: 'obviously fake github access token',
-            s3AccessKeyId: 'obviously fake s3 access key id',
-            s3SecretAccessKey: 'obviously fake s3 secret access key'
+            githubAccessToken: 'obviously fake github access token'
           });
 
           return {

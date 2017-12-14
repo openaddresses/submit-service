@@ -100,6 +100,7 @@ tape('arcgis tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'ESRI',
         data: source,
         source_data: {
@@ -313,6 +314,7 @@ tape('http geojson tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -376,6 +378,7 @@ tape('http geojson tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -443,6 +446,7 @@ tape('http geojson tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -598,6 +602,7 @@ tape('http csv tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -652,6 +657,7 @@ tape('http csv tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -712,6 +718,7 @@ tape('http csv tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         data: source,
         source_data: {
@@ -902,6 +909,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -983,6 +991,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1103,6 +1112,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1174,6 +1184,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1323,6 +1334,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1416,6 +1428,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1657,6 +1670,7 @@ tape('http zip tests', test => {
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, {
         coverage: {},
+        note: '',
         type: 'http',
         compression: 'zip',
         data: source,
@@ -1774,6 +1788,7 @@ tape('ftp geojson tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -1848,6 +1863,7 @@ tape('ftp geojson tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -2008,6 +2024,7 @@ tape('ftp geojson tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -2116,6 +2133,7 @@ tape('ftp csv tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -2180,6 +2198,7 @@ tape('ftp csv tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -2337,6 +2356,7 @@ tape('ftp csv tests', test => {
           t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
           t.deepEquals(response.body, {
             coverage: {},
+            note: '',
             type: 'ftp',
             data: source,
             source_data: {
@@ -2475,6 +2495,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -2571,6 +2592,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -2723,6 +2745,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -2811,6 +2834,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -2986,6 +3010,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -3088,6 +3113,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',
@@ -3331,6 +3357,7 @@ tape('ftp zip tests', test => {
             t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
             t.deepEquals(response.body, {
               coverage: {},
+              note: '',
               type: 'ftp',
               data: source,
               compression: 'zip',

@@ -66,6 +66,7 @@ const determineType = (req, res, next) => {
     // setup a working context
     res.locals.source = {
       coverage: {},
+      note: '',
       data: source.href,
       source_data: {
         fields: [],

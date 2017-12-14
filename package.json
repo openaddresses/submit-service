@@ -17,6 +17,7 @@
     "node": ">= 8.0.0"
   },
   "dependencies": {
+    "aws-sdk": "^2.169.0",
     "csv-parse": "^2.0.0",
     "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
     "express": "^4.16.2",

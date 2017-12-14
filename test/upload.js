@@ -5,6 +5,7 @@ const fs = require('fs');
 const _ = require('lodash');
 const Readable = require('stream').Readable;
 const proxyquire = require('proxyquire');
+const toString = require('stream-to-string');
 
 class NLengthStream extends Readable {
   constructor(options, requestedSize) {
@@ -33,9 +34,10 @@ class NLengthStream extends Readable {
 
 tape('/upload tests', test => {
   test.test('zip/csv/geojson extensions: successful upload should redirect with source', t => {
+    const tests_per_extension = 6;
     const extensions = ['zip', 'csv', 'geojson'];
 
-    t.plan(5 * extensions.length);
+    t.plan(tests_per_extension * extensions.length);
 
     extensions.forEach(extension => {
       const upload = proxyquire('../upload', {
@@ -47,8 +49,12 @@ tape('/upload tests', test => {
               t.equals(params.Bucket, 'data.openaddresses.io');
               t.equals(params.Key, `cache/uploads/submit-service/199c38/file.${extension}`);
 
-              callback(null, {
-                Location: 'this is the upload s3 object URL'
+              // verify that the file contents being passed is the same as what was posted
+              toString(params.Body, (err, body) => {
+                t.equals(body, fs.readFileSync('./package.json').toString());
+                callback(null, {
+                  Location: 'this is the upload s3 object URL'
+                });
               });
 
             }
@@ -69,7 +75,7 @@ tape('/upload tests', test => {
         method: 'POST',
         formData: {
           datafile: {
-            value: fs.createReadStream('./LICENSE'),
+            value: fs.createReadStream('./package.json'),
             options: {
               filename: `file.${extension}`,
               contentType: 'text/plain'
@@ -104,7 +110,11 @@ tape('/upload tests', test => {
             t.equals(params.Bucket, 'data.openaddresses.io');
             t.equals(params.Key, `cache/uploads/submit-service/80b6e1/file.zip`);
 
-            callback('error message returned from s3');
+            // verify that the file contents being passed is the same as what was posted
+            toString(params.Body, (err, body) => {
+              t.equals(body, fs.readFileSync('./package.json').toString());
+              callback('error message returned from s3');
+            });
 
           }
         };
@@ -124,7 +134,7 @@ tape('/upload tests', test => {
       method: 'POST',
       formData: {
         datafile: {
-          value: fs.createReadStream('./LICENSE'),
+          value: fs.createReadStream('./package.json'),
           options: {
             filename: `file.zip`,
             contentType: 'text/plain'

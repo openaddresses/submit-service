@@ -4,7 +4,7 @@ const request = require('request-promise');
 const fs = require('fs');
 const _ = require('lodash');
 const Readable = require('stream').Readable;
-const sha1 = require('sha1');
+const proxyquire = require('proxyquire');
 
 class NLengthStream extends Readable {
   constructor(options, requestedSize) {
@@ -32,14 +32,36 @@ class NLengthStream extends Readable {
 }
 
 tape('/upload tests', test => {
-  test.test('zip/csv/geojson extensions: successful upload should respond with tmp filename', t => {
-    t.plan(3 + 3 + 3); // 3 assertions for each file type
+  test.test('zip/csv/geojson extensions: successful upload should redirect with source', t => {
+    const extensions = ['zip', 'csv', 'geojson'];
 
-    ['zip', 'csv', 'geojson'].forEach(extension => {
+    t.plan(5 * extensions.length);
+
+    extensions.forEach(extension => {
+      const upload = proxyquire('../upload', {
+        'aws-sdk/clients/s3': function S3(options) {
+          t.deepEquals(options, { apiVersion: '2006-03-01' });
+
+          return {
+            upload(params, callback) {
+              t.equals(params.Bucket, 'data.openaddresses.io');
+              t.equals(params.Key, `cache/uploads/submit-service/199c38/file.${extension}`);
+
+              callback(null, {
+                Location: 'this is the upload s3 object URL'
+              });
+
+            }
+          };
+
+        },
+        'lodash': {
+          random: (start, end) => 1678392
+        }
+      });
+
       // start the service with the upload endpoint
-      const upload_service = express()
-        .use('/', require('../upload'))
-        .listen();
+      const upload_service = express().use('/', upload).listen();
 
       // make a request to the submit service without a 'source' parameter
       request({
@@ -56,20 +78,73 @@ tape('/upload tests', test => {
         },
         headers: {
           'content-type': 'application/x-www-form-urlencoded'
-        },
-        resolveWithFullResponse: true
+        }
       })
-      .then(response => {
-        t.equals(response.statusCode, 200);
-        t.equals(response.headers['content-type'], 'text/plain; charset=utf-8');
-        t.equals(response.body, sha1(fs.readFileSync('./LICENSE')));
+      .then(response => t.fail('request should not have been successful'))
+      .catch(err => {
+        t.equals(err.statusCode, 302);
+        t.equals(err.response.headers.location, `/sample?source=this%20is%20the%20upload%20s3%20object%20URL`);
       })
-      .catch(err => t.fail(err))
       .finally(() => {
         // don't call t.end() here because the test will be closed multiple times
         upload_service.close();
       });
 
+    });
+
+  });
+
+  test.test('failed upload should respond with 400 and error message', t => {
+    const upload = proxyquire('../upload', {
+      'aws-sdk/clients/s3': function S3(options) {
+        t.deepEquals(options, { apiVersion: '2006-03-01' });
+
+        return {
+          upload(params, callback) {
+            t.equals(params.Bucket, 'data.openaddresses.io');
+            t.equals(params.Key, `cache/uploads/submit-service/80b6e1/file.zip`);
+
+            callback('error message returned from s3');
+
+          }
+        };
+
+      },
+      'lodash': {
+        random: (start, end) => 8435425
+      }
+    });
+
+    // start the service with the upload endpoint
+    const upload_service = express().use('/', upload).listen();
+
+    // make a request to the submit service without a 'source' parameter
+    request({
+      uri: `http://localhost:${upload_service.address().port}/`,
+      method: 'POST',
+      formData: {
+        datafile: {
+          value: fs.createReadStream('./LICENSE'),
+          options: {
+            filename: `file.zip`,
+            contentType: 'text/plain'
+          }
+        }
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      }
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, 'error message returned from s3');
+    })
+    .finally(() => {
+      // don't call t.end() here because the test will be closed multiple times
+      upload_service.close();
+      t.end();
     });
 
   });

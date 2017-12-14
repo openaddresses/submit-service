@@ -6,7 +6,7 @@ This project provides an HTTP service that can be used to back a website that ma
 
 ## Usage
 
-While the service can be run directly from node, the preferred method is using docker.
+While the service can be run directly from node, the preferred method is docker.
 
 To run using docker, enter:
 
@@ -32,6 +32,7 @@ The service exposes two endpoints for programmatic access:
 
 - `/sample`: looks up the field names and first 10 records from a source
 - `/submit`: submits a pull request to the OpenAddresses repo
+- `/upload`: uploads a file to be hosted by the OpenAddresses S3 bucket
 
 ### `/sample`
 
@@ -47,6 +48,7 @@ An example response from the `/sample` endpoint is:
 	"conform": {
 		"type": "geojson"
 	},
+  "note: "",
 	"source_data": {
 		"fields": ["id", "number", "street", "city"],
 		"results": [
@@ -71,12 +73,63 @@ The populated portions would be properties that can be inferred from the source:
 
 - `type`: (either `ESRI`, `http`, or `ftp`)
 - `conform.type`: (one of `geojson`, `csv`, or `shapefile`)
-- `compression`: (`zip` is source is a .zip file)
+- `compression`: (`zip` if source is a .zip file)
 - `data` (the value of the `source` parameter)
+
+#### Error Conditions
+
+`/sample` returns an HTTP status 400 in the following error conditions:
+
+- no `source` parameter is supplied
+- the `source` parameter value contains an unsupported file type
+- the `source` parameter value cannot be parsed as a URL
+- the ArcGIS source request has failed
+- the .csv file cannot be parsed (either standalone or contained within a .zip file)
+- the .geojson file cannot be parsed (either standalone or contained within a .zip file)
+- the HTTP or FTP server cannot be contacted
+- the resource does not exist on the HTTP or FTP server
+- the .zip file cannot be parsed
+- the .zip file does not contain a .csv, .geojson, or .dbf file
 
 ### `/submit`
 
-TBD
+The `/submit` endpoint is available to create pull requests in the [OpenAddresses github repository](https://github.com/openaddresses/openaddresses).  It accepts POST requests and takes a single parameter named `source` that
+is a JSON blob that conforms to the OpenAddresses [source schema](https://github.com/openaddresses/openaddresses/blob/master/schema/source_schema.json).  
+
+The response, if successful, is a JSON blob containing the [OpenAddresses pull request](https://github.com/openaddresses/openaddresses/pulls) URL, for example:
+
+```json
+{
+  "response": {
+    "url": "https://github.com/openaddresses/openaddresses/pull/3746"
+  }
+}
+```
+
+Since programmatically assigning a unique name based on the input is very difficult, the `/submit` endpoint creates a unique name based on random numbers.  
+
+#### Error Conditions
+
+`/submit` supports the following error conditions:
+
+- HTTP status 500 with a message is returned if any Github API operations occur (meaning that credentials have most likely be entered incorrectly)
+- HTTP status 400 with a message is returned if the `source` parameter value does not conform to the OpenAddresses [source schema](https://github.com/openaddresses/openaddresses/blob/master/schema/source_schema.json)
+
+### `/upload`
+
+The `/upload` endpoint is available to upload data sources that require hosting by uploading to the OpenAddresses AWS S3 bucket.  The only available parameter is named `datafile`.  Upon successful upload to the OpenAddresses AWS S3 bucket, an HTTP status 302 (redirect) is returned with the target being the `/sample` endpoint complete with `source` parameter supplied.  
+
+Since programmatically assigning a unique name based on the input is very difficult, the `/submit` endpoint creates a unique name based on random numbers.  
+
+#### Error Conditions
+
+`/upload` supports the following error conditions:
+
+- HTTP status 500 with a message is returned if any AWS S3 API operations occur (meaning that credentials have most likely be entered incorrectly)
+- HTTP status 400 with a message is returned for the following scenarios:
+  - the `datafile` parameter was not supplied
+  - the uploaded file extension is not one of `.zip`, `.csv`, or `.geojson`
+  - the uploaded file size is greater than 50MB
 
 ## Supported Types
 

@@ -35,7 +35,7 @@ const handleFileUpload = (req, res, next) => {
 
   s3.upload(uploadParams, (err, data) => {
     if (err) {
-      res.status(400).type('text/plain').send(err);
+      res.status(500).type('text/plain').send(err);
     } else {
       res.redirect(`/sample?source=${data.Location}`);
     }

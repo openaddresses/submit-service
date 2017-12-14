@@ -100,7 +100,7 @@ tape('/upload tests', test => {
 
   });
 
-  test.test('failed upload should respond with 400 and error message', t => {
+  test.test('failed upload should respond with 500 and error message', t => {
     const upload = proxyquire('../upload', {
       'aws-sdk/clients/s3': function S3(options) {
         t.deepEquals(options, { apiVersion: '2006-03-01' });
@@ -147,7 +147,7 @@ tape('/upload tests', test => {
     })
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
       t.equals(err.error, 'error message returned from s3');
     })

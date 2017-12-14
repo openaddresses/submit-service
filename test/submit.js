@@ -5,7 +5,7 @@ const proxyquire = require('proxyquire');
 const string2stream = require('string-to-stream');
 
 tape('/submit tests', test => {
-  test.test('request failing authentication should respond with 400 and error message', t => {
+  test.test('request failing authentication should respond with 500 and error message', t => {
     t.plan(5);
 
     // mock the github in the submit route
@@ -55,11 +55,11 @@ tape('/submit tests', test => {
     })
     .then(t.fail.bind(null, 'request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(err.error, {
         error: {
-          code: 400,
+          code: 500,
           message: 'Error looking up login name: user authentication failed'
         }
       });
@@ -70,7 +70,7 @@ tape('/submit tests', test => {
 
   });
 
-  test.test('request failing to look up master reference should respond with 400 and error message', t => {
+  test.test('request failing to look up master reference should respond with 500 and error message', t => {
     t.plan(4);
 
     // mock the github in the submit route
@@ -123,11 +123,11 @@ tape('/submit tests', test => {
     })
     .then(t.fail.bind(null, 'request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(err.error, {
         error: {
-          code: 400,
+          code: 500,
           message: 'Error looking up master reference: getReference for master failed'
         }
       });
@@ -138,7 +138,7 @@ tape('/submit tests', test => {
 
   });
 
-  test.test('request failing to create local reference should respond with 400 and error message', t => {
+  test.test('request failing to create local reference should respond with 500 and error message', t => {
     t.plan(4);
 
     // mock the github in the submit route
@@ -201,11 +201,11 @@ tape('/submit tests', test => {
     })
     .then(t.fail.bind(null, 'request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(err.error, {
         error: {
-          code: 400,
+          code: 500,
           message: 'Error creating local reference: createReference from master failed'
         }
       });
@@ -216,7 +216,7 @@ tape('/submit tests', test => {
 
   });
 
-  test.test('request failing to create file in local reference should respond with 400 and error message', t => {
+  test.test('request failing to create file in local reference should respond with 500 and error message', t => {
     t.plan(4);
 
     // mock the github in the submit route
@@ -295,11 +295,11 @@ tape('/submit tests', test => {
     })
     .then(t.fail.bind(null, 'request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(err.error, {
         error: {
-          code: 400,
+          code: 500,
           message: 'Error creating file for reference: createFile in local reference failed'
         }
       });
@@ -310,7 +310,7 @@ tape('/submit tests', test => {
 
   });
 
-  test.test('request failing to create pull request should respond with 400 and error message', t => {
+  test.test('request failing to create pull request should respond with 500 and error message', t => {
     t.plan(4);
 
     const post_content = 'this is the POST content for /submit';
@@ -390,11 +390,11 @@ tape('/submit tests', test => {
     })
     .then(t.fail.bind(null, 'request should not have been successful'))
     .catch(err => {
-      t.equals(err.statusCode, 400);
+      t.equals(err.statusCode, 500);
       t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(err.error, {
         error: {
-          code: 400,
+          code: 500,
           message: 'Error creating pull request: createPullRequest failed'
         }
       });

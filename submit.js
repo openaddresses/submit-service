@@ -67,7 +67,7 @@ async function createBranch(req, res, next) {
   // fourth, create the reference for the authenticated user
   try {
     await github.gitdata.createReference({
-      owner: user_response.data.login,
+      owner: 'openaddresses',
       repo: 'openaddresses',
       ref: `refs/heads/${reference_name}`,
       sha: master_reference_response.data.object.sha
@@ -86,7 +86,7 @@ async function createBranch(req, res, next) {
   // fifth, create the file in the local reference for the authenticated user
   try {
     await github.repos.createFile({
-      owner: user_response.data.login,
+      owner: 'openaddresses',
       repo: 'openaddresses',
       path: path,
       message: commit_message,
@@ -111,7 +111,7 @@ async function createBranch(req, res, next) {
       owner: 'openaddresses',
       repo: 'openaddresses',
       title: pull_request_title,
-      head: `${user_response.data.login}:${reference_name}`,
+      head: `openaddresses:${reference_name}`,
       base: 'master',
       body: pull_request_text,
       maintainer_can_modify: true

@@ -163,7 +163,7 @@ tape('/submit tests', test => {
               })),
             createReference: (o) => {
               t.deepEquals(o, {
-                owner: 'submit_service username',
+                owner: 'openaddresses',
                 repo: 'openaddresses',
                 ref: 'refs/heads/submit_service_45554d',
                 sha: 'master sha'
@@ -244,7 +244,7 @@ tape('/submit tests', test => {
           repos: {
             createFile: (o) => {
               t.deepEquals(o, {
-                owner: 'submit_service username',
+                owner: 'openaddresses',
                 repo: 'openaddresses',
                 path: 'sources/contrib/source_45554d.json',
                 message: 'This file was added by the OpenAddresses submit-service',
@@ -346,7 +346,7 @@ tape('/submit tests', test => {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
                 title: 'Submit Service Pull Request',
-                head: 'submit_service username:submit_service_45554d',
+                head: 'openaddresses:submit_service_45554d',
                 base: 'master',
                 body: 'This pull request contains changes requested by the Submit Service',
                 maintainer_can_modify: true

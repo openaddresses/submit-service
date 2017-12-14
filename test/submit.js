@@ -1,7 +1,7 @@
 const tape = require('tape');
 const express = require('express');
 const request = require('request-promise');
-const proxyquire = require('proxyquire').noCallThru();
+const proxyquire = require('proxyquire');
 const string2stream = require('string-to-stream');
 
 tape('/submit tests', test => {
@@ -165,7 +165,7 @@ tape('/submit tests', test => {
               t.deepEquals(o, {
                 owner: 'submit_service username',
                 repo: 'openaddresses',
-                ref: 'refs/heads/submit_service_test',
+                ref: 'refs/heads/submit_service_45554d',
                 sha: 'master sha'
               });
 
@@ -180,6 +180,9 @@ tape('/submit tests', test => {
             create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
           }
         };
+      },
+      'lodash': {
+        random: (start, end) => 4543821
       }
     });
 
@@ -243,10 +246,10 @@ tape('/submit tests', test => {
               t.deepEquals(o, {
                 owner: 'submit_service username',
                 repo: 'openaddresses',
-                path: 'sources/us/nh/city_of_auburn_test.json',
-                message: 'this is the commit message',
+                path: 'sources/contrib/source_45554d.json',
+                message: 'This file was added by the OpenAddresses submit-service',
                 content: Buffer.from(post_content).toString('base64'),
-                branch: 'submit_service_test'
+                branch: 'submit_service_45554d'
               });
 
               return new Promise((resolve, reject) => reject('createFile in local reference failed'));
@@ -257,6 +260,9 @@ tape('/submit tests', test => {
             create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
           }
         };
+      },
+      'lodash': {
+        random: (start, end) => 4543821
       }
     });
 
@@ -340,7 +346,7 @@ tape('/submit tests', test => {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
                 title: 'Submit Service Pull Request',
-                head: 'submit_service username:submit_service_test',
+                head: 'submit_service username:submit_service_45554d',
                 base: 'master',
                 body: 'This pull request contains changes requested by the Submit Service',
                 maintainer_can_modify: true
@@ -351,6 +357,9 @@ tape('/submit tests', test => {
             }
           }
         };
+      },
+      'lodash': {
+        random: (start, end) => 4543821
       }
     });
 

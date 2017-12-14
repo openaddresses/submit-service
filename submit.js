@@ -1,6 +1,7 @@
 const express = require('express');
 const GitHubApi = require('github');
 const fileUpload = require('express-fileupload');
+const _ = require('lodash');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -13,9 +14,11 @@ const logger = winston.createLogger({
 async function createBranch(req, res, next) {
   const github = new GitHubApi();
 
-  const reference_name = 'submit_service_test';
-  const commit_message = 'this is the commit message';
-  const path = 'sources/us/nh/city_of_auburn_test.json';
+  const unique_hex_number = _.random(255, 255*255*255).toString(16);
+
+  const reference_name = `submit_service_${unique_hex_number}`;
+  const commit_message = 'This file was added by the OpenAddresses submit-service';
+  const path = `sources/contrib/source_${unique_hex_number}.json`;
   const pull_request_text = 'This pull request contains changes requested by the Submit Service';
   const pull_request_title = 'Submit Service Pull Request';
 

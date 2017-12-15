@@ -42,30 +42,30 @@ An example response from the `/sample` endpoint is:
 
 ```json
 {
-	"coverage": {},
-	"type": "ESRI",
-	"data": "http://arcweb.ycpc.org/arcgis/rest/services/Emergency_Services/Address_Pts/MapServer/0",
-	"conform": {
-		"type": "geojson"
-	},
+  "coverage": {},
+  "type": "ESRI",
+  "data": "http://arcweb.ycpc.org/arcgis/rest/services/Emergency_Services/Address_Pts/MapServer/0",
+  "conform": {
+    "type": "geojson"
+  },
   "note": "",
-	"source_data": {
-		"fields": ["id", "number", "street", "city"],
-		"results": [
-			{
-				"id": "1001",
-				"number": "123",
-				"street": "Main Street",
-				"city": "Anytown"
-			},
-			{
-				"id": "1002",
-				"number": "17",
-				"street": "Maple Avenue",
-				"city": "Somewheresville"
-			}
-		]
-	}
+  "source_data": {
+    "fields": ["id", "number", "street", "city"],
+    "results": [
+      {
+        "id": "1001",
+        "number": "123",
+        "street": "Main Street",
+	"city": "Anytwn"
+      },
+      {
+        "id": "1002",
+        "number": "17",
+        "street": "Maple Avenue",
+        "city": "Somewheresville"
+      }
+    ]
+  }
 }
 ```
 

@@ -418,8 +418,8 @@ tape('http geojson tests', test => {
           {
             type: 'Feature',
             properties: {
-              'attribute 1': `feature 1 attribute 1 value`,
-              'attribute 2': `feature 1 attribute 2 value`
+              'attribute 1': 'feature 1 attribute 1 value',
+              'attribute 2': 'feature 1 attribute 2 value'
             }
           }
         ]
@@ -453,8 +453,8 @@ tape('http geojson tests', test => {
           fields: ['attribute 1', 'attribute 2'],
           results: [
             {
-              'attribute 1': `feature 1 attribute 1 value`,
-              'attribute 2': `feature 1 attribute 2 value`
+              'attribute 1': 'feature 1 attribute 1 value',
+              'attribute 2': 'feature 1 attribute 2 value'
             }
           ]
         },
@@ -1257,7 +1257,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file file.csv: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, 'Error parsing file file.csv: Error: Number of columns on line 2 does not match header');
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -3365,8 +3365,8 @@ tape('ftp zip tests', test => {
                 fields: ['attribute 1', 'attribute 2'],
                 results: [
                   {
-                    'attribute 1': `feature 1 attribute 1 value`,
-                    'attribute 2': `feature 1 attribute 2 value`
+                    'attribute 1': 'feature 1 attribute 1 value',
+                    'attribute 2': 'feature 1 attribute 2 value'
                   }
                 ]
               },

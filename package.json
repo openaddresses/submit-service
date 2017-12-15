@@ -7,7 +7,7 @@
     "start": "node index.js",
     "test": "node test/test | tap-dot",
     "travis": "npm test",
-    "lint": "jshint .",
+    "lint": "eslint .",
     "validate": "npm ls"
   },
   "keywords": [],
@@ -39,10 +39,10 @@
   },
   "devDependencies": {
     "archiver": "^2.1.0",
+    "eslint": "^4.13.1",
     "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.13.3",
     "get-port": "^3.2.0",
-    "jshint": "^2.9.5",
     "precommit-hook": "^3.0.0",
     "proxyquire": "^1.8.0",
     "request-promise": "^4.2.2",
@@ -50,7 +50,53 @@
     "tape": "^4.2.2"
   },
   "pre-commit": [
+    "lint",
     "validate",
     "test"
+  ],
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 2017
+    },
+    "rules": {
+      "curly": "error",
+      "eqeqeq": "error",
+      "max-depth": [
+        "error",
+        4
+      ],
+      "max-len": [
+        "error",
+        140
+      ],
+      "max-params": [
+        "error",
+        4
+      ],
+      "newIsCap": true,
+      "no-global-assign": "error",
+      "no-empty": "error",
+      "no-unreachable": "error",
+      "no-new": "error",
+      "no-plusplus": "error",
+      "no-undef": "error",
+      "no-unused-expressions": "error",
+      "quotes": [
+        "error",
+        "single"
+      ],
+      "semi": [
+        "error",
+        "always"
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "node_modules",
+    "public/jquery*"
   ]
 }

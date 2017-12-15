@@ -376,7 +376,7 @@ tape('/submit tests', test => {
         source: {
           value: string2stream(post_content),
           options: {
-            filename: `file.json`,
+            filename: 'file.json',
             contentType: 'application/json',
             knownLength: post_content.length
           }
@@ -459,7 +459,7 @@ tape('/submit tests', test => {
         source: {
           value: string2stream(post_content),
           options: {
-            filename: `file.json`,
+            filename: 'file.json',
             contentType: 'application/json',
             knownLength: post_content.length
           }

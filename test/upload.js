@@ -89,7 +89,7 @@ tape('/upload tests', test => {
       .then(response => t.fail('request should not have been successful'))
       .catch(err => {
         t.equals(err.statusCode, 302);
-        t.equals(err.response.headers.location, `/sample?source=this%20is%20the%20upload%20s3%20object%20URL`);
+        t.equals(err.response.headers.location, '/sample?source=this%20is%20the%20upload%20s3%20object%20URL');
       })
       .finally(() => {
         // don't call t.end() here because the test will be closed multiple times
@@ -108,7 +108,7 @@ tape('/upload tests', test => {
         return {
           upload(params, callback) {
             t.equals(params.Bucket, 'data.openaddresses.io');
-            t.equals(params.Key, `cache/uploads/submit-service/80b6e1/file.zip`);
+            t.equals(params.Key, 'cache/uploads/submit-service/80b6e1/file.zip');
 
             // verify that the file contents being passed is the same as what was posted
             toString(params.Body, (err, body) => {
@@ -136,7 +136,7 @@ tape('/upload tests', test => {
         datafile: {
           value: fs.createReadStream('./package.json'),
           options: {
-            filename: `file.zip`,
+            filename: 'file.zip',
             contentType: 'text/plain'
           }
         }
@@ -201,7 +201,7 @@ tape('/upload tests', test => {
         datafile: {
           value: fs.createReadStream('./LICENSE'),
           options: {
-            filename: `file.txt`,
+            filename: 'file.txt',
             contentType: 'text/plain'
           }
         }

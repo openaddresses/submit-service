@@ -4,13 +4,6 @@ const request = require('request-promise');
 const proxyquire = require('proxyquire');
 const string2stream = require('string-to-stream');
 
-// tape('invalid source tests', test => {
-//   test.test('', t => {
-//
-//   });
-//
-// })
-//
 tape('valid source tests', test => {
   test.test('request failing to look up master reference should respond with 500 and error message', t => {
     t.plan(4);

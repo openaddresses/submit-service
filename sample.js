@@ -370,9 +370,6 @@ const sampleHttpZip = (req, res, next) => {
 
       }
 
-
-
-
     } else {
       logger.debug(`HTTP ZIP: successfully retrieved ${res.locals.source.data}`);
 
@@ -512,10 +509,7 @@ const sampleHttpZip = (req, res, next) => {
             logger.debug(`HTTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
 
           })
-          .on('data', function(record) {
-            // use long form function declaration for access to pause and resume
-            this.pause();
-
+          .on('data', record => {
             // if there aren't 10 records in the array yet and the record isn't deleted, then add it
             if (res.locals.source.source_data.results.length < 10) {
               if (!record['@deleted']) {
@@ -528,17 +522,12 @@ const sampleHttpZip = (req, res, next) => {
 
               }
 
-              // resume the stream to get more records
-              this.resume();
-
-            } else {
+            } else if (record['@numOfRecord'] === 11) {
+              // don't use a plain `else` condition other this will fire multiple times
               logger.debug('HTTP ZIP DBF: found 10 results, exiting');
 
               // discard the remains of the .dbf file
               entry.autodrain();
-
-              // resume the stream to get more records
-              this.resume();
 
               // there are 10 records, so call next()
               return next();
@@ -930,7 +919,7 @@ const sampleFtpZip = (req, res, next) => {
             .on('error', err => {
               let error_message = `Error parsing file ${entry.path} from ${res.locals.source.data}: `;
               error_message += 'Could not parse as shapefile';
-              logger.info(`HTTP ZIP DBF: ${error_message}`);
+              logger.info(`FTP ZIP DBF: ${error_message}`);
 
               res.status(400).type('text/plain').send(error_message);
 
@@ -942,10 +931,7 @@ const sampleFtpZip = (req, res, next) => {
               logger.debug(`FTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
 
             })
-            .on('data', function(record) {
-              // use long form function declaration for access to pause and resume
-              this.pause();
-
+            .on('data', record => {
               // if there aren't 10 records in the array yet and the record isn't deleted, then add it
               if (res.locals.source.source_data.results.length < 10) {
                 if (!record['@deleted']) {
@@ -958,9 +944,8 @@ const sampleFtpZip = (req, res, next) => {
 
                 }
 
-                this.resume();
-
-              } else {
+              } else if (record['@numOfRecord'] === 11) {
+                // don't use a plain `else` condition other this will fire multiple times
                 logger.debug('HTTP ZIP DBF: found 10 results, exiting');
 
                 // discard the remains of the .dbf file

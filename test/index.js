@@ -120,19 +120,13 @@ tape('error condition tests', test => {
 
 tape('success conditions', test => {
   test.test('port not specified in environment should default to 3103', t => {
-    t.plan(2);
-
     process.env.GITHUB_ACCESS_TOKEN = 'obviously fake github access token';
     process.env.AWS_ACCESS_KEY_ID = 'obviously fake aws access key id';
     process.env.AWS_SECRET_ACCESS_KEY = 'obviously fake aws secret access key';
     process.env.PORT = undefined;
 
     proxyquire('../index', {
-      './app': credentials => {
-        t.deepEquals(credentials, {
-          githubAccessToken: 'obviously fake github access token'
-        });
-
+      './app': () => {
         return {
           listen: (port) => {
             t.equals(port, 3103);
@@ -145,8 +139,6 @@ tape('success conditions', test => {
   });
 
   test.test('port specified in environment should use it', t => {
-    t.plan(2);
-
     getPort().then(random_port => {
       process.env.GITHUB_ACCESS_TOKEN = 'obviously fake github access token';
       process.env.AWS_ACCESS_KEY_ID = 'obviously fake aws access key id';
@@ -154,11 +146,7 @@ tape('success conditions', test => {
       process.env.PORT = random_port;
 
       proxyquire('../index', {
-        './app': credentials => {
-          t.deepEquals(credentials, {
-            githubAccessToken: 'obviously fake github access token'
-          });
-
+        './app': () => {
           return {
             listen: (port) => {
               t.equals(port, random_port);

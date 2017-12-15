@@ -1,13 +1,8 @@
 const express = require('express');
 const morgan = require('morgan');
 
-module.exports = credentials => {
+module.exports = () => {
   const app = express();
-
-  // set credentials into the application-wide settings
-  app.locals.github = {
-    accessToken: credentials.githubAccessToken
-  };
 
   app.use(morgan('combined'));
 

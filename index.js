@@ -11,13 +11,15 @@ try {
     throw Error('AWS_SECRET_ACCESS_KEY is required');
   }
 
-  const app = require('./app')({
-    githubAccessToken: process.env.GITHUB_ACCESS_TOKEN
-  });
+  const app = require('./app')();
 
   const port = ( parseInt(process.env.PORT) || 3103 );
 
   app.listen(port, () => {
+    app.locals.github = {
+      accessToken: process.env.GITHUB_ACCESS_TOKEN
+    };
+
     console.log(`submit-service is now running on port ${port}`);
   });
 

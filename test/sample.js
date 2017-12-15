@@ -782,10 +782,10 @@ tape('http csv tests', test => {
 
   });
 
-  test.test('csv file returning error should return 400 w/message', t => {
+  test.test('csv file returning text/plain error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
     const source_server = express().get('/file.csv', (req, res, next) => {
-      res.status(404).send('page not found');
+      res.status(404).type('text').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
@@ -807,6 +807,38 @@ tape('http csv tests', test => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
+    })
+    .finally(() => {
+      sample_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
+  test.test('csv file returning non-text/plain error should return 400 w/o message', t => {
+    // startup an HTTP server that will respond to file.geojson requests with a 404
+    const source_server = express().get('/file.csv', (req, res, next) => {
+      res.status(404).type('html').send('page not found');
+    }).listen();
+
+    // start the service with the sample endpoint
+    const sample_service = express().use('/', require('../sample')).listen();
+
+    const source = `http://localhost:${source_server.address().port}/file.csv`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${sample_service.address().port}/`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: (404)`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -1510,10 +1542,10 @@ tape('http zip tests', test => {
 
   });
 
-  test.test('zip file returning error should return 400 w/message', t => {
+  test.test('zip file returning text/plain error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
     const source_server = express().get('/file.zip', (req, res, next) => {
-      res.status(404).send('page not found');
+      res.status(404).type('text').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
@@ -1535,6 +1567,38 @@ tape('http zip tests', test => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
+    })
+    .finally(() => {
+      sample_service.close(() => source_server.close(() => t.end()));
+    });
+
+  });
+
+  test.test('zip file returning non-text/plain error should return 400 w/o message', t => {
+    // startup an HTTP server that will respond to file.zip requests with a 404
+    const source_server = express().get('/file.zip', (req, res, next) => {
+      res.status(404).type('html').send('page not found');
+    }).listen();
+
+    // start the service with the sample endpoint
+    const sample_service = express().use('/', require('../sample')).listen();
+
+    const source = `http://localhost:${source_server.address().port}/file.zip`;
+
+    // make a request to the submit service
+    request({
+      uri: `http://localhost:${sample_service.address().port}/`,
+      qs: {
+        source: source
+      },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, `Error retrieving file ${source}: (404)`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));

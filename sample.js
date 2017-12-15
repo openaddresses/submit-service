@@ -259,16 +259,27 @@ const sampleHttpCsv = (req, res, next) => {
   // handle normal responses (including HTTP errors)
   r.on('response', response => {
     if (response.statusCode !== 200) {
-      // something went wrong so save up the response text and return an error
-      toString(r, (err, msg) => {
-        let error_message = `Error retrieving file ${res.locals.source.data}`;
-        error_message += `: ${msg} (${response.statusCode})`;
+      // something went wrong so optionally save up the response text and return an error
+      let error_message = `Error retrieving file ${res.locals.source.data}`;
 
+      // if the content type is text/plain, then use the error message text
+      if (_.startsWith(_.get(response.headers, 'content-type'), 'text/plain')) {
+        toString(r, (err, msg) => {
+          error_message += `: ${msg} (${response.statusCode})`;
+          logger.info(`HTTP CSV: ${error_message}`);
+
+          res.status(400).type('text/plain').send(error_message);
+
+        });
+      }
+      else {
+        // otherwise just respond with the code
+        error_message += `: (${response.statusCode})`;
         logger.info(`HTTP CSV: ${error_message}`);
 
         res.status(400).type('text/plain').send(error_message);
 
-      });
+      }
 
     } else {
       logger.debug(`HTTP CSV: successfully retrieved ${res.locals.source.data}`);
@@ -339,16 +350,28 @@ const sampleHttpZip = (req, res, next) => {
   // handle normal responses (including HTTP errors)
   r.on('response', response => {
     if (response.statusCode !== 200) {
-      // something went wrong so save up the response text and return an error
-      toString(r, (err, msg) => {
-        let error_message = `Error retrieving file ${res.locals.source.data}`;
-        error_message += `: ${msg} (${response.statusCode})`;
+      // something went wrong so optionally save up the response text and return an error
+      let error_message = `Error retrieving file ${res.locals.source.data}`;
 
+      // if the content type is text/plain, then use the error message text
+      if (_.startsWith(_.get(response.headers, 'content-type'), 'text/plain')) {
+        toString(r, (err, msg) => {
+          error_message += `: ${msg} (${response.statusCode})`;
+          logger.info(`HTTP ZIP: ${error_message}`);
+          res.status(400).type('text/plain').send(error_message);
+
+        });
+
+      }
+      else {
+        error_message += `: (${response.statusCode})`;
         logger.info(`HTTP ZIP: ${error_message}`);
-
         res.status(400).type('text/plain').send(error_message);
 
-      });
+      }
+
+
+
 
     } else {
       logger.debug(`HTTP ZIP: successfully retrieved ${res.locals.source.data}`);

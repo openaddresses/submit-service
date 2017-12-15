@@ -23,6 +23,7 @@
     "express": "^4.16.2",
     "express-fileupload": "^0.3.0",
     "github": "^12.1.0",
+    "helmet": "^3.9.0",
     "indian-ocean": "^3.0.2",
     "jsftp": "^2.1.1",
     "lodash": "^4.17.4",

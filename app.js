@@ -1,9 +1,16 @@
 const express = require('express');
 const morgan = require('morgan');
+const helmet = require('helmet');
 
 module.exports = () => {
   const app = express();
 
+  app.use(helmet({
+    frameguard: {
+      action: 'deny'
+    }
+  }));
+  
   app.use(morgan('combined'));
 
   app.use('/sample', require('./sample'));

@@ -43,7 +43,7 @@ async function createBranch(req, res, next) {
 
   } catch (err) {
     logger.error(`Error looking up master reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error looking up master reference: ${err}`
@@ -64,7 +64,7 @@ async function createBranch(req, res, next) {
 
   } catch (err) {
     logger.error(`Error creating local reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating local reference: ${err}`
@@ -89,7 +89,7 @@ async function addSourceFile(req, res, next) {
 
   } catch (err) {
     logger.error(`Error creating file for reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating file for reference: ${err}`
@@ -117,7 +117,7 @@ async function createPullRequest(req, res, next) {
 
   } catch (err) {
     logger.error(`Error creating pull request: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating pull request: ${err}`

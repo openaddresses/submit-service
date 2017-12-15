@@ -48,7 +48,7 @@ An example response from the `/sample` endpoint is:
 	"conform": {
 		"type": "geojson"
 	},
-  "note: "",
+  "note": "",
 	"source_data": {
 		"fields": ["id", "number", "street", "city"],
 		"results": [

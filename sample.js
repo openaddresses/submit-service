@@ -361,12 +361,26 @@ const sampleHttpZip = (req, res, next) => {
         res.status(400).type('text/plain').send(error_message);
       })
       .on('entry', entry => {
+        // handle errors before inspecting entry
+        // there appears to be an error with unzip-stream where an unsupported
+        // version error is thrown for each entry instead of the stream in general
+        // so it must be handled separately.
+        // https://github.com/mhr3/unzip-stream/issues/9
+        entry.on('error', err => {
+          if (!res.headersSent) {
+            const error_message = `Error processing file ${res.locals.source.data}: ${err}`;
+            logger.error(`HTTP ZIP: ${error_message}`);
+            res.status(400).type('text/plain').send(error_message);
+          }
+        });
+
         if (_.endsWith(entry.path, '.csv')) {
           logger.debug(`HTTP ZIP CSV: ${entry.path}`);
           res.locals.source.conform.type = 'csv';
 
           // process the .csv file
-          entry.pipe(csvParse({
+          entry
+          .pipe(csvParse({
             // DO NOT USE `from` and `to` to limit records since it downloads the entire
             // file whereas this way simply stops the download after 10 records
             skip_empty_lines: true,
@@ -500,6 +514,9 @@ const sampleHttpZip = (req, res, next) => {
               // discard the remains of the .dbf file
               entry.autodrain();
 
+              // resume the stream to get more records
+              this.resume();
+
               // there are 10 records, so call next()
               return next();
 
@@ -550,6 +567,13 @@ const sampleFtpGeojson = (req, res, next) => {
   };
 
   const ftp = new JSFtp(options);
+
+  // handle errors like "connection refused"
+  ftp.on('error', (err) => {
+    const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+    logger.info(`FTP ZIP: ${error_message}`);
+    res.status(400).type('text/plain').send(error_message);
+  });
 
   ftp.auth(options.user, options.pass, (auth_err) => {
     if (auth_err) {
@@ -634,6 +658,13 @@ const sampleFtpCsv = (req, res, next) => {
   };
 
   const ftp = new JSFtp(options);
+
+  // handle errors like "connection refused"
+  ftp.on('error', (err) => {
+    const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+    logger.info(`FTP ZIP: ${error_message}`);
+    res.status(400).type('text/plain').send(error_message);
+  });
 
   ftp.auth(options.user, options.pass, (auth_err) => {
     if (auth_err) {
@@ -724,6 +755,13 @@ const sampleFtpZip = (req, res, next) => {
 
   const ftp = new JSFtp(options);
 
+  // handle errors like "connection refused"
+  ftp.on('error', (err) => {
+    const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+    logger.info(`FTP ZIP: ${error_message}`);
+    res.status(400).type('text/plain').send(error_message);
+  });
+
   ftp.auth(options.user, options.pass, (auth_err) => {
     if (auth_err) {
       const error_message = `Error retrieving file ${res.locals.source.data}: Authentication error`;
@@ -749,6 +787,17 @@ const sampleFtpZip = (req, res, next) => {
           res.status(400).type('text/plain').send(error_message);
         })
         .on('entry', entry => {
+          // handle errors before inspecting entry
+          // there appears to be an error with unzip-stream where an unsupported
+          // version error is thrown for each entry instead of the stream in general
+          // so it must be handled separately.
+          // https://github.com/mhr3/unzip-stream/issues/9
+          entry.on('error', err => {
+            const error_message = `Error processing file ${res.locals.source.data}: ${err}`;
+            logger.error(`FTP ZIP: ${error_message}`);
+            res.status(400).type('text/plain').send(error_message);
+          });
+
           if (_.endsWith(entry.path, '.csv')) {
             logger.debug(`FTP ZIP: treating ${entry.path} as csv`);
             res.locals.source.conform.type = 'csv';
@@ -942,7 +991,9 @@ const cleanupTemp = (req, res, next) => {
 
 // middleware that outputs the accumulated metadata, fields, and sample results
 const output = (req, res, next) => {
-  res.status(200).send(res.locals.source);
+  if (!res.headersSent) {
+    res.status(200).send(res.locals.source);
+  }
 };
 
 

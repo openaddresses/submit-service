@@ -4,72 +4,7 @@ const request = require('request-promise');
 const proxyquire = require('proxyquire');
 const string2stream = require('string-to-stream');
 
-tape('/submit tests', test => {
-  test.test('request failing authentication should respond with 500 and error message', t => {
-    t.plan(5);
-
-    // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
-      'github': function GitHub() {
-        return {
-          authenticate: (auth_params) => {
-            t.deepEquals(auth_params, {
-              type: 'oauth',
-              token: 'my super secret token'
-            });
-          },
-          users: {
-            get: (users_get_params) => {
-              t.deepEquals(users_get_params, {});
-
-              return new Promise((resolve, reject) => reject('user authentication failed'));
-
-            }
-          },
-          gitdata: {
-            getReference: t.fail.bind(null, 'gitdata.getReference should not have been called'),
-            createReference: t.fail.bind(null, 'gitdata.createReference should not have been called')
-          },
-          repos: {
-            createFile: t.fail.bind(null, 'repos.createFile should not have been called')
-          },
-          pullRequests: {
-            create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
-          }
-        };
-      }
-    });
-
-    const app = express().use('/', submit_route);
-    app.locals.github = {
-      accessToken: 'my super secret token'
-    };
-    const submit_service = app.listen();
-
-    request({
-      uri: `http://localhost:${submit_service.address().port}/`,
-      method: 'POST',
-      qs: {},
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(t.fail.bind(null, 'request should not have been successful'))
-    .catch(err => {
-      t.equals(err.statusCode, 500);
-      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
-      t.deepEquals(err.error, {
-        error: {
-          code: 500,
-          message: 'Error looking up login name: user authentication failed'
-        }
-      });
-    })
-    .finally(() => {
-      submit_service.close();
-    });
-
-  });
-
+tape('valid source tests', test => {
   test.test('request failing to look up master reference should respond with 500 and error message', t => {
     t.plan(4);
 
@@ -78,13 +13,6 @@ tape('/submit tests', test => {
       'github': function GitHub() {
         return {
           authenticate: () => {},
-          users: {
-            get: (users_get_params) => new Promise((resolve, reject) => resolve({
-                data: {
-                  login: 'submit_service username'
-                }
-              }))
-          },
           gitdata: {
             getReference: (o) => {
               t.deepEquals(o, {
@@ -146,13 +74,6 @@ tape('/submit tests', test => {
       'github': function GitHub() {
         return {
           authenticate: () => {},
-          users: {
-            get: (users_get_params) => new Promise((resolve, reject) => resolve({
-                data: {
-                  login: 'submit_service username'
-                }
-              }))
-          },
           gitdata: {
             getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
@@ -224,13 +145,6 @@ tape('/submit tests', test => {
       'github': function GitHub() {
         return {
           authenticate: () => {},
-          users: {
-            get: (users_get_params) => new Promise((resolve, reject) => resolve({
-                data: {
-                  login: 'submit_service username'
-                }
-              }))
-          },
           gitdata: {
             getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
@@ -320,13 +234,6 @@ tape('/submit tests', test => {
       'github': function GitHub() {
         return {
           authenticate: () => {},
-          users: {
-            get: () => new Promise((resolve, reject) => resolve({
-                data: {
-                  login: 'submit_service username'
-                }
-              }))
-          },
           gitdata: {
             getReference: o => new Promise((resolve, reject) => resolve({
                 data: {
@@ -415,13 +322,6 @@ tape('/submit tests', test => {
       'github': function GitHub() {
         return {
           authenticate: () => {},
-          users: {
-            get: () => new Promise((resolve, reject) => resolve({
-                data: {
-                  login: 'submit_service username'
-                }
-              }))
-          },
           gitdata: {
             getReference: (o) => new Promise((resolve, reject) => resolve({
                 data: {

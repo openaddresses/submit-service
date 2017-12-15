@@ -11,44 +11,31 @@ const logger = winston.createLogger({
   ]
 });
 
-async function createBranch(req, res, next) {
-  const github = new GitHubApi();
+function initialize(req, res, next) {
+  res.locals.github = new GitHubApi();
 
+  // create a random number to hopefully generate a unique branch name and filename
   const unique_hex_number = _.random(255, 255*255*255).toString(16);
 
-  const reference_name = `submit_service_${unique_hex_number}`;
-  const commit_message = 'This file was added by the OpenAddresses submit-service';
-  const path = `sources/contrib/source_${unique_hex_number}.json`;
-  const pull_request_text = 'This pull request contains changes requested by the Submit Service';
-  const pull_request_title = 'Submit Service Pull Request';
+  res.locals.reference_name = `submit_service_${unique_hex_number}`;
+  res.locals.path = `sources/contrib/source_${unique_hex_number}.json`;
 
   // first, authenticate the user
-  github.authenticate({
+  res.locals.github.authenticate({
     type: 'oauth',
     token: req.app.locals.github.accessToken
   });
 
-  // second, get the github username for this authentication
-  // user_response.data.login is needed for future steps
-  let user_response;
-  try {
-    user_response = await github.users.get({});
+  next();
 
-  } catch (err) {
-    logger.error(`Error looking up login name: ${err}`);
-    return res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error looking up login name: ${err}`
-      }
-    });
-  }
+}
 
-  // third, lookup the sha of openaddresses/openaddresses#master
+async function createBranch(req, res, next) {
+  // second, lookup the sha of openaddresses/openaddresses#master
   // master_reference_response.data.object.sha is needed when creating a reference
   let master_reference_response;
   try {
-    master_reference_response = await github.gitdata.getReference({
+    master_reference_response = await res.locals.github.gitdata.getReference({
       owner: 'openaddresses',
       repo: 'openaddresses',
       ref: 'heads/master'
@@ -56,7 +43,7 @@ async function createBranch(req, res, next) {
 
   } catch (err) {
     logger.error(`Error looking up master reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error looking up master reference: ${err}`
@@ -64,18 +51,20 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // fourth, create the reference for the authenticated user
+  // third, create the reference (branch)
   try {
-    await github.gitdata.createReference({
+    await res.locals.github.gitdata.createReference({
       owner: 'openaddresses',
       repo: 'openaddresses',
-      ref: `refs/heads/${reference_name}`,
+      ref: `refs/heads/${res.locals.reference_name}`,
       sha: master_reference_response.data.object.sha
     });
 
+    next();
+
   } catch (err) {
     logger.error(`Error creating local reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating local reference: ${err}`
@@ -83,20 +72,24 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // fifth, create the file in the local reference for the authenticated user
+}
+
+async function addSourceFile(req, res, next) {
   try {
-    await github.repos.createFile({
+    await res.locals.github.repos.createFile({
       owner: 'openaddresses',
       repo: 'openaddresses',
-      path: path,
-      message: commit_message,
+      path: res.locals.path,
+      message: 'This file was added by the OpenAddresses submit-service',
       content: Buffer.from(req.files.source.data).toString('base64'),
-      branch: reference_name
+      branch: res.locals.reference_name
     });
+
+    next();
 
   } catch (err) {
     logger.error(`Error creating file for reference: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating file for reference: ${err}`
@@ -104,22 +97,27 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // sixth, create the pull request
-  let create_pull_request_response;
+}
+
+async function createPullRequest(req, res, next) {
   try {
-    create_pull_request_response = await github.pullRequests.create({
+    const create_pull_request_response = await res.locals.github.pullRequests.create({
       owner: 'openaddresses',
       repo: 'openaddresses',
-      title: pull_request_title,
-      head: `openaddresses:${reference_name}`,
+      title: 'Submit Service Pull Request',
+      head: `openaddresses:${res.locals.reference_name}`,
       base: 'master',
-      body: pull_request_text,
+      body: 'This pull request contains changes requested by the Submit Service',
       maintainer_can_modify: true
     });
 
+    res.locals.pull_request_url = create_pull_request_response.data.html_url;
+
+    next();
+
   } catch (err) {
     logger.error(`Error creating pull request: ${err}`);
-    return res.status(500).type('application/json').send({
+    res.status(500).type('application/json').send({
       error: {
         code: 500,
         message: `Error creating pull request: ${err}`
@@ -127,10 +125,13 @@ async function createBranch(req, res, next) {
     });
   }
 
+}
+
+function output(req, res, next) {
   // entire github pipeline was successful so return the PR URL
   res.status(200).type('application/json').send({
     response: {
-      url: create_pull_request_response.data.html_url
+      url: res.locals.pull_request_url
     }
   });
 
@@ -138,4 +139,12 @@ async function createBranch(req, res, next) {
 
 }
 
-module.exports = express.Router().use(fileUpload()).post('/', createBranch);
+module.exports = express.Router()
+  .use(fileUpload())
+  .post('/', [
+    initialize,
+    createBranch,
+    addSourceFile,
+    createPullRequest,
+    output
+  ]);

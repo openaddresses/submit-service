@@ -17,10 +17,7 @@ async function createBranch(req, res, next) {
   const unique_hex_number = _.random(255, 255*255*255).toString(16);
 
   const reference_name = `submit_service_${unique_hex_number}`;
-  const commit_message = 'This file was added by the OpenAddresses submit-service';
   const path = `sources/contrib/source_${unique_hex_number}.json`;
-  const pull_request_text = 'This pull request contains changes requested by the Submit Service';
-  const pull_request_title = 'Submit Service Pull Request';
 
   // first, authenticate the user
   github.authenticate({
@@ -28,23 +25,7 @@ async function createBranch(req, res, next) {
     token: req.app.locals.github.accessToken
   });
 
-  // second, get the github username for this authentication
-  // user_response.data.login is needed for future steps
-  let user_response;
-  try {
-    user_response = await github.users.get({});
-
-  } catch (err) {
-    logger.error(`Error looking up login name: ${err}`);
-    return res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error looking up login name: ${err}`
-      }
-    });
-  }
-
-  // third, lookup the sha of openaddresses/openaddresses#master
+  // second, lookup the sha of openaddresses/openaddresses#master
   // master_reference_response.data.object.sha is needed when creating a reference
   let master_reference_response;
   try {
@@ -64,7 +45,7 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // fourth, create the reference for the authenticated user
+  // third, create the reference for the authenticated user
   try {
     await github.gitdata.createReference({
       owner: 'openaddresses',
@@ -83,13 +64,13 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // fifth, create the file in the local reference for the authenticated user
+  // fourth, create the file in the local reference for the authenticated user
   try {
     await github.repos.createFile({
       owner: 'openaddresses',
       repo: 'openaddresses',
       path: path,
-      message: commit_message,
+      message: 'This file was added by the OpenAddresses submit-service',
       content: Buffer.from(req.files.source.data).toString('base64'),
       branch: reference_name
     });
@@ -104,16 +85,16 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // sixth, create the pull request
+  // fifth, create the pull request
   let create_pull_request_response;
   try {
     create_pull_request_response = await github.pullRequests.create({
       owner: 'openaddresses',
       repo: 'openaddresses',
-      title: pull_request_title,
+      title: 'Submit Service Pull Request',
       head: `openaddresses:${reference_name}`,
       base: 'master',
-      body: pull_request_text,
+      body: 'This pull request contains changes requested by the Submit Service',
       maintainer_can_modify: true
     });
 
@@ -138,4 +119,6 @@ async function createBranch(req, res, next) {
 
 }
 
-module.exports = express.Router().use(fileUpload()).post('/', createBranch);
+module.exports = express.Router()
+  .use(fileUpload())
+  .post('/', createBranch);

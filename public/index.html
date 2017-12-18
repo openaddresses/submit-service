@@ -63,7 +63,7 @@
             metadata_table.append(`<tr><td>Protocol</td><td>${r.type}</td></tr>`);
             metadata_table.append(`<tr><td>Type</td><td>${r.conform.type}</td></tr>`);
             metadata_table.append(`<tr><td>Compression</td><td>${r.compression ? r.compression : ''}</td></tr>`);
-            metadata_table.append(`<tr><td>Full Request</td><td><a target="_new" href="/fields?source=${$("#source").val()}">request</a></td></tr>`);
+            metadata_table.append(`<tr><td>Full Request</td><td><a target="_new" href="/sample?source=${$("#source").val()}">request</a></td></tr>`);
 
             // add the metadata and data tables
             $('#results').html($('<p/>'));

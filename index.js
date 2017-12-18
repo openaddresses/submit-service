@@ -16,10 +16,6 @@ try {
   const port = ( parseInt(process.env.PORT) || 3103 );
 
   app.listen(port, () => {
-    app.locals.github = {
-      accessToken: process.env.GITHUB_ACCESS_TOKEN
-    };
-
     console.log(`submit-service is now running on port ${port}`);
   });
 

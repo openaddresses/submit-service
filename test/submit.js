@@ -12,7 +12,7 @@ tape('valid source tests', test => {
     process.env.GITHUB_ACCESS_TOKEN = 'github authentication token';
 
     // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
+    const submit_endpoint = proxyquire('../submit', {
       'github': function GitHub() {
         return {
           authenticate: (options) => {
@@ -44,8 +44,7 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_route);
-    const submit_service = app.listen();
+    const submit_service = express().use('/', submit_endpoint).listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
@@ -75,7 +74,7 @@ tape('valid source tests', test => {
     t.plan(4);
 
     // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
+    const submit_endpoint = proxyquire('../submit', {
       'github': function GitHub() {
         return {
           authenticate: () => {},
@@ -112,7 +111,7 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_route);
+    const app = express().use('/', submit_endpoint);
     app.locals.github = {
       accessToken: 'my super secret token'
     };
@@ -145,8 +144,16 @@ tape('valid source tests', test => {
   test.test('request failing to create file in local reference should respond with 500 and error message', t => {
     t.plan(4);
 
+    const post_content = {
+      coverage: {},
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {}
+    };
+
     // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
+    const submit_endpoint = proxyquire('../submit', {
       'github': function GitHub() {
         return {
           authenticate: () => {},
@@ -167,7 +174,7 @@ tape('valid source tests', test => {
                 repo: 'openaddresses',
                 path: 'sources/contrib/source_45554d.json',
                 message: 'This file was added by the OpenAddresses submit-service',
-                content: Buffer.from(post_content).toString('base64'),
+                content: Buffer.from(JSON.stringify(post_content)).toString('base64'),
                 branch: 'submit_service_45554d'
               });
 
@@ -185,30 +192,12 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_route);
-    app.locals.github = {
-      accessToken: 'my super secret token'
-    };
-    const submit_service = app.listen();
-
-    const post_content = 'this is the POST content for /submit';
+    const submit_service = express().use('/', submit_endpoint).listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
       method: 'POST',
-      formData: {
-        source: {
-          value: string2stream(post_content),
-          options: {
-            filename: 'file.json',
-            contentType: 'application/json',
-            knownLength: post_content.length
-          }
-        }
-      },
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded'
-      },
+      body: post_content,
       json: true,
       resolveWithFullResponse: true
     })
@@ -232,10 +221,8 @@ tape('valid source tests', test => {
   test.test('request failing to create pull request should respond with 500 and error message', t => {
     t.plan(4);
 
-    const post_content = 'this is the POST content for /submit';
-
     // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
+    const submit_endpoint = proxyquire('../submit', {
       'github': function GitHub() {
         return {
           authenticate: () => {},
@@ -275,27 +262,17 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_route);
-    app.locals.github = {
-      accessToken: 'my super secret token'
-    };
-    const submit_service = app.listen();
+    const submit_service = express().use('/', submit_endpoint).listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
       method: 'POST',
-      formData: {
-        source: {
-          value: string2stream(post_content),
-          options: {
-            filename: 'file.json',
-            contentType: 'application/json',
-            knownLength: post_content.length
-          }
-        }
-      },
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded'
+      body: {
+        coverage: {},
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {}
       },
       json: true,
       resolveWithFullResponse: true
@@ -320,10 +297,8 @@ tape('valid source tests', test => {
   test.test('request creating pull request should return 200 and PR link', t => {
     t.plan(3);
 
-    const post_content = 'this is the POST content for /submit';
-
     // mock the github in the submit route
-    const submit_route = proxyquire('../submit', {
+    const submit_endpoint = proxyquire('../submit', {
       'github': function GitHub() {
         return {
           authenticate: () => {},
@@ -351,27 +326,17 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_route);
-    app.locals.github = {
-      accessToken: 'my super secret token'
-    };
-    const submit_service = app.listen();
+    const submit_service = express().use('/', submit_endpoint).listen();
 
     request({
       uri: `http://localhost:${submit_service.address().port}/`,
       method: 'POST',
-      formData: {
-        source: {
-          value: string2stream(post_content),
-          options: {
-            filename: 'file.json',
-            contentType: 'application/json',
-            knownLength: post_content.length
-          }
-        }
-      },
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded'
+      body: {
+        coverage: {},
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {}
       },
       json: true,
       resolveWithFullResponse: true
@@ -387,6 +352,7 @@ tape('valid source tests', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
+      t.end();
       submit_service.close();
     });
 

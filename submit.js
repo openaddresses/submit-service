@@ -1,7 +1,7 @@
 const express = require('express');
 const GitHubApi = require('github');
-const fileUpload = require('express-fileupload');
 const _ = require('lodash');
+const bodyParser = require('body-parser');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -97,7 +97,7 @@ async function addFileToBranch(req, res, next) {
       repo: 'openaddresses',
       path: res.locals.path,
       message: 'This file was added by the OpenAddresses submit-service',
-      content: Buffer.from(req.files.source.data).toString('base64'),
+      content: Buffer.from(JSON.stringify(req.body)).toString('base64'),
       branch: res.locals.reference_name
     });
 
@@ -158,7 +158,7 @@ function output(req, res, next) {
 }
 
 module.exports = express.Router()
-  .use(fileUpload())
+  .use(bodyParser.json())
   .post('/', [
     authenticateWithGithub,
     uniqueifyNames,

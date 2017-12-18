@@ -6,13 +6,21 @@ const string2stream = require('string-to-stream');
 
 tape('valid source tests', test => {
   test.test('request failing to look up master reference should respond with 500 and error message', t => {
-    t.plan(4);
+    t.plan(5, 'auth + master ref + response');
+
+    // /submit pulls the github authentication token from the environment so set it here
+    process.env.GITHUB_ACCESS_TOKEN = 'github authentication token';
 
     // mock the github in the submit route
     const submit_route = proxyquire('../submit', {
       'github': function GitHub() {
         return {
-          authenticate: () => {},
+          authenticate: (options) => {
+            t.deepEquals(options, {
+              type: 'oauth',
+              token: 'github authentication token'
+            });
+          },
           gitdata: {
             getReference: (o) => {
               t.deepEquals(o, {
@@ -37,9 +45,6 @@ tape('valid source tests', test => {
     });
 
     const app = express().use('/', submit_route);
-    app.locals.github = {
-      accessToken: 'my super secret token'
-    };
     const submit_service = app.listen();
 
     request({

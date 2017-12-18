@@ -23,7 +23,7 @@ function initialize(req, res, next) {
   // first, authenticate the user
   res.locals.github.authenticate({
     type: 'oauth',
-    token: req.app.locals.github.accessToken
+    token: process.env.GITHUB_ACCESS_TOKEN
   });
 
   next();

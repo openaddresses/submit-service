@@ -11,16 +11,14 @@ const logger = winston.createLogger({
   ]
 });
 
-function initialize(req, res, next) {
+// The /submit endpoint creates a new pull request based on openaddresses/openaddresses
+// master with a file containing the contents of the POST body
+
+
+// login to github
+function authenticateWithGithub(req, res, next) {
   res.locals.github = new GitHubApi();
 
-  // create a random number to hopefully generate a unique branch name and filename
-  const unique_hex_number = _.random(255, 255*255*255).toString(16);
-
-  res.locals.reference_name = `submit_service_${unique_hex_number}`;
-  res.locals.path = `sources/contrib/source_${unique_hex_number}.json`;
-
-  // first, authenticate the user
   res.locals.github.authenticate({
     type: 'oauth',
     token: process.env.GITHUB_ACCESS_TOKEN
@@ -30,8 +28,25 @@ function initialize(req, res, next) {
 
 }
 
-async function createBranch(req, res, next) {
-  // second, lookup the sha of openaddresses/openaddresses#master
+// generate a "unique" target reference name and upload file path for this source
+function uniqueifyNames(req, res, next) {
+  // create a random number to hopefully generate a unique branch name and filename
+  const unique_hex_number = _.random(255, 255*255*255).toString(16);
+
+  // this is the reference/branch name that will be created
+  res.locals.reference_name = `submit_service_${unique_hex_number}`;
+
+  // this is the file that will be added
+  res.locals.path = `sources/contrib/source_${unique_hex_number}.json`;
+
+  next();
+
+}
+
+// lookup the master openaddresses/openaddresses SHA and create a reference (branch)
+// to it that can be used for this source
+async function branchFromMaster(req, res, next) {
+  // lookup the sha of openaddresses/openaddresses#master
   // master_reference_response.data.object.sha is needed when creating a reference
   let master_reference_response;
   try {
@@ -51,7 +66,7 @@ async function createBranch(req, res, next) {
     });
   }
 
-  // third, create the reference (branch)
+  // create the reference (branch)
   try {
     await res.locals.github.gitdata.createReference({
       owner: 'openaddresses',
@@ -74,7 +89,8 @@ async function createBranch(req, res, next) {
 
 }
 
-async function addSourceFile(req, res, next) {
+// take the POST body of this request and add it as a file to the branch
+async function addFileToBranch(req, res, next) {
   try {
     await res.locals.github.repos.createFile({
       owner: 'openaddresses',
@@ -99,6 +115,7 @@ async function addSourceFile(req, res, next) {
 
 }
 
+// create a pull request which will get picked up by the machine
 async function createPullRequest(req, res, next) {
   try {
     const create_pull_request_response = await res.locals.github.pullRequests.create({
@@ -127,6 +144,7 @@ async function createPullRequest(req, res, next) {
 
 }
 
+// send the pull request URL back to the caller
 function output(req, res, next) {
   // entire github pipeline was successful so return the PR URL
   res.status(200).type('application/json').send({
@@ -142,9 +160,10 @@ function output(req, res, next) {
 module.exports = express.Router()
   .use(fileUpload())
   .post('/', [
-    initialize,
-    createBranch,
-    addSourceFile,
+    authenticateWithGithub,
+    uniqueifyNames,
+    branchFromMaster,
+    addFileToBranch,
     createPullRequest,
     output
   ]);

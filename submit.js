@@ -15,6 +15,29 @@ const logger = winston.createLogger({
 // master with a file containing the contents of the POST body
 
 
+function postBodyErrorHandler(err, req, res, next) {
+  if (_.get(err, 'type') === 'entity.parse.failed') {
+    res.status(400).type('application/json').send({
+      error: {
+        code: 400,
+        message: `POST body not parseable as JSON: ${err.body}`
+      }
+    });
+
+  } else if (_.get(err, 'type') === 'entity.too.large') {
+    res.status(400).type('application/json').send({
+      error: {
+        code: 400,
+        message: 'POST body exceeds max size of 50kb'
+      }
+    });
+
+  } else {
+    next();
+  }
+
+}
+
 // verify that req.body contains an actual JSON object
 function preconditionsCheck(req, res, next) {
   if (_.isEmpty(req.body)) {
@@ -179,28 +202,7 @@ module.exports = express.Router()
   .use(bodyParser.json({
     limit: '50kb'
   }))
-  .use((err, req, res, next) => {
-    if (_.get(err, 'type') === 'entity.parse.failed') {
-      res.status(400).type('application/json').send({
-        error: {
-          code: 400,
-          message: `POST body not parseable as JSON: ${err.body}`
-        }
-      });
-
-    } else if (_.get(err, 'type') === 'entity.too.large') {
-      res.status(400).type('application/json').send({
-        error: {
-          code: 400,
-          message: 'POST body exceeds max size of 50kb'
-        }
-      });
-
-    } else {
-      next();
-    }
-  })
-  // .use(bodyParser.raw())
+  .use(postBodyErrorHandler)
   .post('/', [
     preconditionsCheck,
     authenticateWithGithub,

@@ -15,6 +15,24 @@ const logger = winston.createLogger({
 // master with a file containing the contents of the POST body
 
 
+// verify that req.body contains an actual JSON object
+function preconditionsCheck(req, res, next) {
+  if (_.isEmpty(req.body)) {
+    logger.error('POST body empty');
+    res.status(400).type('application/json').send({
+      error: {
+        code: 400,
+        message: 'POST body empty'
+      }
+    });
+
+  } else {
+    next();
+
+  }
+
+}
+
 // login to github
 function authenticateWithGithub(req, res, next) {
   res.locals.github = new GitHubApi();
@@ -158,8 +176,33 @@ function output(req, res, next) {
 }
 
 module.exports = express.Router()
-  .use(bodyParser.json())
+  .use(bodyParser.json({
+    limit: '50kb'
+  }))
+  .use((err, req, res, next) => {
+    if (_.get(err, 'type') === 'entity.parse.failed') {
+      res.status(400).type('application/json').send({
+        error: {
+          code: 400,
+          message: `POST body not parseable as JSON: ${err.body}`
+        }
+      });
+
+    } else if (_.get(err, 'type') === 'entity.too.large') {
+      res.status(400).type('application/json').send({
+        error: {
+          code: 400,
+          message: 'POST body exceeds max size of 50kb'
+        }
+      });
+
+    } else {
+      next();
+    }
+  })
+  // .use(bodyParser.raw())
   .post('/', [
+    preconditionsCheck,
     authenticateWithGithub,
     uniqueifyNames,
     branchFromMaster,

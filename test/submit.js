@@ -3,6 +3,96 @@ const express = require('express');
 const request = require('request-promise');
 const proxyquire = require('proxyquire');
 const string2stream = require('string-to-stream');
+const _ = require('lodash');
+
+tape('error conditions', test => {
+  test.test('undefined POST body should respond with 500 and error message', t => {
+    const submit_service = express().use('/', require('../submit')).listen();
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/`,
+      method: 'POST',
+      qs: {},
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: 'POST body empty'
+        }
+      });
+      t.end();
+    })
+    .finally(() => {
+      submit_service.close();
+    });
+
+  });
+
+  test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
+    const submit_service = express().use('/', require('../submit')).listen();
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/`,
+      method: 'POST',
+      qs: {},
+      body: 'this is not parseable as JSON',
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: 'POST body not parseable as JSON: "this is not parseable as JSON"'
+        }
+      });
+      t.end();
+    })
+    .finally(() => {
+      submit_service.close();
+    });
+
+  });
+
+  test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
+    const submit_service = express().use('/', require('../submit')).listen();
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/`,
+      method: 'POST',
+      qs: {},
+      body: { str: Buffer.alloc(100000, '.').toString() },
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 400);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: 'POST body exceeds max size of 50kb'
+        }
+      });
+      t.end();
+    })
+    .finally(() => {
+      submit_service.close();
+    });
+
+  });
+
+});
 
 tape('valid source tests', test => {
   test.test('request failing to look up master reference should respond with 500 and error message', t => {
@@ -50,6 +140,13 @@ tape('valid source tests', test => {
       uri: `http://localhost:${submit_service.address().port}/`,
       method: 'POST',
       qs: {},
+      body: {
+        coverage: {},
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {}
+      },
       json: true,
       resolveWithFullResponse: true
     })
@@ -121,6 +218,13 @@ tape('valid source tests', test => {
       uri: `http://localhost:${submit_service.address().port}/`,
       method: 'POST',
       qs: {},
+      body: {
+        coverage: {},
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {}
+      },
       json: true,
       resolveWithFullResponse: true
     })

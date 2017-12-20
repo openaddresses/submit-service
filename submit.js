@@ -86,102 +86,104 @@ function uniqueifyNames(req, res, next) {
 
 // lookup the master openaddresses/openaddresses SHA and create a reference (branch)
 // to it that can be used for this source
-async function branchFromMaster(req, res, next) {
+function branchFromMaster(req, res, next) {
   // lookup the sha of openaddresses/openaddresses#master
-  // master_reference_response.data.object.sha is needed when creating a reference
-  let master_reference_response;
-  try {
-    master_reference_response = await res.locals.github.gitdata.getReference({
-      owner: 'openaddresses',
-      repo: 'openaddresses',
-      ref: 'heads/master'
-    });
+  // masterReferenceResponse.data.object.sha is needed when creating a reference
+  res.locals.github.gitdata.getReference({
+    owner: 'openaddresses',
+    repo: 'openaddresses',
+    ref: 'heads/master'
+  }, (err, masterReferenceResponse) => {
+    if (err) {
+      logger.error(`Error looking up master reference: ${err}`);
+      res.status(500).type('application/json').send({
+        error: {
+          code: 500,
+          message: `Error looking up master reference: ${err}`
+        }
+      });
+      return;
 
-  } catch (err) {
-    logger.error(`Error looking up master reference: ${err}`);
-    res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error looking up master reference: ${err}`
-      }
-    });
-  }
+    }
 
-  // create the reference (branch)
-  try {
-    await res.locals.github.gitdata.createReference({
+    res.locals.github.gitdata.createReference({
       owner: 'openaddresses',
       repo: 'openaddresses',
       ref: `refs/heads/${res.locals.reference_name}`,
-      sha: master_reference_response.data.object.sha
-    });
+      sha: masterReferenceResponse.data.object.sha
+    }, (err, response) => {
+      if (err) {
+        logger.error(`Error creating local reference: ${err}`);
+        res.status(500).type('application/json').send({
+          error: {
+            code: 500,
+            message: `Error creating local reference: ${err}`
+          }
+        });
+        return;
 
-    next();
-
-  } catch (err) {
-    logger.error(`Error creating local reference: ${err}`);
-    res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error creating local reference: ${err}`
       }
+
+      next();
+
     });
-  }
+
+  });
 
 }
 
 // take the POST body of this request and add it as a file to the branch
-async function addFileToBranch(req, res, next) {
-  try {
-    await res.locals.github.repos.createFile({
-      owner: 'openaddresses',
-      repo: 'openaddresses',
-      path: res.locals.path,
-      message: 'This file was added by the OpenAddresses submit-service',
-      content: Buffer.from(JSON.stringify(req.body)).toString('base64'),
-      branch: res.locals.reference_name
-    });
+function addFileToBranch(req, res, next) {
+  res.locals.github.repos.createFile({
+    owner: 'openaddresses',
+    repo: 'openaddresses',
+    path: res.locals.path,
+    message: 'This file was added by the OpenAddresses submit-service',
+    content: Buffer.from(JSON.stringify(req.body)).toString('base64'),
+    branch: res.locals.reference_name
+  }, (err, response) => {
+    if (err) {
+      logger.error(`Error creating file for reference: ${err}`);
+      res.status(500).type('application/json').send({
+        error: {
+          code: 500,
+          message: `Error creating file for reference: ${err}`
+        }
+      });
+    } else {
+      next();
+    }
 
-    next();
-
-  } catch (err) {
-    logger.error(`Error creating file for reference: ${err}`);
-    res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error creating file for reference: ${err}`
-      }
-    });
-  }
+  });
 
 }
 
 // create a pull request which will get picked up by the machine
-async function createPullRequest(req, res, next) {
-  try {
-    const create_pull_request_response = await res.locals.github.pullRequests.create({
-      owner: 'openaddresses',
-      repo: 'openaddresses',
-      title: 'Submit Service Pull Request',
-      head: `openaddresses:${res.locals.reference_name}`,
-      base: 'master',
-      body: 'This pull request contains changes requested by the Submit Service',
-      maintainer_can_modify: true
-    });
+function createPullRequest(req, res, next) {
+  res.locals.github.pullRequests.create({
+    owner: 'openaddresses',
+    repo: 'openaddresses',
+    title: 'Submit Service Pull Request',
+    head: `openaddresses:${res.locals.reference_name}`,
+    base: 'master',
+    body: 'This pull request contains changes requested by the Submit Service',
+    maintainer_can_modify: true
+  }, (err, response) => {
+    if (err) {
+      logger.error(`Error creating pull request: ${err}`);
+      res.status(500).type('application/json').send({
+        error: {
+          code: 500,
+          message: `Error creating pull request: ${err}`
+        }
+      });
+    } else {
+      // create pull request was successful so extract the url and set into locals
+      res.locals.pull_request_url = response.data.html_url;
+      next();
+    }
 
-    res.locals.pull_request_url = create_pull_request_response.data.html_url;
-
-    next();
-
-  } catch (err) {
-    logger.error(`Error creating pull request: ${err}`);
-    res.status(500).type('application/json').send({
-      error: {
-        code: 500,
-        message: `Error creating pull request: ${err}`
-      }
-    });
-  }
+  });
 
 }
 

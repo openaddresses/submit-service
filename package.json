@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.169.0",
+    "aws-serverless-express": "^3.0.2",
     "body-parser": "^1.18.2",
     "csv-parse": "^2.0.0",
     "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",

@@ -1,0 +1,10 @@
+{
+  "lambda": {
+    "role": "submit-service-executor",
+    "name": "submit-service",
+    "region": "us-east-1"
+  },
+  "api": {
+    "id": "hewcawyvc4"
+  }
+}

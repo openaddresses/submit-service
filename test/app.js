@@ -5,7 +5,7 @@ const listEndpoints = require('express-list-endpoints');
 
 tape('success conditions', test => {
   test.test('all credentials available should be passed to appropriate services', t => {
-    const app = require('../app')();
+    const app = require('../app');
 
     t.deepEquals(listEndpoints(app), [
       {

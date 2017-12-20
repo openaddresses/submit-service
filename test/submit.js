@@ -112,14 +112,14 @@ tape('valid source tests', test => {
             });
           },
           gitdata: {
-            getReference: (o) => {
+            getReference: (o, callback) => {
               t.deepEquals(o, {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
                 ref: 'heads/master'
               });
 
-              return new Promise((resolve, reject) => reject('getReference for master failed'));
+              callback('getReference for master failed');
 
             },
             createReference: t.fail.bind(null, 'gitdata.createReference should not have been called')
@@ -176,14 +176,16 @@ tape('valid source tests', test => {
         return {
           authenticate: () => {},
           gitdata: {
-            getReference: o => new Promise((resolve, reject) => resolve({
+            getReference: (o, callback) => {
+              callback(null, {
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              })),
-            createReference: (o) => {
+              });
+            },
+            createReference: (o, callback) => {
               t.deepEquals(o, {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
@@ -191,7 +193,7 @@ tape('valid source tests', test => {
                 sha: 'master sha'
               });
 
-              return new Promise((resolve, reject) => reject('createReference from master failed'));
+              callback('createReference from master failed');
 
             }
           },
@@ -262,17 +264,19 @@ tape('valid source tests', test => {
         return {
           authenticate: () => {},
           gitdata: {
-            getReference: o => new Promise((resolve, reject) => resolve({
+            getReference: (o, callback) => callback(null,
+              {
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              })),
-            createReference: o => new Promise((resolve, reject) => resolve())
+              }
+            ),
+            createReference: (o, callback) => callback(null, null)
           },
           repos: {
-            createFile: (o) => {
+            createFile: (o, callback) => {
               t.deepEquals(o, {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
@@ -282,7 +286,7 @@ tape('valid source tests', test => {
                 branch: 'submit_service_45554d'
               });
 
-              return new Promise((resolve, reject) => reject('createFile in local reference failed'));
+              callback('createFile in local reference failed');
 
             }
           },
@@ -331,20 +335,22 @@ tape('valid source tests', test => {
         return {
           authenticate: () => {},
           gitdata: {
-            getReference: o => new Promise((resolve, reject) => resolve({
+            getReference: (o, callback) => callback(null,
+              {
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              })),
-            createReference: o => new Promise((resolve, reject) => resolve())
+              }
+            ),
+            createReference: (o, callback) => callback(null, null)
           },
           repos: {
-            createFile: o => new Promise((resolve, reject) => resolve())
+            createFile: (o, callback) => callback(null, null)
           },
           pullRequests: {
-            create: (o) => {
+            create: (o, callback) => {
               t.deepEquals(o, {
                 owner: 'openaddresses',
                 repo: 'openaddresses',
@@ -355,7 +361,7 @@ tape('valid source tests', test => {
                 maintainer_can_modify: true
               });
 
-              return new Promise((resolve, reject) => reject('createPullRequest failed'));
+              callback('createPullRequest failed');
 
             }
           }
@@ -407,24 +413,29 @@ tape('valid source tests', test => {
         return {
           authenticate: () => {},
           gitdata: {
-            getReference: (o) => new Promise((resolve, reject) => resolve({
+            getReference: (o, callback) => callback(null,
+              {
                 data: {
                   object: {
                     sha: 'master sha'
                   }
                 }
-              })),
-            createReference: (o) => new Promise((resolve, reject) => resolve())
+              }
+            ),
+            createReference: (o, callback) => callback(null, null)
           },
           repos: {
-            createFile: o => new Promise((resolve, reject) => resolve())
+            createFile: (o, callback) => callback(null, null)
           },
           pullRequests: {
-            create: o => new Promise((resolve, reject) => resolve({
+            create: (o, callback) => {
+              callback(null, {
                 data: {
                   html_url: 'this is the html url for the pull request'
                 }
-              }))
+              });
+
+            }
           }
         };
       }

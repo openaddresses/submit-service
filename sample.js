@@ -1,6 +1,6 @@
 const express = require('express');
 const router = require('express').Router();
-const { URL } = require('url');
+const url = require('url');
 const _ = require('lodash');
 const request = require('request');
 const csvParse = require( 'csv-parse' );
@@ -11,6 +11,7 @@ const morgan = require('morgan');
 const toString = require('stream-to-string');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
+const urlJoin = require('url-join');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -60,41 +61,37 @@ const setupTemp = (req, res, next) => {
 
 // determine the protocol, type, and compression to make decisions easier later on
 const determineType = (req, res, next) => {
-  try {
-    const source = new URL(req.query.source);
+  const source = url.parse(req.query.source);
 
-    // setup a working context
-    res.locals.source = {
-      coverage: {},
-      note: '',
-      data: source.href,
-      source_data: {
-        fields: [],
-        results: []
-      },
-      conform: {}
-    };
+  // setup a working context
+  res.locals.source = {
+    coverage: {},
+    note: '',
+    data: source.href,
+    source_data: {
+      fields: [],
+      results: []
+    },
+    conform: {}
+  };
 
-    if (arcgisRegexp.test(source.pathname)) {
-      res.locals.source.type = 'ESRI';
-      res.locals.source.conform.type = 'geojson';
-    } else if (_.endsWith(source.pathname, '.geojson')) {
-      res.locals.source.type = getProtocol(source.protocol);
-      res.locals.source.conform.type = 'geojson';
-    } else if (_.endsWith(source.pathname, '.csv')) {
-      res.locals.source.type = getProtocol(source.protocol);
-      res.locals.source.conform.type = 'csv';
-    } else if (_.endsWith(source.pathname, '.zip')) {
-      res.locals.source.type = getProtocol(source.protocol);
-      res.locals.source.compression = 'zip';
-    } else {
-      res.status(400).type('text/plain').send('Unsupported type');
-    }
-
-  } catch (err) {
+  if (arcgisRegexp.test(source.pathname)) {
+    res.locals.source.type = 'ESRI';
+    res.locals.source.conform.type = 'geojson';
+  } else if (!source.protocol) {
     logger.info(`Unable to parse URL from '${req.query.source}'`);
     res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
-
+  } else if (_.endsWith(source.pathname, '.geojson')) {
+    res.locals.source.type = getProtocol(source.protocol);
+    res.locals.source.conform.type = 'geojson';
+  } else if (_.endsWith(source.pathname, '.csv')) {
+    res.locals.source.type = getProtocol(source.protocol);
+    res.locals.source.conform.type = 'csv';
+  } else if (_.endsWith(source.pathname, '.zip')) {
+    res.locals.source.type = getProtocol(source.protocol);
+    res.locals.source.compression = 'zip';
+  } else {
+    res.status(400).type('text/plain').send('Unsupported type');
   }
 
   // only call next() if no response was previously sent (due to error or unsupported type)
@@ -136,15 +133,10 @@ const isFtpCsv = typecheck.bind(null, 'ftp', 'csv')();
 const sampleArcgis = (req, res, next) => {
   logger.debug(`using arcgis sampler for ${res.locals.source.data}`);
 
-  // build up a URL for querying an Arcgis server
-  const url = new URL(`${res.locals.source.data}/query`);
-  url.searchParams.append('outFields', '*');
-  url.searchParams.append('where', '1=1');
-  url.searchParams.append('resultRecordCount', '10');
-  url.searchParams.append('resultOffset', '0');
-  url.searchParams.append('f', 'json');
+  const queryUrl = urlJoin(res.locals.source.data, 'query',
+    '?outFields=*', '&where=1%3D1', '&resultRecordCount=10', '&resultOffset=0', '&f=json');
 
-  oboe(url.href)
+  oboe(queryUrl)
     .node('error', err => {
       const msg = `Error connecting to Arcgis server ${res.locals.source.data}: ${err.message} (${err.code})`;
       logger.info(`ARCGIS: ${msg}`);
@@ -569,14 +561,17 @@ const sampleHttpZip = (req, res, next) => {
 const sampleFtpGeojson = (req, res, next) => {
   logger.debug(`FTP GEOJSON: ${res.locals.source.data}`);
 
-  const url = new URL(res.locals.source.data);
+  const ftpUrl = url.parse(res.locals.source.data);
 
   const options = {
-    host: url.hostname,
-    port: url.port,
-    user: url.username,
-    pass: url.password
+    host: ftpUrl.hostname,
+    port: ftpUrl.port
   };
+
+  if (ftpUrl.auth) {
+    options.user = ftpUrl.auth.split(':')[0];
+    options.pass = ftpUrl.auth.split(':')[1];
+  }
 
   const ftp = new JSFtp(options);
 
@@ -660,14 +655,17 @@ const sampleFtpGeojson = (req, res, next) => {
 const sampleFtpCsv = (req, res, next) => {
   logger.debug(`FTP CSV: ${res.locals.source.data}`);
 
-  const url = new URL(res.locals.source.data);
+  const ftpUrl = url.parse(res.locals.source.data);
 
   const options = {
-    host: url.hostname,
-    port: url.port,
-    user: url.username,
-    pass: url.password
+    host: ftpUrl.hostname,
+    port: ftpUrl.port
   };
+
+  if (ftpUrl.auth) {
+    options.user = ftpUrl.auth.split(':')[0];
+    options.pass = ftpUrl.auth.split(':')[1];
+  }
 
   const ftp = new JSFtp(options);
 
@@ -755,15 +753,17 @@ const sampleFtpCsv = (req, res, next) => {
 const sampleFtpZip = (req, res, next) => {
   logger.debug(`FTP ZIP: ${res.locals.source.data}`);
 
-  const url = new URL(res.locals.source.data);
+  const ftpUrl = url.parse(res.locals.source.data);
 
   const options = {
-    host: url.hostname,
-    port: url.port,
-    user: url.username,
-    pass: url.password,
-    debugMode: true
+    host: ftpUrl.hostname,
+    port: ftpUrl.port
   };
+
+  if (ftpUrl.auth) {
+    options.user = ftpUrl.auth.split(':')[0];
+    options.pass = ftpUrl.auth.split(':')[1];
+  }
 
   const ftp = new JSFtp(options);
 

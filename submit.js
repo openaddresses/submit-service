@@ -139,7 +139,7 @@ function addFileToBranch(req, res, next) {
     repo: 'openaddresses',
     path: res.locals.path,
     message: 'This file was added by the OpenAddresses submit-service',
-    content: Buffer.from(JSON.stringify(req.body)).toString('base64'),
+    content: Buffer.from(JSON.stringify(req.body, null, 4)).toString('base64'),
     branch: res.locals.reference_name
   }, (err, response) => {
     if (err) {

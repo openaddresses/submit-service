@@ -282,7 +282,7 @@ tape('valid source tests', test => {
                 repo: 'openaddresses',
                 path: 'sources/contrib/source_45554d.json',
                 message: 'This file was added by the OpenAddresses submit-service',
-                content: Buffer.from(JSON.stringify(post_content)).toString('base64'),
+                content: Buffer.from(JSON.stringify(post_content, null, 4)).toString('base64'),
                 branch: 'submit_service_45554d'
               });
 

@@ -13,10 +13,6 @@ tape('success conditions', test => {
         methods: ['GET']
       },
       {
-        path: '/upload',
-        methods: ['POST']
-      },
-      {
         path: '/submit',
         methods: ['POST']
       }

@@ -141,7 +141,7 @@ The OpenAddresses Submit Service has been developed in such a way that it is sta
 $ claudia update --handler lambda.handler --deploy-proxy-api --region us-east-1
 ```
 
-The Submit Service API can be accessed on the `/sample` and `/submit` endpoints using https://hewcawyvc4.execute-api.us-east-1.amazonaws.com/latest/.  
+The Submit Service API can be accessed on the `/sample` and `/submit` endpoints using https://68exp8ppy6.execute-api.us-east-1.amazonaws.com/latest/.  
 
 ## Contributing
 

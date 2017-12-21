@@ -11,7 +11,7 @@ try {
     throw Error('AWS_SECRET_ACCESS_KEY is required');
   }
 
-  const app = require('./app')();
+  const app = require('./app');
 
   const port = ( parseInt(process.env.PORT) || 3103 );
 

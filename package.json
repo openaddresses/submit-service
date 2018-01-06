@@ -22,7 +22,7 @@
     "csv-parse": "^2.0.0",
     "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
     "express": "^4.16.2",
-    "github": "^12.1.0",
+    "github": "^13.1.0",
     "helmet": "^3.9.0",
     "indian-ocean": "^3.0.2",
     "jsftp": "^2.1.1",

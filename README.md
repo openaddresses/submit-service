@@ -18,10 +18,12 @@ The service starts on [http://localhost:3103](http://localhost:3103) (unless the
 
 ### Credentials
 
-This service performs operations on github, so credentials must be available in the docker environment.  Docker uses the .env file to store these values.  For security concerns, the .env file is not stored in the git repository and must be populated before running docker.  A sample .env file is:
+This service performs operations on github and uploads file to s3, so the credentials for both of these services must be available in the docker environment.  Docker uses the .env file to store these values.  For security concerns, the .env file is not stored in the git repository and must be populated before running docker.  A sample .env file is:
 
 ```bash
 GITHUB_ACCESS_TOKEN=<github access token>
+AWS_ACCESS_KEY_ID=<AWS access key id>		
+AWS_SECRET_ACCESS_KEY=<AWS secret access key>
 ```
 
 ## Endpoints
@@ -30,6 +32,7 @@ The service exposes two endpoints for programmatic access:
 
 - `/sample`: looks up the field names and first 10 records from a source
 - `/submit`: submits a pull request to the OpenAddresses repo
+- `/upload`: uploads a file to be hosted to the OpenAddresses S3 bucket
 
 ### `/sample`
 
@@ -112,6 +115,22 @@ Since programmatically assigning a unique name based on the input is very diffic
 - HTTP status 500 with a message is returned if any Github API operations occur (meaning that credentials have most likely be entered incorrectly)
 - HTTP status 400 with a message is returned if the `source` parameter value does not conform to the OpenAddresses [source schema](https://github.com/openaddresses/openaddresses/blob/master/schema/source_schema.json)
 
+### `/upload`		
+ -		
+The `/upload` endpoint is available to upload data sources that require hosting by uploading to the OpenAddresses AWS S3 bucket.  The only available parameter is named `datafile`.  Upon successful upload to the OpenAddresses AWS S3 bucket, an HTTP status 302 (redirect) is returned with the target being the `/sample` endpoint complete with `source` parameter supplied.  		
+
+Since programmatically assigning a unique name based on the input is very difficult, the `/submit` endpoint creates a unique name based on random numbers.  		
+
+#### Error Conditions		
+
+`/upload` supports the following error conditions:		
+
+- HTTP status 500 with a message is returned if any AWS S3 API operations occur (meaning that credentials have most likely be entered incorrectly)		
+- HTTP status 400 with a message is returned for the following scenarios:		
+  - the `datafile` parameter was not supplied		
+  - the uploaded file extension is not one of `.zip`, `.csv`, or `.geojson`		
+  - the uploaded file size is greater than 50MB
+
 ## Supported Types
 
 There are several supported source types:
@@ -141,7 +160,7 @@ The OpenAddresses Submit Service has been developed in such a way that it is sta
 $ claudia update --handler lambda.handler --deploy-proxy-api --region us-east-1
 ```
 
-The Submit Service API can be accessed on the `/sample` and `/submit` endpoints using https://68exp8ppy6.execute-api.us-east-1.amazonaws.com/latest/.  
+The Submit Service API can be accessed on the `/sample`, `/upload`, and `/submit` endpoints using https://68exp8ppy6.execute-api.us-east-1.amazonaws.com/latest/.  
 
 ## Contributing
 

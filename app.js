@@ -11,4 +11,5 @@ module.exports = express()
   .use(morgan('combined'))
   .use('/sample', require('./sample'))
   .use('/submit', require('./submit'))
+  .use('/upload', require('./upload'))
   .use(express.static(__dirname + '/public'));

@@ -253,7 +253,7 @@ tape('/upload tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, 'max upload size is blah');
+      t.equals(err.error, `max upload size is ${50*1024*1024}`);
     })
     .finally(() => {
       upload_service.close(() => t.end());

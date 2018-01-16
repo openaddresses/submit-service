@@ -7,14 +7,17 @@ const string2stream = require('string-to-stream');
 
 const acceptableUploadFileExtensions = ['.zip', '.csv', '.geojson'];
 
+// max upload size is 50MB
+const maxUploadSize = 50*1024*1024;
+
 // if no datafile parameter was supplied, bail immediately
 const uploadPreconditionsCheck = (req, res, next) => {
   if (!_.has(req, 'files.datafile')) {
     res.status(400).type('text/plain').send('\'datafile\' parameter is required');
   } else if (!_.includes(acceptableUploadFileExtensions, path.extname(req.files.datafile.name))) {
     res.status(400).type('text/plain').send('supported extensions are .zip, .csv, and .geojson');
-  } else if (req.files.datafile.data.length > 50*1024*1024) {
-    res.status(400).type('text/plain').send('max upload size is blah');
+  } else if (req.files.datafile.data.length > maxUploadSize) {
+    res.status(400).type('text/plain').send(`max upload size is ${maxUploadSize}`);
   } else {
     return next();
   }

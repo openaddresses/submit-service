@@ -1632,7 +1632,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Error: Invalid signature in zip file`);
+      t.equals(err.error, `Error retrieving file ${source}: Error: Not a valid zip file`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -3305,7 +3305,7 @@ tape('ftp zip tests', test => {
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Error: Invalid signature in zip file`);
+          t.equals(err.error, `Error retrieving file ${source}: Error: Not a valid zip file`);
         })
         .finally(() => {
           // close ftp server -> app server -> tape

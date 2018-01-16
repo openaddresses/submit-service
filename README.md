@@ -154,11 +154,11 @@ $ npm test
 
 ## Production
 
-The OpenAddresses Submit Service has been developed in such a way that it is stateless and can be run either locally or via AWS Lambdas using the API Gateway for request proxying.  [Claudia](https://claudiajs.com) is utilized for generating and deploying to AWS Lambdas + API Gateway.  The configuration is in place for this so to update the Lambda functions, [install claudia.js](https://claudiajs.com/tutorials/installing.html), ensure that `.aws/credentials` contains a `[claudia]` section with credentials for a deploy-capable user, and enter:
+The OpenAddresses Submit Service has been developed in such a way that it is stateless and can be run either locally or via AWS Lambdas using the API Gateway for request proxying.  [Claudia](https://claudiajs.com) is utilized for generating and deploying to AWS Lambdas + API Gateway.  The configuration is in place for this so to update the Lambda functions, perform the following:
 
-```bash
-$ claudia update --handler lambda.handler --deploy-proxy-api --region us-east-1
-```
+1. ensure that devDependencies have been installed (using `npm i`, which includes non-production dependencies)
+2. ensure that `.aws/credentials` contains a `[claudia]` section with credentials for a deploy-capable user
+3. enter the following at the command line: `npm run deploy` (which runs the `claudia update` command)
 
 The Submit Service API can be accessed on the `/sample`, `/upload`, and `/submit` endpoints using https://68exp8ppy6.execute-api.us-east-1.amazonaws.com/latest/.  
 

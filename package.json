@@ -8,7 +8,8 @@
     "test": "node test/test | tap-dot",
     "travis": "npm test",
     "lint": "eslint .",
-    "validate": "npm ls"
+    "validate": "npm ls",
+    "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1"
   },
   "keywords": [],
   "author": "trescube",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "archiver": "^2.1.1",
+    "claudia": "^3.2.0",
     "eslint": "^4.15.0",
     "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.15.0",

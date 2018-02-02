@@ -39,7 +39,7 @@
     "temp": "^0.8.3",
     "through2": "^2.0.3",
     "unzip-stream": "^0.3.0",
-    "url-join": "^3.0.0",
+    "url-join": "^4.0.0",
     "winston": "^3.0.0-rc1"
   },
   "devDependencies": {

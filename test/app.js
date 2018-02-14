@@ -13,6 +13,14 @@ tape('success conditions', test => {
         methods: ['GET']
       },
       {
+        path: '/sources',
+        methods: ['GET']
+      },
+      {
+        path: '/sources',
+        methods: ['GET']
+      },
+      {
         path: '/submit',
         methods: ['POST']
       },

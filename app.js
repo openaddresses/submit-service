@@ -9,6 +9,7 @@ module.exports = express()
     }
   }))
   .use(morgan('combined'))
+  .use('/download', require('./download'))
   .use('/maintainers/sources/**/*.json', require('./maintainers'))
   .use('/sample', require('./sample'))
   // The sources router must always be exposed on the /sources endpoint since

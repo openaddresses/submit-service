@@ -40,7 +40,8 @@
     "through2": "^2.0.3",
     "unzip-stream": "^0.3.0",
     "url-join": "^4.0.0",
-    "winston": "^3.0.0-rc1"
+    "winston": "^3.0.0-rc1",
+    "yauzl": "^2.9.1"
   },
   "devDependencies": {
     "archiver": "^2.1.1",

@@ -13,11 +13,11 @@ const logger = winston.createLogger({
   ]
 });
 
-function handleCatastrophicError(errorCode, res) {
+function handleCatastrophicError(errorCode, res, file) {
   res.status(500).type('application/json').send({
     error: {
       code: 500,
-      message: `Error retrieving file ${process.env.OPENADDRESSES_METADATA_FILE}: ${errorCode}`
+      message: `Error retrieving file ${file}: ${errorCode}`
     }
   });
 
@@ -27,10 +27,10 @@ function responseIsPlainText(headers) {
   return _.startsWith(_.get(headers, 'content-type'), 'text/plain');
 }
 
-function handlePlainTextNonCatastrophicError(r, statusCode, res) {
+function handlePlainTextNonCatastrophicError(r, statusCode, res, file) {
   // convert response to a string and log/return
   toString(r, (err, msg) => {
-    const error_message = `Error retrieving file ${process.env.OPENADDRESSES_METADATA_FILE}: ${msg} (${statusCode})`;
+    const error_message = `Error retrieving file ${file}: ${msg} (${statusCode})`;
     logger.info(`OpenAddresses metadata file: ${error_message}`);
 
     res.status(500).type('application/json').send({
@@ -64,15 +64,17 @@ function getMetaData(req, res, next) {
   // save off request so it can be error-handled and piped later
   const r = request(process.env.OPENADDRESSES_METADATA_FILE);
 
+  res.locals.source = req.baseUrl.replace('/download', '');
+
   // handle catastrophic errors like "connection refused"
-  r.on('error', err => handleCatastrophicError(err.code, res));
+  r.on('error', err => handleCatastrophicError(err.code, res, process.env.OPENADDRESSES_METADATA_FILE));
 
   // handle normal responses (including HTTP errors)
   r.on('response', response => {
     if (response.statusCode !== 200) {
       // if the content type is text/plain, then use the error message text
       if (responseIsPlainText(response.headers)) {
-        handlePlainTextNonCatastrophicError(r, response.statusCode, res, next);
+        handlePlainTextNonCatastrophicError(r, response.statusCode, res, process.env.OPENADDRESSES_METADATA_FILE);
       }
       else {
         handleNonPlainTextNonCatastrophicError(res);
@@ -93,7 +95,7 @@ function getMetaData(req, res, next) {
         res.status(400).type('text/plain').send(error_message);
       })
       .pipe(through2.obj(function(record, enc, callback) {
-        if (record.source === 'us/pa/york.json') {
+        if (record.source === res.locals.source) {
           res.locals.datafile = record.processed;
           this.destroy();
         } else {
@@ -118,8 +120,39 @@ function getMetaData(req, res, next) {
 
 // retrieve sources (files or directories) on a path
 function getData(req, res, next) {
-  console.error(res.locals.datafile);
-  res.status(200).type('text/plain').send(res.locals.datafile);
+  if (!res.locals.datafile) {
+    const error_message = `Unable to find ${res.locals.source} in ${process.env.OPENADDRESSES_METADATA_FILE}`;
+    logger.info(`OpenAddresses metadata file: ${error_message}`);
+
+    res.status(400).type('application/json').send({
+      error: {
+        code: 400,
+        message: error_message
+      }
+    });
+
+  } else {
+    console.error(res.locals.datafile);
+    const r = request(res.locals.datafile);
+
+    // handle catastrophic errors like "connection refused"
+    r.on('error', err => handleCatastrophicError(err.code, res, res.locals.source));
+
+    // handle normal responses (including HTTP errors)
+    r.on('response', response => {
+      if (response.statusCode !== 200) {
+        // if the content type is text/plain, then use the error message text
+        handlePlainTextNonCatastrophicError(r, response.statusCode, res, res.locals.datafile);
+
+      } else {
+        res.status(200).type('text/plain').send(res.locals.datafile);
+
+      }
+
+    });
+
+  }
+
 }
 
 module.exports = express.Router()

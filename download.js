@@ -14,6 +14,11 @@ const logger = winston.createLogger({
   ]
 });
 
+const outputHandlers = {
+  csv: respondWithCsv,
+  geojson: respondWithGeojson
+};
+
 function handleCatastrophicError(errorCode, res, file) {
   res.status(500).type('application/json').send({
     error: {
@@ -59,6 +64,84 @@ function handleNonPlainTextNonCatastrophicError(statusCode, res) {
   });
 
 }
+
+// return the processed file contents as CSV
+function respondWithCsv(res, entry) {
+  // response object functions are chainable, so inline
+  entry.pipe(res.
+    status(200).
+    type('text/csv').
+    set('Content-Disposition', 'attachment; filename=data.csv'));
+
+}
+
+// return the processed file contents as GeoJSON
+function respondWithGeojson(res, entry) {
+  const o = {
+    type: 'FeatureCollection',
+    features: []
+  };
+
+  // process the .csv file
+  entry
+  .pipe(csvParse({
+    // DO NOT USE `from` and `to` to limit records since it downloads the entire
+    // file whereas this way simply stops the download after 10 records
+    skip_empty_lines: true,
+    columns: true
+  }))
+  .on('error', err => {
+    const error_message = `Error parsing file ${entry.path}: ${err}`;
+    logger.info(`HTTP ZIP CSV: ${error_message}`);
+    res.status(400).type('text/plain').send(error_message);
+  })
+  .pipe(through2.obj(function(record, enc, callback) {
+    o.features.push({
+      geometry: {
+        type: 'Point',
+        coordinates: [
+          parseFloat(record.LON),
+          parseFloat(record.LAT)
+        ]
+      },
+      properties: _.omit(record, ['LON', 'LAT'])
+    });
+
+
+    callback();
+
+  }))
+  .on('finish', () => {
+    logger.debug('/download: stream ended normally');
+
+    res.
+      status(200).
+      type('application/json').
+      set('Content-Disposition', 'attachment: filename=data.geojson').
+      send(JSON.stringify(o));
+
+  });
+
+}
+
+// if no source parameter was supplied, bail immediately
+const preconditionsCheck = (req, res, next) => {
+  if (req.query.format && ['csv', 'geojson'].indexOf(req.query.format) < 0) {
+    logger.debug('rejecting request due to invalid `format` parameter');
+    res.status(400).type('application/json').send({
+      error: {
+        code: 400,
+        message: `Unsupported output format: ${req.query.format}`
+      }
+    });
+
+  } else {
+    logger.debug({ format: req.query.format });
+    next();
+
+  }
+
+};
 
 // retrieve sources (files or directories) on a path
 function getMetaData(req, res, next) {
@@ -171,11 +254,9 @@ function getData(req, res, next) {
             // the CSV file has been found so just pipe the contents to response
             csv_file_found = true;
 
-            // response object functions are chainable, so inline
-            entry.pipe(res.
-              status(200).
-              type('text/csv').
-              set('Content-Disposition', 'attachment; filename=data.csv'));
+            // call the response handler according to output format
+            // defaulting to csv 
+            outputHandlers[_.defaultTo(req.query.format, 'csv')](res, entry);
 
           }
           else {
@@ -208,4 +289,8 @@ function getData(req, res, next) {
 }
 
 module.exports = express.Router()
-  .get('/', [getMetaData, getData]);
+  .get('/', [
+    preconditionsCheck,
+    getMetaData, 
+    getData
+  ]);

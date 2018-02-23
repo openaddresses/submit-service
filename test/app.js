@@ -9,6 +9,10 @@ tape('success conditions', test => {
 
     t.deepEquals(listEndpoints(app), [
       {
+        path: '/download',
+        methods: ['GET']
+      },
+      {
         path: '/maintainers/sources',
         methods: ['GET']
       },

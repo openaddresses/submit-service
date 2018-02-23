@@ -1,4 +1,5 @@
 require('./app');
+require('./download');
 require('./index');
 require('./maintainers');
 require('./sample');

@@ -9,7 +9,7 @@ const {FtpSrv, FileSystem} = require('ftp-srv');
 const Duplex = require('stream').Duplex;
 const getPort = require('get-port');
 const string2stream = require('string-to-stream');
-const Writable = require('stream').Writable;
+const ZipContentsStream = require('./ZipContentsStream');
 
 // FileSystem implementation used by the FTP server that just returns the
 // supplied stream
@@ -34,20 +34,6 @@ class FileNotFoundFileSystem extends FileSystem {
 
 }
 
-// helper class that builds up the contents to be written to a .zip file but
-// without needing an actual on-disk file
-class ZipContentsStream extends Writable {
-  constructor(options) {
-    super(options);
-    this.buffer = new Buffer('');
-  }
-
-  write(chunk, enc) {
-    const buffer = (Buffer.isBuffer(chunk)) ? chunk : new Buffer(chunk, enc);
-    this.buffer = Buffer.concat([this.buffer, buffer]);
-  }
-
-}
 
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {

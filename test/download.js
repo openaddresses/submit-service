@@ -322,7 +322,7 @@ tape('error conditions', test => {
 });
 
 tape('success conditions', test => {
-  test.test('.zip file found should return contents of first .csv file', t => {
+  test.test('format=csv should return first .csv file in CSV format', t => {
     t.plan(3);
 
     const rows = [
@@ -391,7 +391,7 @@ tape('success conditions', test => {
 
   });
 
-  test.test('.zip file found should return contents of first .csv file', t => {
+  test.test('no format specified should return first .csv file in CSV format', t => {
     t.plan(3);
 
     const rows = [
@@ -444,9 +444,8 @@ tape('success conditions', test => {
     // make a request to the download endpoint
     request({
       uri: `http://localhost:${download_service.address().port}/download/cc/rc/file2.json`,
-      qs: {
-        format: 'csv'
-      },
+      // format has not been specified
+      qs: {},
       json: true,
       resolveWithFullResponse: true
     })
@@ -462,7 +461,7 @@ tape('success conditions', test => {
 
   });
 
-  test.test('.zip file found should return contents of first .csv file', t => {
+  test.test('format=geojson should return first .csv file in GeoJSON format', t => {
     t.plan(3);
 
     const rows = [

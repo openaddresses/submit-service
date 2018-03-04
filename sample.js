@@ -824,11 +824,13 @@ const sampleFtpZip = (req, res, next) => {
         return;
 
       } else {
-        const tmpZipFile = res.locals.temp.createWriteStream();
+        const tmpZipStream = res.locals.temp.createWriteStream();
 
         // write the response to a temporary file
-        zipfile.pipe(tmpZipFile).on('close', (err) => {
-          yauzl.open(tmpZipFile.path, {lazyEntries: true}, function(err, zipfile) {
+        zipfile.pipe(tmpZipStream).on('close', (err) => {
+          logger.debug(`wrote ${tmpZipStream.bytesWritten} bytes to ${tmpZipStream.path}`);
+
+          yauzl.open(tmpZipStream.path, {lazyEntries: true}, function(err, zipfile) {
             if (err) {
               const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
               logger.info(`FTP ZIP: ${error_message}`);

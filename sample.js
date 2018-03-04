@@ -6,12 +6,12 @@ const request = require('request');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const oboe = require('oboe');
-const unzip = require('unzip-stream');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
 const urlJoin = require('url-join');
+const yauzl = require('yauzl');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -365,191 +365,223 @@ const sampleHttpZip = (req, res, next) => {
     } else {
       logger.debug(`HTTP ZIP: successfully retrieved ${res.locals.source.data}`);
 
-      // otherwise everything was fine so pipe the response to CSV and collect records
-      r.pipe(unzip.Parse())
-      .on('error', err => {
-        const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-        logger.info(`HTTP ZIP: ${error_message}`);
-        res.status(400).type('text/plain').send(error_message);
-      })
-      .on('entry', entry => {
-        // handle errors before inspecting entry
-        // there appears to be an error with unzip-stream where an unsupported
-        // version error is thrown for each entry instead of the stream in general
-        // so it must be handled separately.
-        // https://github.com/mhr3/unzip-stream/issues/9
-        entry.on('error', err => {
-          if (!res.headersSent) {
-            const error_message = `Error processing file ${res.locals.source.data}: ${err}`;
-            logger.error(`HTTP ZIP: ${error_message}`);
+      const tmpZipFile = res.locals.temp.createWriteStream();
+
+      // write the response to a temporary file
+      r.pipe(tmpZipFile).on('close', (err) => {
+        yauzl.open(tmpZipFile.path, {lazyEntries: true}, function(err, zipfile) {
+          if (err) {
+            const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+            logger.info(`HTTP ZIP: ${error_message}`);
             res.status(400).type('text/plain').send(error_message);
-          }
-        });
 
-        if (_.endsWith(entry.path, '.csv')) {
-          logger.debug(`HTTP ZIP CSV: ${entry.path}`);
-          res.locals.source.conform.type = 'csv';
+          } else {
+            // read first entry
+            zipfile.readEntry();
 
-          // process the .csv file
-          entry
-          .pipe(csvParse({
-            // DO NOT USE `from` and `to` to limit records since it downloads the entire
-            // file whereas this way simply stops the download after 10 records
-            skip_empty_lines: true,
-            columns: true
-          }))
-          .on('error', err => {
-            const error_message = `Error parsing file ${entry.path}: ${err}`;
-            logger.info(`HTTP ZIP CSV: ${error_message}`);
-            res.status(400).type('text/plain').send(error_message);
-          })
-          .pipe(through2.obj(function(record, enc, callback) {
-            // must use full function() syntax for "this" reference
-            if (res.locals.source.source_data.results.length < 10) {
-              if (_.isEmpty(res.locals.source.source_data.fields)) {
-                logger.debug(`HTTP ZIP CSV: fields: ${JSON.stringify(_.keys(record))}`);
-                res.locals.source.source_data.fields = _.keys(record);
+            zipfile.on('entry', function(entry) {
+              if (_.endsWith(entry.fileName, '.csv')) {
+                logger.debug(`HTTP ZIP CSV: ${entry.fileName}`);
+                res.locals.source.conform.type = 'csv';
+
+                zipfile.openReadStream(entry, (err, stream) => {
+                  if (err) {
+                    console.error(`err: ${err}`);
+                  }
+
+                  // process the .csv file
+                  stream.pipe(csvParse({
+                    // DO NOT USE `from` and `to` to limit records since it downloads the entire
+                    // file whereas this way simply stops the download after 10 records
+                    skip_empty_lines: true,
+                    columns: true
+                  }))
+                  .on('error', err => {
+                    const error_message = `Error parsing file ${entry.fileName} from ${res.locals.source.data}: ${err}`;
+                    logger.info(`HTTP ZIP CSV: ${error_message}`);
+                    res.status(400).type('text/plain').send(error_message);
+                  })
+                  .pipe(through2.obj(function(record, enc, callback) {
+                    // must use full function() syntax for "this" reference
+                    if (res.locals.source.source_data.results.length < 10) {
+                      if (_.isEmpty(res.locals.source.source_data.fields)) {
+                        logger.debug(`HTTP ZIP CSV: fields: ${JSON.stringify(_.keys(record))}`);
+                        res.locals.source.source_data.fields = _.keys(record);
+                      }
+
+                      logger.debug(`HTTP ZIP CSV: record: ${JSON.stringify(record)}`);
+                      res.locals.source.source_data.results.push(record);
+
+                      callback();
+
+                    } else {
+                      logger.debug('HTTP ZIP CSV: found 10 results, exiting');
+
+                      // there are enough records so end the stream prematurely, handle in 'close' event
+                      this.destroy();
+                    }
+
+                  }))
+                  .on('close', () => {
+                    logger.debug('HTTP ZIP CSV: stream ended prematurely');
+                    next();
+                  })
+                  .on('finish', () => {
+                    logger.debug('HTTP ZIP CSV: stream ended normally');
+                    next();
+                  });
+
+                });
+
+              }
+              else if (_.endsWith(entry.fileName, '.geojson')) {
+                logger.debug(`HTTP ZIP GEOJSON: ${entry.path}`);
+
+                res.locals.source.conform.type = 'geojson';
+
+                zipfile.openReadStream(entry, (err, stream) => {
+                  if (err) {
+                    console.error(`err: ${err}`);
+                  } else {
+                    oboe(stream)
+                      .node('features.*.properties', properties => {
+                        if (_.isEmpty(res.locals.source.source_data.fields)) {
+                          logger.debug(`HTTP ZIP GEOJSON: fields: ${JSON.stringify(_.keys(properties))}`);
+                          res.locals.source.source_data.fields = _.keys(properties);
+                        }
+
+                        logger.debug(`HTTP ZIP GEOJSON: feature: ${JSON.stringify(properties)}`);
+                        res.locals.source.source_data.results.push(properties);
+
+                      })
+                      .node('features[9]', function() {
+                        // bail after the 10th result.  'done' does not get called after .abort()
+                        //  so next() must be called explicitly
+                        // must use full function() syntax for "this" reference
+                        logger.debug('HTTP ZIP GEOJSON: found 10 results, exiting');
+                        this.abort();
+                        next();
+                      })
+                      .fail(err => {
+                        let error_message = `Error retrieving file ${res.locals.source.data}: `;
+                        error_message += 'Could not parse as JSON';
+                        logger.info(`HTTP ZIP GEOJSON: ${error_message}`);
+
+                        res.status(400).type('text/plain').send(error_message);
+
+                      })
+                      .done(() => {
+                        if (!res.headersSent) {
+                          // this will happen when the list of results has been processed and
+                          // iteration still has no reached the 11th result, which is very unlikely
+                          next();
+                        }
+                      });
+
+                  } 
+
+                });
+
+              }
+              else if (_.endsWith(entry.fileName, '.dbf')) {
+                logger.debug(`HTTP ZIP DBF: ${entry.fileName}`);
+
+                // in the case of a DBF file, because there's no DBF parser that takes a stream,
+                // write to a temporary file and read in that way
+                res.locals.source.conform.type = 'shapefile';
+
+                res.locals.source.source_data.results = [];
+
+                zipfile.openReadStream(entry, (err, stream) => {
+                  if (err) {
+                    console.error(`err: ${err}`);
+                  }
+
+                  // pipe the dbf contents from the .zip file to a stream
+                  dbfstream(stream)
+                  .on('error', err => {
+                    let error_message = `Error parsing file ${entry.fileName} from ${res.locals.source.data}: `;
+                    error_message += 'Could not parse as shapefile';
+                    logger.info(`HTTP ZIP DBF: ${error_message}`);
+
+                    res.status(400).type('text/plain').send(error_message);
+
+                  })
+                  .on('header', header => {
+                    // there's a header so pull the field names from it
+                    res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+
+                    logger.debug(`HTTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
+
+                  })
+                  .on('data', record => {
+                    // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+                    if (res.locals.source.source_data.results.length < 10) {
+                      if (!record['@deleted']) {
+                        // find all the non-@ attributes
+                        const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
+
+                        logger.debug(`HTTP ZIP GEOJSON: attributes: ${JSON.stringify(attributes)}`);
+
+                        res.locals.source.source_data.results.push(attributes);
+
+                      }
+
+                    } else if (record['@numOfRecord'] === 11) {
+                      // don't use a plain `else` condition other this will fire multiple times
+                      logger.debug('HTTP ZIP DBF: found 10 results, exiting');
+
+                      // discard the remains of the .dbf file
+                      // entry.autodrain();
+
+                      // there are 10 records, so call next()
+                      return next();
+
+                    }
+
+                  })
+                  .on('end', () => {
+                    // ran out of records before 10, so call next()
+                    if (!res.headersSent) {
+                      return next();
+                    }
+                  });
+
+                });
+
+              }
+              else {
+                // this is a file that's currently unsupported so drain it so memory doesn't get full
+                logger.debug(`HTTP ZIP: skipping ${entry.fileName}`);
+                zipfile.readEntry();
+
               }
 
-              logger.debug(`HTTP ZIP CSV: record: ${JSON.stringify(record)}`);
-              res.locals.source.source_data.results.push(record);
-
-              callback();
-
-            } else {
-              logger.debug('HTTP ZIP CSV: found 10 results, exiting');
-
-              // there are enough records so end the stream prematurely, handle in 'close' event
-              this.destroy();
-            }
-
-          }))
-          .on('close', () => {
-            logger.debug('HTTP ZIP CSV: stream ended prematurely');
-            next();
-          })
-          .on('finish', () => {
-            logger.debug('HTTP ZIP CSV: stream ended normally');
-            next();
-          });
-
-        }
-        else if (_.endsWith(entry.path, '.geojson')) {
-          logger.debug(`HTTP ZIP GEOJSON: ${entry.path}`);
-
-          res.locals.source.conform.type = 'geojson';
-
-          oboe(entry)
-            .node('features.*.properties', properties => {
-              if (_.isEmpty(res.locals.source.source_data.fields)) {
-                logger.debug(`HTTP ZIP GEOJSON: fields: ${JSON.stringify(_.keys(properties))}`);
-                res.locals.source.source_data.fields = _.keys(properties);
-              }
-
-              logger.debug(`HTTP ZIP GEOJSON: feature: ${JSON.stringify(properties)}`);
-              res.locals.source.source_data.results.push(properties);
-
-            })
-            .node('features[9]', function() {
-              // bail after the 10th result.  'done' does not get called after .abort()
-              //  so next() must be called explicitly
-              // must use full function() syntax for "this" reference
-              logger.debug('HTTP ZIP GEOJSON: found 10 results, exiting');
-              this.abort();
-              next();
-            })
-            .fail(err => {
-              let error_message = `Error retrieving file ${res.locals.source.data}: `;
-              error_message += 'Could not parse as JSON';
-              logger.info(`HTTP ZIP GEOJSON: ${error_message}`);
-
-              res.status(400).type('text/plain').send(error_message);
-
-            })
-            .done(() => {
-              if (!res.headersSent) {
-                // this will happen when the list of results has been processed and
-                // iteration still has no reached the 11th result, which is very unlikely
-                next();
-              }
             });
 
-        }
-        else if (_.endsWith(entry.path, '.dbf')) {
-          logger.debug(`HTTP ZIP DBF: ${entry.path}`);
+            // handle catastrophic errors (file isn't a .zip file, etc)
+            zipfile.on('error', err => {
+              const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+              logger.info(`HTTP ZIP: ${error_message}`);
+              res.status(400).type('text/plain').send(error_message);
 
-          // in the case of a DBF file, because there's no DBF parser that takes a stream,
-          // write to a temporary file and read in that way
-          res.locals.source.conform.type = 'shapefile';
+            });
 
-          res.locals.source.source_data.results = [];
-
-          // pipe the dbf contents from the .zip file to a stream
-          dbfstream(entry)
-          .on('error', err => {
-            let error_message = `Error parsing file ${entry.path} from ${res.locals.source.data}: `;
-            error_message += 'Could not parse as shapefile';
-            logger.info(`HTTP ZIP DBF: ${error_message}`);
-
-            res.status(400).type('text/plain').send(error_message);
-
-          })
-          .on('header', header => {
-            // there's a header so pull the field names from it
-            res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
-
-            logger.debug(`HTTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
-
-          })
-          .on('data', record => {
-            // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-            if (res.locals.source.source_data.results.length < 10) {
-              if (!record['@deleted']) {
-                // find all the non-@ attributes
-                const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
-
-                logger.debug(`HTTP ZIP GEOJSON: attributes: ${JSON.stringify(attributes)}`);
-
-                res.locals.source.source_data.results.push(attributes);
-
+            // handle end of .zip file
+            zipfile.on('end', () => {
+              if (!res.locals.source.conform.type) {
+                logger.info('HTTP ZIP: Could not determine type from zip file');
+                res.status(400).type('text/plain').send('Could not determine type from zip file');
               }
 
-            } else if (record['@numOfRecord'] === 11) {
-              // don't use a plain `else` condition other this will fire multiple times
-              logger.debug('HTTP ZIP DBF: found 10 results, exiting');
+            });
 
-              // discard the remains of the .dbf file
-              entry.autodrain();
+          }
 
-              // there are 10 records, so call next()
-              return next();
-
-            }
-
-          })
-          .on('end', () => {
-            // ran out of records before 10, so call next()
-            if (!res.headersSent) {
-              return next();
-            }
-          });
-
-        }
-        else {
-          // this is a file that's currently unsupported so drain it so memory doesn't get full
-          logger.debug(`HTTP ZIP: skipping ${entry.path}`);
-          entry.autodrain();
-
-        }
-
-      })
-      .on('finish', () => {
-        if (!res.locals.source.conform.type) {
-          logger.info('HTTP ZIP: Could not determine type from zip file');
-          res.status(400).type('text/plain').send('Could not determine type from zip file');
-        }
+        });
 
       });
+
     }
 
   });
@@ -792,196 +824,224 @@ const sampleFtpZip = (req, res, next) => {
         return;
 
       } else {
-        zipfile.pipe(unzip.Parse())
-        .on('error', err => {
-          const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-          logger.info(`FTP ZIP: ${error_message}`);
-          res.status(400).type('text/plain').send(error_message);
-        })
-        .on('entry', entry => {
-          // handle errors before inspecting entry
-          // there appears to be an error with unzip-stream where an unsupported
-          // version error is thrown for each entry instead of the stream in general
-          // so it must be handled separately.
-          // https://github.com/mhr3/unzip-stream/issues/9
-          entry.on('error', err => {
-            const error_message = `Error processing file ${res.locals.source.data}: ${err}`;
-            logger.error(`FTP ZIP: ${error_message}`);
-            res.status(400).type('text/plain').send(error_message);
-          });
+        const tmpZipFile = res.locals.temp.createWriteStream();
 
-          if (_.endsWith(entry.path, '.csv')) {
-            logger.debug(`FTP ZIP: treating ${entry.path} as csv`);
-            res.locals.source.conform.type = 'csv';
-
-            // process the .csv file
-            entry.pipe(csvParse({
-              // DO NOT USE `from` and `to` to limit records since it downloads the entire
-              // file whereas this way simply stops the download after 10 records
-              skip_empty_lines: true,
-              columns: true
-            }))
-            .on('error', err => {
+        // write the response to a temporary file
+        zipfile.pipe(tmpZipFile).on('close', (err) => {
+          yauzl.open(tmpZipFile.path, {lazyEntries: true}, function(err, zipfile) {
+            if (err) {
               const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-              logger.info(`FTP ZIP CSV: ${error_message}`);
+              logger.info(`FTP ZIP: ${error_message}`);
               res.status(400).type('text/plain').send(error_message);
-            })
-            .pipe(through2.obj(function(record, enc, callback) {
-              // must use full function() syntax for "this" reference
-              if (res.locals.source.source_data.results.length < 10) {
-                if (_.isEmpty(res.locals.source.source_data.fields)) {
-                  logger.debug(`FTP ZIP CSV: fields: ${JSON.stringify(_.keys(record))}`);
-                  res.locals.source.source_data.fields = _.keys(record);
+
+            } else {
+              // read first entry
+              zipfile.readEntry();
+
+              zipfile.on('entry', function(entry) {
+                if (_.endsWith(entry.fileName, '.csv')) {
+                  logger.debug(`FTP ZIP CSV: ${entry.fileName}`);
+                  res.locals.source.conform.type = 'csv';
+
+                  zipfile.openReadStream(entry, (err, stream) => {
+                    if (err) {
+                      console.error(`err: ${err}`);
+                    }
+
+                    // process the .csv file
+                    stream.pipe(csvParse({
+                      // DO NOT USE `from` and `to` to limit records since it downloads the entire
+                      // file whereas this way simply stops the download after 10 records
+                      skip_empty_lines: true,
+                      columns: true
+                    }))
+                    .on('error', err => {
+                      const error_message = `Error parsing file ${entry.fileName} from ${res.locals.source.data}: ${err}`;
+                      logger.info(`FTP ZIP CSV: ${error_message}`);
+                      res.status(400).type('text/plain').send(error_message);
+                    })
+                    .pipe(through2.obj(function(record, enc, callback) {
+                      // must use full function() syntax for "this" reference
+                      if (res.locals.source.source_data.results.length < 10) {
+                        if (_.isEmpty(res.locals.source.source_data.fields)) {
+                          logger.debug(`FTP ZIP CSV: fields: ${JSON.stringify(_.keys(record))}`);
+                          res.locals.source.source_data.fields = _.keys(record);
+                        }
+
+                        logger.debug(`FTP ZIP CSV: record: ${JSON.stringify(record)}`);
+                        res.locals.source.source_data.results.push(record);
+
+                        callback();
+
+                      } else {
+                        logger.debug('FTP ZIP CSV: found 10 results, exiting');
+
+                        // there are enough records so end the stream prematurely, handle in 'close' event
+                        this.destroy();
+                      }
+
+                    }))
+                    .on('close', () => {
+                      logger.debug('FTP ZIP CSV: stream ended prematurely');
+                      next();
+                    })
+                    .on('finish', () => {
+                      logger.debug('FTP ZIP CSV: stream ended normally');
+                      next();
+                    });
+
+                  });
+
+                }
+                else if (_.endsWith(entry.fileName, '.geojson')) {
+                  logger.debug(`FTP ZIP GEOJSON: ${entry.path}`);
+
+                  res.locals.source.conform.type = 'geojson';
+
+                  zipfile.openReadStream(entry, (err, stream) => {
+                    if (err) {
+                      console.error(`err: ${err}`);
+                    } else {
+                      oboe(stream)
+                        .node('features.*.properties', properties => {
+                          if (_.isEmpty(res.locals.source.source_data.fields)) {
+                            logger.debug(`FTP ZIP GEOJSON: fields: ${JSON.stringify(_.keys(properties))}`);
+                            res.locals.source.source_data.fields = _.keys(properties);
+                          }
+
+                          logger.debug(`FTP ZIP GEOJSON: feature: ${JSON.stringify(properties)}`);
+                          res.locals.source.source_data.results.push(properties);
+
+                        })
+                        .node('features[9]', function() {
+                          // bail after the 10th result.  'done' does not get called after .abort()
+                          //  so next() must be called explicitly
+                          // must use full function() syntax for "this" reference
+                          logger.debug('FTP ZIP GEOJSON: found 10 results, exiting');
+                          this.abort();
+                          next();
+                        })
+                        .fail(err => {
+                          let error_message = `Error retrieving file ${res.locals.source.data}: `;
+                          error_message += 'Could not parse as JSON';
+                          logger.info(`FTP ZIP GEOJSON: ${error_message}`);
+
+                          res.status(400).type('text/plain').send(error_message);
+
+                        })
+                        .done(() => {
+                          if (!res.headersSent) {
+                            // this will happen when the list of results has been processed and
+                            // iteration still has no reached the 11th result, which is very unlikely
+                            next();
+                          }
+                        });
+
+                    } 
+
+                  });
+
+                }
+                else if (_.endsWith(entry.fileName, '.dbf')) {
+                  logger.debug(`FTP ZIP DBF: ${entry.fileName}`);
+
+                  // in the case of a DBF file, because there's no DBF parser that takes a stream,
+                  // write to a temporary file and read in that way
+                  res.locals.source.conform.type = 'shapefile';
+
+                  res.locals.source.source_data.results = [];
+
+                  zipfile.openReadStream(entry, (err, stream) => {
+                    if (err) {
+                      console.error(`err: ${err}`);
+                    }
+
+                    // pipe the dbf contents from the .zip file to a stream
+                    dbfstream(stream)
+                    .on('error', err => {
+                      let error_message = `Error parsing file ${entry.fileName} from ${res.locals.source.data}: `;
+                      error_message += 'Could not parse as shapefile';
+                      logger.info(`FTP ZIP DBF: ${error_message}`);
+
+                      res.status(400).type('text/plain').send(error_message);
+
+                    })
+                    .on('header', header => {
+                      // there's a header so pull the field names from it
+                      res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+
+                      logger.debug(`FTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
+
+                    })
+                    .on('data', record => {
+                      // if there aren't 10 records in the array yet and the record isn't deleted, then add it
+                      if (res.locals.source.source_data.results.length < 10) {
+                        if (!record['@deleted']) {
+                          // find all the non-@ attributes
+                          const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
+
+                          logger.debug(`FTP ZIP GEOJSON: attributes: ${JSON.stringify(attributes)}`);
+
+                          res.locals.source.source_data.results.push(attributes);
+
+                        }
+
+                      } else if (record['@numOfRecord'] === 11) {
+                        // don't use a plain `else` condition other this will fire multiple times
+                        logger.debug('FTP ZIP DBF: found 10 results, exiting');
+
+                        // discard the remains of the .dbf file
+                        // entry.autodrain();
+
+                        // there are 10 records, so call next()
+                        return next();
+
+                      }
+
+                    })
+                    .on('end', () => {
+                      // ran out of records before 10, so call next()
+                      if (!res.headersSent) {
+                        return next();
+                      }
+                    });
+
+                  });
+
+                }
+                else {
+                  // this is a file that's currently unsupported so drain it so memory doesn't get full
+                  logger.debug(`FTP ZIP: skipping ${entry.fileName}`);
+                  zipfile.readEntry();
+
                 }
 
-                logger.debug(`FTP ZIP CSV: record: ${JSON.stringify(record)}`);
-                res.locals.source.source_data.results.push(record);
-
-                callback();
-
-              } else {
-                // there are enough records so end the stream prematurely, handle in 'close' event
-                logger.debug('FTP ZIP CSV: found 10 results, exiting');
-                this.destroy();
-              }
-
-            }))
-            .on('close', () => {
-              logger.debug('FTP ZIP CSV: stream ended prematurely');
-              ftp.raw('quit', (err, data) => {
-                return next();
               });
-            })
-            .on('finish', () => {
-              logger.debug('FTP ZIP CSV: stream ended normally');
-              ftp.raw('quit', (err, data) => {
-                return next();
-              });
-            });
 
-          }
-          else if (_.endsWith(entry.path, '.geojson')) {
-            logger.debug(`FTP ZIP: treating ${entry.path} as geojson`);
-            res.locals.source.conform.type = 'geojson';
-
-            oboe(entry)
-              .node('features.*.properties', properties => {
-                if (_.isEmpty(res.locals.source.source_data.fields)) {
-                  logger.debug(`FTP ZIP GEOJSON: fields: ${JSON.stringify(_.keys(properties))}`);
-                  res.locals.source.source_data.fields = _.keys(properties);
-                }
-
-                logger.debug(`FTP ZIP GEOJSON: feature: ${JSON.stringify(properties)}`);
-                res.locals.source.source_data.results.push(properties);
-
-              })
-              .node('features[9]', function() {
-                // bail after the 10th result.  'done' does not get called after .abort()
-                //  so next() must be called explicitly
-                // must use full function() syntax for "this" reference
-                logger.debug('FTP ZIP GEOJSON: found 10 results, exiting');
-                this.abort();
-                ftp.raw('quit', (err, data) => {
-                  return next();
-                });
-
-              })
-              .fail(err => {
-                let error_message = `Error retrieving file ${res.locals.source.data}: `;
-                error_message += 'Could not parse as JSON';
-                logger.info(`FTP ZIP GEOJSON: ${error_message}`);
-
+              // handle catastrophic errors (file isn't a .zip file, etc)
+              zipfile.on('error', err => {
+                const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+                logger.info(`FTP ZIP: ${error_message}`);
                 res.status(400).type('text/plain').send(error_message);
 
-              })
-              .done(() => {
-                // this will happen when the list of results has been processed and
-                // iteration still has no reached the 11th result, which is very unlikely
-                ftp.raw('quit', (err, data) => {
-                  if (!res.headersSent) {
-                    return next();
-                  }
-                });
               });
 
-          }
-          else if (_.endsWith(entry.path, '.dbf')) {
-            logger.debug(`FTP ZIP: treating ${entry.path} as dbf`);
-
-            // in the case of a DBF file, because there's no DBF parser that takes a stream,
-            // write to a temporary file and read in that way
-            res.locals.source.conform.type = 'shapefile';
-
-            res.locals.source.source_data.results = [];
-
-            // pipe the dbf contents from the .zip file to a stream
-            const dbf = dbfstream(entry)
-            .on('error', err => {
-              let error_message = `Error parsing file ${entry.path} from ${res.locals.source.data}: `;
-              error_message += 'Could not parse as shapefile';
-              logger.info(`FTP ZIP DBF: ${error_message}`);
-
-              res.status(400).type('text/plain').send(error_message);
-
-            })
-            .on('header', header => {
-              // there's a header so pull the field names from it
-              res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
-
-              logger.debug(`FTP ZIP DBF: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
-
-            })
-            .on('data', record => {
-              // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-              if (res.locals.source.source_data.results.length < 10) {
-                if (!record['@deleted']) {
-                  // find all the non-@ attributes
-                  const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
-
-                  logger.debug(`FTP ZIP GEOJSON: attributes: ${JSON.stringify(attributes)}`);
-
-                  res.locals.source.source_data.results.push(attributes);
-
+              // handle end of .zip file
+              zipfile.on('end', () => {
+                if (!res.locals.source.conform.type) {
+                  logger.info('FTP ZIP: Could not determine type from zip file');
+                  res.status(400).type('text/plain').send('Could not determine type from zip file');
                 }
 
-              } else if (record['@numOfRecord'] === 11) {
-                // don't use a plain `else` condition other this will fire multiple times
-                logger.debug('HTTP ZIP DBF: found 10 results, exiting');
+              });
 
-                // discard the remains of the .dbf file
-                entry.autodrain();
+            }
 
-                // there are 10 records, so bail now
-                ftp.raw('quit', (err, data) => next());
-
-              }
-
-            })
-            .on('end', () => {
-              if (!res.headersSent) {
-                // ran out of records before 10, so call next()
-                ftp.raw('quit', (err, data) => next());
-              }
-            });
-
-          }
-          else {
-            // this is a file that's currently unsupported so drain it so memory doesn't get full
-            logger.debug(`FTP ZIP: skipping ${entry.path}`);
-            entry.autodrain();
-
-          }
-
-        })
-        .on('finish', () => {
-          if (!res.locals.source.conform.type) {
-            logger.info('HTTP ZIP: Could not determine type from zip file');
-            res.status(400).type('text/plain').send('Could not determine type from zip file');
-          }
+          });
 
         });
 
-      }
+      };
 
     });
 

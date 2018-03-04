@@ -1275,7 +1275,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, 'Error parsing file file.csv: Error: Number of columns on line 2 does not match header');
+      t.equals(err.error, `Error parsing file file.csv from ${source}: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -1618,7 +1618,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Error: Not a valid zip file`);
+      t.equals(err.error, `Error retrieving file ${source}: Error: end of central directory record signature not found`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -2973,7 +2973,7 @@ tape('ftp zip tests', test => {
           .catch(err => {
             t.equals(err.statusCode, 400);
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+            t.equals(err.error, `Error parsing file file.csv from ${source}: Error: Number of columns on line 2 does not match header`);
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3291,7 +3291,7 @@ tape('ftp zip tests', test => {
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Error: Not a valid zip file`);
+          t.equals(err.error, `Error retrieving file ${source}: Error: end of central directory record signature not found`);
         })
         .finally(() => {
           // close ftp server -> app server -> tape

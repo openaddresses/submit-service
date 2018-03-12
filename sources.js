@@ -1,5 +1,5 @@
 const express = require('express');
-const GitHubApi = require('github');
+const GitHubApi = require('@octokit/rest');
 
 const winston = require('winston');
 const logger = winston.createLogger({

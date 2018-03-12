@@ -8,7 +8,7 @@ tape('error conditions', test => {
     t.plan(4);
 
     const sources_endpoint = proxyquire('../sources', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           repos: {
@@ -58,7 +58,7 @@ tape('error conditions', test => {
     t.plan(4);
 
     const sources_endpoint = proxyquire('../sources', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           repos: {
@@ -117,7 +117,7 @@ tape('success conditions', test => {
     t.plan(4);
 
     const sources_endpoint = proxyquire('../sources', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           repos: {

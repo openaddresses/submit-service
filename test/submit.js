@@ -103,7 +103,7 @@ tape('valid source tests', test => {
 
     // mock the github in the submit route
     const submit_endpoint = proxyquire('../submit', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: (options) => {
             t.deepEquals(options, {
@@ -172,7 +172,7 @@ tape('valid source tests', test => {
 
     // mock the github in the submit route
     const submit_endpoint = proxyquire('../submit', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           gitdata: {
@@ -260,7 +260,7 @@ tape('valid source tests', test => {
 
     // mock the github in the submit route
     const submit_endpoint = proxyquire('../submit', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           gitdata: {
@@ -331,7 +331,7 @@ tape('valid source tests', test => {
 
     // mock the github in the submit route
     const submit_endpoint = proxyquire('../submit', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           gitdata: {
@@ -409,7 +409,7 @@ tape('valid source tests', test => {
 
     // mock the github in the submit route
     const submit_endpoint = proxyquire('../submit', {
-      'github': function GitHub() {
+      '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
           gitdata: {

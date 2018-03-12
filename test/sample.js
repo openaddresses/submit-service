@@ -491,7 +491,7 @@ tape('http geojson tests', test => {
   test.test('geojson file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
     const source_server = express().get('/file.geojson', (req, res, next) => {
-      res.status(404).send('page not found');
+      res.status(404).type('text/plain').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
@@ -760,7 +760,7 @@ tape('http csv tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -1275,7 +1275,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file file.csv from ${source}: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -1520,7 +1520,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file file.dbf from ${source}: Could not parse as shapefile`);
+      t.equals(err.error, `Error parsing file from ${source}: Could not parse as shapefile`);
     })
     .finally(() => {
       sample_service.close(() => source_server.close(() => t.end()));
@@ -2355,7 +2355,7 @@ tape('ftp csv tests', test => {
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Error: Number of columns on line 2 does not match header`);
+          t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2973,7 +2973,7 @@ tape('ftp zip tests', test => {
           .catch(err => {
             t.equals(err.statusCode, 400);
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error parsing file file.csv from ${source}: Error: Number of columns on line 2 does not match header`);
+            t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3246,7 +3246,7 @@ tape('ftp zip tests', test => {
           .catch(err => {
             t.equals(err.statusCode, 400);
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error parsing file file.dbf from ${source}: Could not parse as shapefile`);
+            t.equals(err.error, `Error parsing file from ${source}: Could not parse as shapefile`);
           })
           .finally(() => {
             // close ftp server -> app server -> tape

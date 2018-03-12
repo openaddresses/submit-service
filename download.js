@@ -4,7 +4,7 @@ const _ = require('lodash');
 const toString = require('stream-to-string');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
-const unzip = require('unzip-stream');
+const yauzl = require('yauzl');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -13,6 +13,18 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'combined.log' })
   ]
 });
+
+// make temp scoped to individual requests so that calls to cleanup affect only
+// the files created in the request.  temp.track() cleans up on process exit
+// but that could lead to lots of file laying around needlessly until the
+// service eventually stops.  Initialize with .track() anyway in the case
+// where the service errored out before manual cleanup in middleware fires.
+// Additionally, don't make temp global and cleanup on each request since it
+// may delete files that are currently being used by other requests.
+const setupTemp = (req, res, next) => {
+  res.locals.temp = require('temp').track();
+  next();
+};
 
 const outputHandlers = {
   csv: respondWithCsv,
@@ -66,17 +78,17 @@ function handleNonPlainTextNonCatastrophicError(statusCode, res) {
 }
 
 // return the processed file contents as CSV
-function respondWithCsv(res, entry) {
+function respondWithCsv(res, entry, next) {
   // response object functions are chainable, so inline
   entry.pipe(res.
     status(200).
     type('text/csv').
-    set('Content-Disposition', 'attachment; filename=data.csv'));
+    set('Content-Disposition', 'attachment; filename=data.csv')).on('finish', next);
 
 }
 
 // return the processed file contents as GeoJSON
-function respondWithGeojson(res, entry) {
+function respondWithGeojson(res, entry, next) {
   const o = {
     type: 'FeatureCollection',
     features: []
@@ -92,7 +104,7 @@ function respondWithGeojson(res, entry) {
   }))
   .on('error', err => {
     const error_message = `Error parsing file ${entry.path}: ${err}`;
-    logger.info(`HTTP ZIP CSV: ${error_message}`);
+    logger.info(`/download: ${error_message}`);
     res.status(400).type('text/plain').send(error_message);
   })
   .pipe(through2.obj(function(record, enc, callback) {
@@ -107,18 +119,17 @@ function respondWithGeojson(res, entry) {
       properties: _.omit(record, ['LON', 'LAT'])
     });
 
-
     callback();
 
   }))
   .on('finish', () => {
-    logger.debug('/download: stream ended normally');
-
     res.
       status(200).
       type('application/json').
       set('Content-Disposition', 'attachment: filename=data.geojson').
       send(JSON.stringify(o));
+
+    next();
 
   });
 
@@ -175,7 +186,7 @@ function getMetaData(req, res, next) {
       }))
       .on('error', err => {
         const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-        logger.info(`HTTP CSV: ${error_message}`);
+        logger.info(`/download: ${error_message}`);
         res.status(400).type('text/plain').send(error_message);
       })
       .pipe(through2.obj(function(record, enc, callback) {
@@ -230,67 +241,88 @@ function getData(req, res, next) {
         handlePlainTextNonCatastrophicError(r, response.statusCode, res, res.locals.datafile);
 
       } else {
-        // open the zipfile and extract the first CSV
-        r.pipe(unzip.Parse())
-        .on('error', err => {
-          const error_message = `Error retrieving file ${res.locals.datafile}: ${err}`;
-          logger.info(`/download: ${error_message}`);
-          res.status(400).type('text/plain').send(error_message);
-        })
-        .on('entry', entry => {
-          // handle errors before inspecting entry
-          // there appears to be an error with unzip-stream where an unsupported
-          // version error is thrown for each entry instead of the stream in general
-          // so it must be handled separately.
-          // https://github.com/mhr3/unzip-stream/issues/9
-          entry.on('error', err => {
-            const error_message = `Error processing file ${res.locals.source.data}: ${err}`;
-            logger.error(`/download: ${error_message}`);
-            res.status(400).type('text/plain').send(error_message);
+        const tmpZipStream = res.locals.temp.createWriteStream();
+
+        // write the response to a temporary file
+        r.pipe(tmpZipStream).on('close', (err) => {
+          logger.debug(`wrote ${tmpZipStream.bytesWritten} bytes to ${tmpZipStream.path}`);
+
+          yauzl.open(tmpZipStream.path, {lazyEntries: true}, (err, zipfile) => {
+            if (err) {
+              const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
+              logger.info(`/download: ${error_message}`);
+              res.status(400).type('text/plain').send(error_message);
+
+            } else {
+              // read first entry
+              zipfile.readEntry();
+
+              zipfile.on('entry', (entry) => {
+                zipfile.readEntry();
+
+                // output the first .csv file found (there should only ever be 1)
+                if (_.endsWith(entry.fileName, '.csv') && !csv_file_found) {
+                  zipfile.openReadStream(entry, (err, stream) => {
+                    // the CSV file has been found so just pipe the contents to response
+                    csv_file_found = true;
+
+                    // call the response handler according to output format
+                    // defaulting to csv 
+                    outputHandlers[_.defaultTo(req.query.format, 'csv')](res, stream, next);
+
+                  });
+
+                } else {
+                  // this is a file that's currently unsupported so drain it so memory doesn't get full
+                  logger.debug(`/download: skipping ${entry.fileName}`);
+
+                }
+
+              });
+
+              // handle end of .zip file
+              zipfile.on('end', () => {
+                if (!csv_file_found) {
+                  logger.info(`/download: ${res.locals.datafile} does not contain .csv file`);
+                  res.status(500).type('application/json').send({
+                    error: {
+                      code: 500,
+                      message: `${res.locals.datafile} does not contain .csv file`
+                    }
+                  });
+                }
+
+                next();
+              });
+
+            }
+
           });
-
-          // output the first .csv file found (there should only ever be 1)
-          if (_.endsWith(entry.path, '.csv') && !csv_file_found) {
-            // the CSV file has been found so just pipe the contents to response
-            csv_file_found = true;
-
-            // call the response handler according to output format
-            // defaulting to csv 
-            outputHandlers[_.defaultTo(req.query.format, 'csv')](res, entry);
-
-          }
-          else {
-            // this is a file that's currently unsupported so drain it so memory doesn't get full
-            logger.debug(`/download: skipping ${entry.path}`);
-            entry.autodrain();
-
-          }
-
-        })
-        .on('finish', () => {
-          if (!csv_file_found) {
-            logger.info(`/download: ${res.locals.datafile} does not contain .csv file`);
-            res.status(500).type('application/json').send({
-              error: {
-                code: 500,
-                message: `${res.locals.datafile} does not contain .csv file`
-              }
-            });
-          }
 
         });
 
       }
-
     });
 
   }
 
 }
 
+// middleware that cleans up any temp files that were created in the course
+// of the request
+function cleanupTemp(req, res, next) {
+  if (!res.headersSent) {
+    res.locals.temp.cleanup((err, stats) => {
+      logger.debug(`temp clean up: ${JSON.stringify(stats)}`);
+    });
+  }
+};
+
 module.exports = express.Router()
   .get('/', [
     preconditionsCheck,
+    setupTemp,
     getMetaData, 
-    getData
+    getData,
+    cleanupTemp
   ]);

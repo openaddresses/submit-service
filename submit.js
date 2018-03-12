@@ -1,5 +1,5 @@
 const express = require('express');
-const GitHubApi = require('github');
+const GitHubApi = require('@octokit/rest');
 const _ = require('lodash');
 const bodyParser = require('body-parser');
 

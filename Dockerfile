@@ -6,14 +6,14 @@ RUN apk add --no-cache git
 # Where the app is built and run inside the docker fs
 ENV WORK=/opt/pelias
 
-# Used indirectly for saving npm logs etc.
+# Used indirectly for saving logs etc.
 ENV HOME=/opt/pelias
 
 WORKDIR ${WORK}
 
 COPY package.json ${WORK}
 
-RUN npm install --production
+RUN yarn install --production
 
 COPY . ${WORK}
 

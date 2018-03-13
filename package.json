@@ -6,9 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "node test/test | tap-dot",
-    "travis": "npm test",
+    "travis": "yarn test",
     "lint": "eslint .",
-    "validate": "npm ls",
     "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1"
   },
   "keywords": [],
@@ -57,7 +56,6 @@
   },
   "pre-commit": [
     "lint",
-    "validate",
     "test"
   ],
   "eslintConfig": {

@@ -9,9 +9,8 @@
     "travis": "yarn test",
     "lint": "eslint .",
     "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1",
-    "pretest": "yarn run lint",
-    "precommit": "yarn test",
-    "validate": "npm ls"
+    "pretest": "yarn lint",
+    "precommit": "yarn test"
   },
   "keywords": [],
   "author": "trescube",

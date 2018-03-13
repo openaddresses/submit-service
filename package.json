@@ -8,7 +8,10 @@
     "test": "node test/test | tap-dot",
     "travis": "yarn test",
     "lint": "eslint .",
-    "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1"
+    "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1",
+    "pretest": "yarn run lint",
+    "precommit": "yarn test",
+    "validate": "npm ls"
   },
   "keywords": [],
   "author": "trescube",
@@ -48,16 +51,12 @@
     "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.15.0",
     "get-port": "^3.2.0",
-    "precommit-hook": "^3.0.0",
+    "husky": "^0.14.3",
     "proxyquire": "^2.0.0",
     "request-promise": "^4.2.2",
     "tap-dot": "^1.0.1",
     "tape": "^4.2.2"
   },
-  "pre-commit": [
-    "lint",
-    "test"
-  ],
   "eslintConfig": {
     "env": {
       "node": true,

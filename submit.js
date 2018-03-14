@@ -80,13 +80,13 @@ function authenticateWithGithub(req, res, next) {
 // generate a "unique" target reference name and upload file path for this source
 function uniqueifyNames(req, res, next) {
   // create a random number to hopefully generate a unique branch name and filename
-  const unique_hex_number = _.random(255, 255*255*255).toString(16);
+  const uniqueHexNumber = _.random(255, 255*255*255).toString(16);
 
   // this is the reference/branch name that will be created
-  res.locals.reference_name = `submit_service_${unique_hex_number}`;
+  res.locals.reference_name = `submit_service_${uniqueHexNumber}`;
 
   // this is the file that will be added
-  res.locals.path = `sources/contrib/source_${unique_hex_number}.json`;
+  res.locals.path = `sources/contrib/source_${uniqueHexNumber}.json`;
 
   next();
 
@@ -187,7 +187,7 @@ function createPullRequest(req, res, next) {
       });
     } else {
       // create pull request was successful so extract the url and set into locals
-      res.locals.pull_request_url = response.data.html_url;
+      res.locals.pullRequestUrl = response.data.html_url;
       next();
     }
 
@@ -200,7 +200,7 @@ function output(req, res, next) {
   // entire github pipeline was successful so return the PR URL
   res.status(200).type('application/json').send({
     response: {
-      url: res.locals.pull_request_url
+      url: res.locals.pullRequestUrl
     }
   });
 

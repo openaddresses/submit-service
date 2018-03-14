@@ -12,10 +12,10 @@ tape('error conditions', test => {
     // remove GITHUB_ACCESS_TOKEN from the process environment
     delete process.env.GITHUB_ACCESS_TOKEN;
 
-    const submit_service = express().use('/', require('../submit')).listen();
+    const submitService = express().use('/', require('../submit')).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       json: true,
@@ -34,7 +34,7 @@ tape('error conditions', test => {
 
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -44,10 +44,10 @@ tape('error conditions', test => {
 
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
-    const submit_service = express().use('/', require('../submit')).listen();
+    const submitService = express().use('/', require('../submit')).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       json: true,
@@ -66,7 +66,7 @@ tape('error conditions', test => {
       t.end();
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -74,10 +74,12 @@ tape('error conditions', test => {
   test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
     t.plan(3);
 
-    const submit_service = express().use('/', require('../submit')).listen();
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    const submitService = express().use('/', require('../submit')).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       body: 'this is not parseable as JSON',
@@ -97,7 +99,7 @@ tape('error conditions', test => {
       t.end();
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -105,10 +107,12 @@ tape('error conditions', test => {
   test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
     t.plan(3);
 
-    const submit_service = express().use('/', require('../submit')).listen();
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    const submitService = express().use('/', require('../submit')).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       body: { str: Buffer.alloc(100000, '.').toString() },
@@ -128,7 +132,7 @@ tape('error conditions', test => {
 
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -143,7 +147,7 @@ tape('valid source tests', test => {
     process.env.GITHUB_ACCESS_TOKEN = 'github authentication token';
 
     // mock the github in the submit route
-    const submit_endpoint = proxyquire('../submit', {
+    const submitEndpoint = proxyquire('../submit', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: (options) => {
@@ -175,10 +179,10 @@ tape('valid source tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_endpoint).listen();
+    const submitService = express().use('/', submitEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       body: {
@@ -203,7 +207,7 @@ tape('valid source tests', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -211,8 +215,10 @@ tape('valid source tests', test => {
   test.test('request failing to create local reference should respond with 500 and error message', t => {
     t.plan(4);
 
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
     // mock the github in the submit route
-    const submit_endpoint = proxyquire('../submit', {
+    const submitEndpoint = proxyquire('../submit', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -251,14 +257,14 @@ tape('valid source tests', test => {
       }
     });
 
-    const app = express().use('/', submit_endpoint);
+    const app = express().use('/', submitEndpoint);
     app.locals.github = {
       accessToken: 'my super secret token'
     };
-    const submit_service = app.listen();
+    const submitService = app.listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       qs: {},
       body: {
@@ -283,7 +289,7 @@ tape('valid source tests', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -291,7 +297,9 @@ tape('valid source tests', test => {
   test.test('request failing to create file in local reference should respond with 500 and error message', t => {
     t.plan(4);
 
-    const post_content = {
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    const postContent = {
       coverage: {},
       note: 'this is the note',
       data: 'this is the data URL',
@@ -300,7 +308,7 @@ tape('valid source tests', test => {
     };
 
     // mock the github in the submit route
-    const submit_endpoint = proxyquire('../submit', {
+    const submitEndpoint = proxyquire('../submit', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -323,7 +331,7 @@ tape('valid source tests', test => {
                 repo: 'openaddresses',
                 path: 'sources/contrib/source_45554d.json',
                 message: 'This file was added by the OpenAddresses submit-service',
-                content: Buffer.from(JSON.stringify(post_content, null, 4)).toString('base64'),
+                content: Buffer.from(JSON.stringify(postContent, null, 4)).toString('base64'),
                 branch: 'submit_service_45554d'
               });
 
@@ -341,12 +349,12 @@ tape('valid source tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_endpoint).listen();
+    const submitService = express().use('/', submitEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
-      body: post_content,
+      body: postContent,
       json: true,
       resolveWithFullResponse: true
     })
@@ -362,7 +370,7 @@ tape('valid source tests', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -370,8 +378,10 @@ tape('valid source tests', test => {
   test.test('request failing to create pull request should respond with 500 and error message', t => {
     t.plan(4);
 
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
     // mock the github in the submit route
-    const submit_endpoint = proxyquire('../submit', {
+    const submitEndpoint = proxyquire('../submit', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -413,10 +423,10 @@ tape('valid source tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_endpoint).listen();
+    const submitService = express().use('/', submitEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       body: {
         coverage: {},
@@ -440,7 +450,7 @@ tape('valid source tests', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -448,8 +458,10 @@ tape('valid source tests', test => {
   test.test('request creating pull request should return 200 and PR link', t => {
     t.plan(3);
 
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
     // mock the github in the submit route
-    const submit_endpoint = proxyquire('../submit', {
+    const submitEndpoint = proxyquire('../submit', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -482,10 +494,10 @@ tape('valid source tests', test => {
       }
     });
 
-    const submit_service = express().use('/', submit_endpoint).listen();
+    const submitService = express().use('/', submitEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/`,
+      uri: `http://localhost:${submitService.address().port}/`,
       method: 'POST',
       body: {
         coverage: {},
@@ -508,7 +520,8 @@ tape('valid source tests', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
-      submit_service.close();
+      submitService.close();
+      t.end();
     });
 
   });

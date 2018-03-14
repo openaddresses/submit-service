@@ -135,21 +135,21 @@ function sampleArcgis(req, res, next) {
       res.locals.source.source_data.results.push(feature);
     })
     .fail(err => {
-      let error_message = `Error connecting to Arcgis server ${res.locals.source.data}: `;
+      let errorMessage = `Error connecting to Arcgis server ${res.locals.source.data}: `;
 
       if (_.has(err, 'thrown.code')) {
         // connection refused, etc
-        error_message += err.thrown.code;
+        errorMessage += err.thrown.code;
       } else if (err.thrown) {
         // unparseable JSON (but no code)
-        error_message += 'Could not parse as JSON';
+        errorMessage += 'Could not parse as JSON';
       } else {
-        error_message += `${err.body} (${err.statusCode})`;
+        errorMessage += `${err.body} (${err.statusCode})`;
       }
 
-      logger.info(`ARCGIS: ${error_message}`);
+      logger.info(`ARCGIS: ${errorMessage}`);
 
-      res.status(400).type('text/plain').send(error_message);
+      res.status(400).type('text/plain').send(errorMessage);
 
     })
     .done(() => {
@@ -190,11 +190,11 @@ function parseGeoJsonStream(stream, res, next) {
       next();
     })
     .fail(err => {
-      let error_message = `Error retrieving file ${res.locals.source.data}: `;
-      error_message += 'Could not parse as JSON';
-      logger.info(`${prefix}: ${error_message}`);
+      let errorMessage = `Error retrieving file ${res.locals.source.data}: `;
+      errorMessage += 'Could not parse as JSON';
+      logger.info(`${prefix}: ${errorMessage}`);
 
-      res.status(400).type('text/plain').send(error_message);
+      res.status(400).type('text/plain').send(errorMessage);
 
     })
     .done(() => {
@@ -223,10 +223,10 @@ function parseCsvStream(stream, res, next) {
     columns: true
   }))
   .on('error', err => {
-    const error_message = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
-    // const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-    logger.info(`${prefix}: ${error_message}`);
-    res.status(400).type('text/plain').send(error_message);
+    const errorMessage = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
+    // const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+    logger.info(`${prefix}: ${errorMessage}`);
+    res.status(400).type('text/plain').send(errorMessage);
   })
   .pipe(through2.obj(function(record, enc, callback) {
     if (res.locals.source.source_data.results.length < 10) {
@@ -272,11 +272,11 @@ function parseDbfStream(stream, res, next) {
   // pipe the dbf contents from the .zip file to a stream
   dbfstream(stream)
   .on('error', err => {
-    let error_message = `Error parsing file from ${res.locals.source.data}: `;
-    error_message += 'Could not parse as shapefile';
-    logger.info(`${prefix}: ${error_message}`);
+    let errorMessage = `Error parsing file from ${res.locals.source.data}: `;
+    errorMessage += 'Could not parse as shapefile';
+    logger.info(`${prefix}: ${errorMessage}`);
 
-    res.status(400).type('text/plain').send(error_message);
+    res.status(400).type('text/plain').send(errorMessage);
 
   })
   .on('header', header => {
@@ -332,9 +332,9 @@ function processZipFile(zipfile, res, next) {
 
     yauzl.open(tmpZipStream.path, {lazyEntries: true}, function(err, zipfile) {
       if (err) {
-        const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-        logger.info(`${protocol} ZIP: ${error_message}`);
-        res.status(400).type('text/plain').send(error_message);
+        const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+        logger.info(`${protocol} ZIP: ${errorMessage}`);
+        res.status(400).type('text/plain').send(errorMessage);
 
       } else {
         // read first entry
@@ -398,9 +398,9 @@ function processZipFile(zipfile, res, next) {
 
         // handle catastrophic errors (file isn't a .zip file, etc)
         zipfile.on('error', err => {
-          const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-          logger.info(`${protocol} ZIP: ${error_message}`);
-          res.status(400).type('text/plain').send(error_message);
+          const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+          logger.info(`${protocol} ZIP: ${errorMessage}`);
+          res.status(400).type('text/plain').send(errorMessage);
 
         });
 
@@ -428,10 +428,10 @@ function sampleHttpSource(req, res, next) {
 
   // handle catastrophic errors like "connection refused"
   r.on('error', err => {
-    const error_message = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
-    logger.info(`HTTP GEOJSON: ${error_message}`);
+    const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
+    logger.info(`HTTP GEOJSON: ${errorMessage}`);
 
-    res.status(400).type('text/plain').send(error_message);
+    res.status(400).type('text/plain').send(errorMessage);
 
   });
 
@@ -439,22 +439,22 @@ function sampleHttpSource(req, res, next) {
   r.on('response', response => {
     if (response.statusCode !== 200) {
       // something went wrong so optionally save up the response text and return an error
-      let error_message = `Error retrieving file ${res.locals.source.data}`;
+      let errorMessage = `Error retrieving file ${res.locals.source.data}`;
 
       // if the content type is text/plain, then use the error message text
       if (_.startsWith(_.get(response.headers, 'content-type'), 'text/plain')) {
         toString(r, (err, msg) => {
-          error_message += `: ${msg} (${response.statusCode})`;
-          logger.info(`HTTP GEOJSON: ${error_message}`);
-          res.status(400).type('text/plain').send(error_message);
+          errorMessage += `: ${msg} (${response.statusCode})`;
+          logger.info(`HTTP GEOJSON: ${errorMessage}`);
+          res.status(400).type('text/plain').send(errorMessage);
 
         });
 
       }
       else {
-        error_message += `: (${response.statusCode})`;
-        logger.info(`HTTP GEOJSON: ${error_message}`);
-        res.status(400).type('text/plain').send(error_message);
+        errorMessage += `: (${response.statusCode})`;
+        logger.info(`HTTP GEOJSON: ${errorMessage}`);
+        res.status(400).type('text/plain').send(errorMessage);
 
       }
 
@@ -494,27 +494,27 @@ function sampleFtpSource(req, res, next) {
 
   // handle errors like "connection refused"
   ftp.on('error', (err) => {
-    const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-    logger.info(`FTP ZIP: ${error_message}`);
-    res.status(400).type('text/plain').send(error_message);
+    const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+    logger.info(`FTP ZIP: ${errorMessage}`);
+    res.status(400).type('text/plain').send(errorMessage);
   });
 
-  ftp.auth(options.user, options.pass, (auth_err) => {
-    if (auth_err) {
-      const error_message = `Error retrieving file ${res.locals.source.data}: Authentication error`;
+  ftp.auth(options.user, options.pass, authErr => {
+    if (authErr) {
+      const errorMessage = `Error retrieving file ${res.locals.source.data}: Authentication error`;
 
-      logger.info(`FTP GEOJSON: ${error_message}`);
-      res.status(400).type('text/plain').send(error_message);
+      logger.info(`FTP GEOJSON: ${errorMessage}`);
+      res.status(400).type('text/plain').send(errorMessage);
       return;
     }
 
-    ftp.get(url.pathname, (get_err, stream) => {
+    ftp.get(url.pathname, (getErr, stream) => {
       // bail early if there's an error, such as non-existent file
-      if (get_err) {
-        const error_message = `Error retrieving file ${res.locals.source.data}: ${get_err}`;
-        logger.info(`FTP GEOJSON: ${error_message}`);
+      if (getErr) {
+        const errorMessage = `Error retrieving file ${res.locals.source.data}: ${getErr}`;
+        logger.info(`FTP GEOJSON: ${errorMessage}`);
 
-        res.status(400).type('text/plain').send(error_message);
+        res.status(400).type('text/plain').send(errorMessage);
         return;
       }
 

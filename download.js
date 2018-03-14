@@ -21,7 +21,7 @@ const logger = winston.createLogger({
 // where the service errored out before manual cleanup in middleware fires.
 // Additionally, don't make temp global and cleanup on each request since it
 // may delete files that are currently being used by other requests.
-const setupTemp = (req, res, next) => {
+function setupTemp(req, res, next) {
   res.locals.temp = require('temp').track();
   next();
 };
@@ -135,9 +135,18 @@ function respondWithGeojson(res, entry, next) {
 
 }
 
-// if no source parameter was supplied, bail immediately
-const preconditionsCheck = (req, res, next) => {
-  if (req.query.format && ['csv', 'geojson'].indexOf(req.query.format) < 0) {
+function preconditionsCheck(req, res, next) {
+  if (!process.env.OPENADDRESSES_METADATA_FILE) {
+    // if OPENADDRESSES_METADATA_FILE isn't available, then bail immediately
+    res.status(500).type('application/json').send({
+      error: {
+        code: 500,
+        message: 'OPENADDRESSES_METADATA_FILE not defined in process environment'
+      }
+    });
+
+  } else if (req.query.format && ['csv', 'geojson'].indexOf(req.query.format) < 0) {
+    // if format parameter is none of undefined, 'csv', or 'geojson', bail immediately
     logger.debug('rejecting request due to invalid `format` parameter');
     res.status(400).type('application/json').send({
       error: {

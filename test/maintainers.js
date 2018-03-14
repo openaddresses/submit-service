@@ -10,7 +10,7 @@ tape('error conditions', test => {
     // remove GITHUB_ACCESS_TOKEN from the process environment
     delete process.env.GITHUB_ACCESS_TOKEN;
 
-    const sources_endpoint = proxyquire('../maintainers', {
+    const sourcesEndpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {
@@ -26,10 +26,10 @@ tape('error conditions', test => {
       }
     });
 
-    const submit_service = express().use('/maintainers/*', sources_endpoint).listen();
+    const submitService = express().use('/maintainers/*', sourcesEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      uri: `http://localhost:${submitService.address().port}/maintainers/sources/cc/rc/source.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -48,7 +48,7 @@ tape('error conditions', test => {
       
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -58,7 +58,7 @@ tape('error conditions', test => {
 
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
-    const sources_endpoint = proxyquire('../maintainers', {
+    const sourcesEndpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: auth => {
@@ -84,10 +84,10 @@ tape('error conditions', test => {
       }
     });
 
-    const submit_service = express().use('/maintainers/*', sources_endpoint).listen();
+    const submitService = express().use('/maintainers/*', sourcesEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      uri: `http://localhost:${submitService.address().port}/maintainers/sources/cc/rc/source.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -106,7 +106,7 @@ tape('error conditions', test => {
 
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -116,7 +116,7 @@ tape('error conditions', test => {
 
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
-    const maintainers_endpoint = proxyquire('../maintainers', {
+    const maintainersEndpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -189,10 +189,10 @@ tape('error conditions', test => {
       }
     });
 
-    const submit_service = express().use('/maintainers/*', maintainers_endpoint).listen();
+    const submitService = express().use('/maintainers/*', maintainersEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      uri: `http://localhost:${submitService.address().port}/maintainers/sources/cc/rc/source.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -211,7 +211,7 @@ tape('error conditions', test => {
 
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -222,7 +222,7 @@ tape('success conditions', test => {
   test.test('source with 0 commits (for some reason) should return empty array', t => {
     t.plan(4);
 
-    const maintainers_endpoint = proxyquire('../maintainers', {
+    const maintainersEndpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -245,10 +245,10 @@ tape('success conditions', test => {
       }
     });
 
-    const submit_service = express().use('/maintainers/*', maintainers_endpoint).listen();
+    const submitService = express().use('/maintainers/*', maintainersEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      uri: `http://localhost:${submitService.address().port}/maintainers/sources/cc/rc/source.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -262,7 +262,7 @@ tape('success conditions', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -270,7 +270,7 @@ tape('success conditions', test => {
   test.test('getContent returning success for all SHAs should respond with 200 and in data order', t => {
     t.plan(7);
 
-    const maintainers_endpoint = proxyquire('../maintainers', {
+    const maintainersEndpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -361,10 +361,10 @@ tape('success conditions', test => {
       }
     });
 
-    const submit_service = express().use('/maintainers/*', maintainers_endpoint).listen();
+    const submitService = express().use('/maintainers/*', maintainersEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      uri: `http://localhost:${submitService.address().port}/maintainers/sources/cc/rc/source.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -394,7 +394,7 @@ tape('success conditions', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });

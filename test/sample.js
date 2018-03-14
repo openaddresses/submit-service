@@ -38,7 +38,7 @@ class FileNotFoundFileSystem extends FileSystem {
 tape('arcgis tests', test => {
   test.test('fields and sample results', t => {
     // startup an ArcGIS server that will respond with a 200 and valid JSON
-    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const sourceServer = express().get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -68,13 +68,13 @@ tape('arcgis tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${sourceServer.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -109,33 +109,33 @@ tape('arcgis tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('arcgis server returning 200 response but with error should return error', t => {
     // startup an ArcGIS server that will respond with a 200 and invalid JSON
-    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
-      const error_response = {
+    const sourceServer = express().get('/MapServer/0/query', (req, res, next) => {
+      const errorResponse = {
         error: {
           code: 500,
           message: 'Error handling service request'
         }
       };
 
-      res.status(200).send(JSON.stringify(error_response));
+      res.status(200).send(JSON.stringify(errorResponse));
 
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${sourceServer.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -149,14 +149,14 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: Error handling service request (500)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('arcgis server returning 200 non-JSON response should return error', t => {
     // startup an ArcGIS server that will respond with a 200 and invalid JSON
-    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const sourceServer = express().get('/MapServer/0/query', (req, res, next) => {
       t.equals(req.query.outFields, '*');
       t.equals(req.query.where, '1=1');
       t.equals(req.query.resultRecordCount, '10');
@@ -167,13 +167,13 @@ tape('arcgis tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${sourceServer.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -187,25 +187,25 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('arcgis server returning error should return 400 w/message', t => {
     // startup an ArcGIS server that will respond with a non-200
-    const source_server = express().get('/MapServer/0/query', (req, res, next) => {
+    const sourceServer = express().get('/MapServer/0/query', (req, res, next) => {
       res.status(404).send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/MapServer/0`;
+    const source = `http://localhost:${sourceServer.address().port}/MapServer/0`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -219,7 +219,7 @@ tape('arcgis tests', test => {
       t.equals(err.error, `Error connecting to Arcgis server ${source}: page not found (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -232,11 +232,11 @@ tape('arcgis tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -250,7 +250,7 @@ tape('arcgis tests', test => {
           t.equals(err.error, `Error connecting to Arcgis server ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          sample_service.close(() => t.end());
+          sampleService.close(() => t.end());
         });
 
       });
@@ -264,7 +264,7 @@ tape('arcgis tests', test => {
 tape('http geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const source_server = express().get('/file.geojson', (req, res, next) => {
+    const sourceServer = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(11).reduce((features, i) => {
@@ -282,13 +282,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${sourceServer.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -321,14 +321,14 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('geojson consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const source_server = express().get('/file.geojson', (req, res, next) => {
+    const sourceServer = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send({
         type: 'FeatureCollection',
         features: _.range(2).reduce((features, i) => {
@@ -346,13 +346,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${sourceServer.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -385,14 +385,14 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid JSON
-    const source_server = express().get('/file.geojson', (req, res, next) => {
+    const sourceServer = express().get('/file.geojson', (req, res, next) => {
       // verify that any extra parameters supplied were actually passed to the source
       t.deepEquals(req.query, {
         parameter: 'value'
@@ -414,13 +414,13 @@ tape('http geojson tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson?parameter=value`;
+    const source = `http://localhost:${sourceServer.address().port}/file.geojson?parameter=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -451,25 +451,25 @@ tape('http geojson tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('response unparseable as json should response with message', t => {
     // startup an HTTP server that will respond to file.geojson requests with invalid JSON
-    const source_server = express().get('/file.geojson', (req, res, next) => {
+    const sourceServer = express().get('/file.geojson', (req, res, next) => {
       res.status(200).send('this is not parseable as JSON');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${sourceServer.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -483,25 +483,25 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('geojson file returning error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
-    const source_server = express().get('/file.geojson', (req, res, next) => {
+    const sourceServer = express().get('/file.geojson', (req, res, next) => {
       res.status(404).type('text/plain').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.geojson`;
+    const source = `http://localhost:${sourceServer.address().port}/file.geojson`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -515,7 +515,7 @@ tape('http geojson tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -528,11 +528,11 @@ tape('http geojson tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -546,7 +546,7 @@ tape('http geojson tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          sample_service.close(() => t.end());
+          sampleService.close(() => t.end());
         });
 
       });
@@ -560,7 +560,7 @@ tape('http geojson tests', test => {
 tape('http csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(20).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -570,13 +570,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.csv`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -608,14 +608,14 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('csv consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       const rows = _.range(2).reduce((rows, i) => {
         return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
       }, ['attribute 1,attribute 2']);
@@ -625,13 +625,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.csv`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -663,14 +663,14 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       // verify that any extra parameters supplied were actually passed to the source
       t.deepEquals(req.query, {
         parameter: 'value'
@@ -685,14 +685,14 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
     // source has extra parameters
-    const source = `http://localhost:${source_server.address().port}/file.csv?parameter=value`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv?parameter=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -724,14 +724,14 @@ tape('http csv tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('response unparseable as csv should respond with error', t => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       // generate invalid CSV (not enough columns)
       const data = [
         'attribute 1',
@@ -743,13 +743,13 @@ tape('http csv tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.csv`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -763,25 +763,25 @@ tape('http csv tests', test => {
       t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('csv file returning text/plain error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       res.status(404).type('text').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.csv`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -795,25 +795,25 @@ tape('http csv tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('csv file returning non-text/plain error should return 400 w/o message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
-    const source_server = express().get('/file.csv', (req, res, next) => {
+    const sourceServer = express().get('/file.csv', (req, res, next) => {
       res.status(404).type('html').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.csv`;
+    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -827,7 +827,7 @@ tape('http csv tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -840,11 +840,11 @@ tape('http csv tests', test => {
       // stop the express server to cause a connection-refused error
       this.close(() => {
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -858,7 +858,7 @@ tape('http csv tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          sample_service.close(() => t.end());
+          sampleService.close(() => t.end());
         });
 
       });
@@ -873,7 +873,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       // create an output stream that will contain the zip file contents
       const output = new ZipContentsStream();
 
@@ -909,13 +909,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -948,7 +948,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -956,7 +956,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: file consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -991,13 +991,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1030,7 +1030,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1038,7 +1038,7 @@ tape('http zip tests', test => {
   test.test('geojson.zip: response unparseable as json should response with message', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an unparseable .geojson file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1059,13 +1059,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1079,7 +1079,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1087,7 +1087,7 @@ tape('http zip tests', test => {
   test.test('csv.zip: fields and sample results, should limit to 10', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .csv file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1112,13 +1112,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1151,7 +1151,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1159,7 +1159,7 @@ tape('http zip tests', test => {
   test.test('csv.zip: file consisting of less than 10 records should return all', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .csv file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1184,13 +1184,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1223,7 +1223,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1231,7 +1231,7 @@ tape('http zip tests', test => {
   test.test('csv.zip: response unparseable as csv should respond with error', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .csv file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1258,13 +1258,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1278,7 +1278,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1289,7 +1289,7 @@ tape('http zip tests', test => {
 
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .dbf file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const records = _.range(11).reduce((features, i) => {
         features.push(
           {
@@ -1334,13 +1334,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1373,7 +1373,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1384,7 +1384,7 @@ tape('http zip tests', test => {
 
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an parseable .dbf file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const records = _.range(2).reduce((features, i) => {
         features.push(
           {
@@ -1428,13 +1428,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1467,7 +1467,7 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1478,7 +1478,7 @@ tape('http zip tests', test => {
 
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing an unparseable .dbf file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       // once the data has been written, create a stream of zip data from it
       //  and write out to the response
       const output = new ZipContentsStream();
@@ -1503,13 +1503,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1523,25 +1523,25 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error parsing file from ${source}: Could not parse as shapefile`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('zip file returning text/plain error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
-    const source_server = express().get('/file.zip', (req, res, next) => {
+    const sourceServer = express().get('/file.zip', (req, res, next) => {
       res.status(404).type('text').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/file.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1555,25 +1555,25 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('zip file returning non-text/plain error should return 400 w/o message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
-    const source_server = express().get('/file.zip', (req, res, next) => {
+    const sourceServer = express().get('/file.zip', (req, res, next) => {
       res.status(404).type('html').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/file.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/file.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1587,13 +1587,13 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: (404)`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('non-zip file returned should respond with error', t => {
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       res.set('Content-Type', 'application/zip');
       res.set('Content-Disposition', 'attachment; filename=data.zip');
       res.set('Content-Length', 'this is not a zip file'.length);
@@ -1602,13 +1602,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1621,7 +1621,7 @@ tape('http zip tests', test => {
       t.equals(err.error, `Error retrieving file ${source}: Error: end of central directory record signature not found`);
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1633,11 +1633,11 @@ tape('http zip tests', test => {
 
       this.close(() => {
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -1651,7 +1651,7 @@ tape('http zip tests', test => {
           t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
         })
         .finally(() => {
-          sample_service.close(() => t.end());
+          sampleService.close(() => t.end());
         });
 
       });
@@ -1663,7 +1663,7 @@ tape('http zip tests', test => {
   test.test('extra parameters in source should be ignored', t => {
     // startup an HTTP server that will respond to data.zip requests with .zip
     // file containing a valid .geojson file
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       // verify that any extra parameters supplied were actually passed to the source
       t.deepEquals(req.query, {
         parameter: 'value'
@@ -1702,13 +1702,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
-    const source = `http://localhost:${source_server.address().port}/data.zip?parameter=value`;
+    const source = `http://localhost:${sourceServer.address().port}/data.zip?parameter=value`;
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: source
       },
@@ -1740,13 +1740,13 @@ tape('http zip tests', test => {
     })
     .catch(err => t.fail(err))
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
 
   test.test('cannot determine type from .zip file', t => {
-    const source_server = express().get('/data.zip', (req, res, next) => {
+    const sourceServer = express().get('/data.zip', (req, res, next) => {
       const output = new ZipContentsStream();
 
       output.on('finish', function() {
@@ -1768,13 +1768,13 @@ tape('http zip tests', test => {
     }).listen();
 
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
     // make a request to the submit service
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
-        source: `http://localhost:${source_server.address().port}/data.zip`
+        source: `http://localhost:${sourceServer.address().port}/data.zip`
       },
       json: true
     })
@@ -1785,7 +1785,7 @@ tape('http zip tests', test => {
       t.equals(err.error, 'Could not determine type from zip file');
     })
     .finally(() => {
-      sample_service.close(() => source_server.close(() => t.end()));
+      sampleService.close(() => sourceServer.close(() => t.end()));
     });
 
   });
@@ -1796,11 +1796,11 @@ tape('ftp geojson tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const features = {
             type: 'FeatureCollection',
@@ -1820,13 +1820,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -1859,7 +1859,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -1871,11 +1871,11 @@ tape('ftp geojson tests', test => {
   test.test('geojson consisting of less than 10 records should return all', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           // generate 3 features to serve back via FTP
           const features = {
             type: 'FeatureCollection',
@@ -1895,13 +1895,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -1934,7 +1934,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -1946,22 +1946,22 @@ tape('ftp geojson tests', test => {
   test.test('get returning error should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp server with a filesystem that will force an error
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           resolve( { fs: new FileNotFoundFileSystem() });
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -1976,7 +1976,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -1988,22 +1988,22 @@ tape('ftp geojson tests', test => {
   test.test('response unparseable as json should response with message', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           resolve( { fs: new MockFileSystem(string2stream('this is not parseable as JSON')) });
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2018,7 +2018,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2030,11 +2030,11 @@ tape('ftp geojson tests', test => {
   test.test('username and password should be passed to FTP server', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           t.equals(credentials.username, 'UsErNaMe');
           t.equals(credentials.password, 'pAsSwOrD');
 
@@ -2056,13 +2056,13 @@ tape('ftp geojson tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2094,7 +2094,7 @@ tape('ftp geojson tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2106,22 +2106,22 @@ tape('ftp geojson tests', test => {
   test.test('invalid login credentials should return error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp server that will fail authentication
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve, reject) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve, reject) => {
           reject( { message: 'Invalid username/password'} );
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.geojson`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2136,7 +2136,7 @@ tape('ftp geojson tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2151,11 +2151,11 @@ tape('ftp csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const rows = _.range(11).reduce((rows, i) => {
             return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
@@ -2165,13 +2165,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2204,7 +2204,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2216,11 +2216,11 @@ tape('ftp csv tests', test => {
   test.test('csv consisting of less than 10 records should return all', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           // generate 11 features to serve back via FTP
           const rows = _.range(5).reduce((rows, i) => {
             return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
@@ -2230,13 +2230,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2269,7 +2269,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2281,22 +2281,22 @@ tape('ftp csv tests', test => {
   test.test('get returning error should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp server with a filesystem that will force an error
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           resolve( { fs: new FileNotFoundFileSystem() });
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2311,7 +2311,7 @@ tape('ftp csv tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2323,11 +2323,11 @@ tape('ftp csv tests', test => {
   test.test('response unparseable as csv should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           // generate invalid CSV (not enough columns)
           const data = [
             'attribute 1',
@@ -2338,13 +2338,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2359,7 +2359,7 @@ tape('ftp csv tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2371,11 +2371,11 @@ tape('ftp csv tests', test => {
   test.test('username and password should be passed to FTP server', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve) => {
           t.equals(credentials.username, 'UsErNaMe');
           t.equals(credentials.password, 'pAsSwOrD');
 
@@ -2388,13 +2388,13 @@ tape('ftp csv tests', test => {
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2426,7 +2426,7 @@ tape('ftp csv tests', test => {
         .catch(err => t.fail(err))
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2438,22 +2438,22 @@ tape('ftp csv tests', test => {
   test.test('invalid login credentials should return error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp server that will fail authentication
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve, reject) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve, reject) => {
           reject( { message: 'Invalid username/password'} );
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.csv`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -2468,7 +2468,7 @@ tape('ftp csv tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -2517,23 +2517,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', (data, resolve) => {
+          ftpServer.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2567,7 +2567,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -2615,23 +2615,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
+          ftpServer.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2665,7 +2665,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -2698,23 +2698,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', (data, resolve) => {
+          ftpServer.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2729,7 +2729,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -2767,23 +2767,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
+          ftpServer.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2818,7 +2818,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -2856,23 +2856,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
+          ftpServer.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2907,7 +2907,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -2946,23 +2946,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
+          ftpServer.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -2977,7 +2977,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3029,26 +3029,26 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // verify that the login was anonymous
-          ftp_server.on('login', (credentials, resolve) => {
+          ftpServer.on('login', (credentials, resolve) => {
             t.equals(credentials.username, 'anonymous');
             t.equals(credentials.password, '@anonymous');
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -3083,7 +3083,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3135,23 +3135,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', (data, resolve) => {
+          ftpServer.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -3186,7 +3186,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3219,23 +3219,23 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', (data, resolve) => {
+          ftpServer.on('login', (data, resolve) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -3250,7 +3250,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3264,23 +3264,23 @@ tape('ftp zip tests', test => {
   test.test('non-zip file returned should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
+      ftpServer.listen().then(() => {
         // when a login is attempted on the FTP server, respond with a mock filesystem
-        ftp_server.on('login', ( data , resolve, reject) => {
+        ftpServer.on('login', ( data , resolve, reject) => {
           resolve( { fs: new MockFileSystem(string2stream('this is not a zip file')) });
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.zip`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -3295,7 +3295,7 @@ tape('ftp zip tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -3307,24 +3307,24 @@ tape('ftp zip tests', test => {
   test.test('get returning error should respond with error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // when a login is attempted on the FTP server, respond with a mock filesystem
-      ftp_server.on('login', ( data , resolve, reject) => {
+      ftpServer.on('login', ( data , resolve, reject) => {
         // resolve( { root: '/' });
         resolve( { fs: new FileNotFoundFileSystem() });
       });
 
       // fire up the ftp and submit-service servers and make the request
-      ftp_server.listen().then(() => {
+      ftpServer.listen().then(() => {
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.zip`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -3339,7 +3339,7 @@ tape('ftp zip tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -3376,26 +3376,26 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
           // also verify the username/password
-          ftp_server.on('login', ( credentials , resolve, reject) => {
+          ftpServer.on('login', ( credentials , resolve, reject) => {
             t.equals(credentials.username, 'UsErNaMe');
             t.equals(credentials.password, 'pAsSwOrD');
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           const source = `ftp://UsErNaMe:pAsSwOrD@127.0.0.1:${port}/file.zip`;
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: source
             },
@@ -3429,7 +3429,7 @@ tape('ftp zip tests', test => {
           .catch(err => t.fail(err))
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3443,22 +3443,22 @@ tape('ftp zip tests', test => {
   test.test('invalid login credentials should return error', t => {
     // get a random port for the FTP server
     getPort().then(port => {
-      const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
       // fire up the ftp server that will fail authentication
-      ftp_server.listen().then(() => {
-        ftp_server.on('login', (credentials, resolve, reject) => {
+      ftpServer.listen().then(() => {
+        ftpServer.on('login', (credentials, resolve, reject) => {
           reject( { message: 'Invalid username/password'} );
         });
 
         // start the service with the sample endpoint
-        const sample_service = express().use('/', require('../sample')).listen();
+        const sampleService = express().use('/', require('../sample')).listen();
 
         const source = `ftp://127.0.0.1:${port}/file.zip`;
 
         // make a request to the submit service
         request({
-          uri: `http://localhost:${sample_service.address().port}/`,
+          uri: `http://localhost:${sampleService.address().port}/`,
           qs: {
             source: source
           },
@@ -3473,7 +3473,7 @@ tape('ftp zip tests', test => {
         })
         .finally(() => {
           // close ftp server -> app server -> tape
-          ftp_server.close().then(() => sample_service.close(err => t.end()));
+          ftpServer.close().then(() => sampleService.close(err => t.end()));
         });
 
       });
@@ -3505,21 +3505,21 @@ tape('ftp zip tests', test => {
 
       // get a random port for the FTP server
       getPort().then(port => {
-        const ftp_server = new FtpSrv(`ftp://127.0.0.1:${port}`);
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
         // fire up the ftp and submit-service servers and make the request
-        ftp_server.listen().then(() => {
+        ftpServer.listen().then(() => {
           // when a login is attempted on the FTP server, respond with a mock filesystem
-          ftp_server.on('login', ( data , resolve, reject) => {
+          ftpServer.on('login', ( data , resolve, reject) => {
             resolve( { fs: new MockFileSystem(stream) });
           });
 
           // start the service with the sample endpoint
-          const sample_service = express().use('/', require('../sample')).listen();
+          const sampleService = express().use('/', require('../sample')).listen();
 
           // make a request to the submit service
           request({
-            uri: `http://localhost:${sample_service.address().port}/`,
+            uri: `http://localhost:${sampleService.address().port}/`,
             qs: {
               source: `ftp://127.0.0.1:${port}/file.zip`
             },
@@ -3534,7 +3534,7 @@ tape('ftp zip tests', test => {
           })
           .finally(() => {
             // close ftp server -> app server -> tape
-            ftp_server.close().then(() => sample_service.close(err => t.end()));
+            ftpServer.close().then(() => sampleService.close(err => t.end()));
           });
 
         });
@@ -3550,11 +3550,11 @@ tape('ftp zip tests', test => {
 tape('error conditions', test => {
   test.test('missing source parameter should return 400 and message', t => {
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       json: true,
       resolveWithFullResponse: true
     })
@@ -3565,18 +3565,18 @@ tape('error conditions', test => {
       t.equals(err.error, '\'source\' parameter is required');
     })
     .finally(() => {
-      sample_service.close(() => t.end());
+      sampleService.close(() => t.end());
     });
 
   });
 
   test.test('empty source parameter should return 400 and message', t => {
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
     // make a request to the submit service with an empty 'source' parameter
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: ''
       },
@@ -3590,18 +3590,18 @@ tape('error conditions', test => {
       t.equals(err.error, '\'source\' parameter is required');
     })
     .finally(() => {
-      sample_service.close(() => t.end());
+      sampleService.close(() => t.end());
     });
 
   });
 
   test.test('unknown protocol/type should return 400 and message', t => {
     // start the service with the sample endpoint
-    const sample_service = express().use('/', require('../sample')).listen();
+    const sampleService = express().use('/', require('../sample')).listen();
 
     // make a request to the submit service with an unsupported type
     request({
-      uri: `http://localhost:${sample_service.address().port}/`,
+      uri: `http://localhost:${sampleService.address().port}/`,
       qs: {
         source: 'unsupported type'
       },
@@ -3615,7 +3615,7 @@ tape('error conditions', test => {
       t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
     })
     .finally(() => {
-      sample_service.close(() => t.end());
+      sampleService.close(() => t.end());
     });
 
   });

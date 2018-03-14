@@ -48,13 +48,13 @@ function responseIsPlainText(headers) {
 function handlePlainTextNonCatastrophicError(r, statusCode, res, file) {
   // convert response to a string and log/return
   toString(r, (err, msg) => {
-    const error_message = `Error retrieving file ${file}: ${msg} (${statusCode})`;
-    logger.info(`OpenAddresses metadata file: ${error_message}`);
+    const errorMessage = `Error retrieving file ${file}: ${msg} (${statusCode})`;
+    logger.info(`OpenAddresses metadata file: ${errorMessage}`);
 
     res.status(500).type('application/json').send({
       error: {
         code: 500,
-        message: error_message
+        message: errorMessage
       }
     });
 
@@ -64,14 +64,14 @@ function handlePlainTextNonCatastrophicError(r, statusCode, res, file) {
 
 // the error message isn't plain text, so just return the template + status code
 function handleNonPlainTextNonCatastrophicError(statusCode, res) {
-  const error_message = `Error retrieving file ${process.env.OPENADDRESSES_METADATA_FILE}: (${statusCode})`;
+  const errorMessage = `Error retrieving file ${process.env.OPENADDRESSES_METADATA_FILE}: (${statusCode})`;
 
-  logger.info(`OpenAddresses metadata file: ${error_message}`);
+  logger.info(`OpenAddresses metadata file: ${errorMessage}`);
 
   res.status(500).type('application/json').send({
     error: {
       code: 500,
-      message: error_message
+      message: errorMessage
     }
   });
 
@@ -103,9 +103,9 @@ function respondWithGeojson(res, entry, next) {
     columns: true
   }))
   .on('error', err => {
-    const error_message = `Error parsing file ${entry.path}: ${err}`;
-    logger.info(`/download: ${error_message}`);
-    res.status(400).type('text/plain').send(error_message);
+    const errorMessage = `Error parsing file ${entry.path}: ${err}`;
+    logger.info(`/download: ${errorMessage}`);
+    res.status(400).type('text/plain').send(errorMessage);
   })
   .pipe(through2.obj(function(record, enc, callback) {
     o.features.push({
@@ -194,9 +194,9 @@ function getMetaData(req, res, next) {
         columns: true
       }))
       .on('error', err => {
-        const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-        logger.info(`/download: ${error_message}`);
-        res.status(400).type('text/plain').send(error_message);
+        const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+        logger.info(`/download: ${errorMessage}`);
+        res.status(400).type('text/plain').send(errorMessage);
       })
       .pipe(through2.obj(function(record, enc, callback) {
         if (record.source === res.locals.source) {
@@ -225,20 +225,20 @@ function getMetaData(req, res, next) {
 // retrieve latest run for source as .zip file
 function getData(req, res, next) {
   if (!res.locals.datafile) {
-    const error_message = `Unable to find ${res.locals.source} in ${process.env.OPENADDRESSES_METADATA_FILE}`;
-    logger.info(`OpenAddresses metadata file: ${error_message}`);
+    const errorMessage = `Unable to find ${res.locals.source} in ${process.env.OPENADDRESSES_METADATA_FILE}`;
+    logger.info(`OpenAddresses metadata file: ${errorMessage}`);
 
     // if the requested source was not found in the OA results metadata, respond with error 
     res.status(400).type('application/json').send({
       error: {
         code: 400,
-        message: error_message
+        message: errorMessage
       }
     });
 
   } else {
     const r = request(res.locals.datafile);
-    let csv_file_found = false;
+    let csvFileFound = false;
 
     // handle catastrophic errors like "connection refused"
     r.on('error', err => handleCatastrophicError(err.code, res, res.locals.datafile));
@@ -258,9 +258,9 @@ function getData(req, res, next) {
 
           yauzl.open(tmpZipStream.path, {lazyEntries: true}, (err, zipfile) => {
             if (err) {
-              const error_message = `Error retrieving file ${res.locals.source.data}: ${err}`;
-              logger.info(`/download: ${error_message}`);
-              res.status(400).type('text/plain').send(error_message);
+              const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+              logger.info(`/download: ${errorMessage}`);
+              res.status(400).type('text/plain').send(errorMessage);
 
             } else {
               // read first entry
@@ -270,10 +270,10 @@ function getData(req, res, next) {
                 zipfile.readEntry();
 
                 // output the first .csv file found (there should only ever be 1)
-                if (_.endsWith(entry.fileName, '.csv') && !csv_file_found) {
+                if (_.endsWith(entry.fileName, '.csv') && !csvFileFound) {
                   zipfile.openReadStream(entry, (err, stream) => {
                     // the CSV file has been found so just pipe the contents to response
-                    csv_file_found = true;
+                    csvFileFound = true;
 
                     // call the response handler according to output format
                     // defaulting to csv 
@@ -291,7 +291,7 @@ function getData(req, res, next) {
 
               // handle end of .zip file
               zipfile.on('end', () => {
-                if (!csv_file_found) {
+                if (!csvFileFound) {
                   logger.info(`/download: ${res.locals.datafile} does not contain .csv file`);
                   res.status(500).type('application/json').send({
                     error: {

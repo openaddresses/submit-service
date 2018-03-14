@@ -20,13 +20,13 @@ tape('success conditions', test => {
   });
 
   test.test('port specified in environment should use it', t => {
-    getPort().then(random_port => {
-      process.env.PORT = random_port;
+    getPort().then(randomPort => {
+      process.env.PORT = randomPort;
 
       proxyquire('../index', {
         './app': {
           listen: (port) => {
-            t.equals(port, random_port);
+            t.equals(port, randomPort);
             t.end();
           }
         }

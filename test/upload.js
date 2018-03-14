@@ -25,11 +25,11 @@ tape('/upload tests', test => {
     });
 
     // start the service with the upload endpoint
-    const upload_service = express().use('/', upload).listen();
+    const uploadService = express().use('/', upload).listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${upload_service.address().port}/`,
+      uri: `http://localhost:${uploadService.address().port}/`,
       method: 'POST',
       formData: {
         datafile: {
@@ -53,17 +53,17 @@ tape('/upload tests', test => {
     })
     .finally(() => {
       // don't call t.end() here because the test will be closed multiple times
-      upload_service.close();
+      uploadService.close();
       t.end();
     });
 
   });
 
   test.test('zip/csv/geojson extensions: successful upload should redirect with source', t => {
-    const tests_per_extension = 6;
+    const testsPerExtension = 6;
     const extensions = ['zip', 'csv', 'geojson'];
 
-    t.plan(tests_per_extension * extensions.length);
+    t.plan(testsPerExtension * extensions.length);
 
     process.env.MAX_UPLOAD_SIZE = 1024;
 
@@ -95,11 +95,11 @@ tape('/upload tests', test => {
       });
 
       // start the service with the upload endpoint
-      const upload_service = express().use('/', upload).listen();
+      const uploadService = express().use('/', upload).listen();
 
       // make a request to the submit service without a 'source' parameter
       request({
-        uri: `http://localhost:${upload_service.address().port}/`,
+        uri: `http://localhost:${uploadService.address().port}/`,
         method: 'POST',
         formData: {
           datafile: {
@@ -123,7 +123,7 @@ tape('/upload tests', test => {
       })
       .finally(() => {
         // don't call t.end() here because the test will be closed multiple times
-        upload_service.close();
+        uploadService.close();
       });
 
     });
@@ -158,11 +158,11 @@ tape('/upload tests', test => {
     });
 
     // start the service with the upload endpoint
-    const upload_service = express().use('/', upload).listen();
+    const uploadService = express().use('/', upload).listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${upload_service.address().port}/`,
+      uri: `http://localhost:${uploadService.address().port}/`,
       method: 'POST',
       formData: {
         datafile: {
@@ -186,7 +186,7 @@ tape('/upload tests', test => {
     })
     .finally(() => {
       // don't call t.end() here because the test will be closed multiple times
-      upload_service.close();
+      uploadService.close();
       t.end();
     });
 
@@ -196,13 +196,13 @@ tape('/upload tests', test => {
     process.env.MAX_UPLOAD_SIZE = 1024;
 
     // start the service with the upload endpoint
-    const upload_service = express()
+    const uploadService = express()
       .use('/', require('../upload'))
       .listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${upload_service.address().port}/`,
+      uri: `http://localhost:${uploadService.address().port}/`,
       method: 'POST',
       formData: {},
       headers: {
@@ -217,7 +217,7 @@ tape('/upload tests', test => {
       t.equals(err.error, '\'datafile\' parameter is required');
     })
     .finally(() => {
-      upload_service.close(() => t.end());
+      uploadService.close(() => t.end());
     });
 
   });
@@ -226,13 +226,13 @@ tape('/upload tests', test => {
     process.env.MAX_UPLOAD_SIZE = 1024;
 
     // start the service with the upload endpoint
-    const upload_service = express()
+    const uploadService = express()
       .use('/', require('../upload'))
       .listen();
 
     // make a request to the submit service without a 'source' parameter
     request({
-      uri: `http://localhost:${upload_service.address().port}/`,
+      uri: `http://localhost:${uploadService.address().port}/`,
       method: 'POST',
       formData: {
         datafile: {
@@ -256,7 +256,7 @@ tape('/upload tests', test => {
       t.equals(err.error, 'supported extensions are .zip, .csv, and .geojson');
     })
     .finally(() => {
-      upload_service.close(() => t.end());
+      uploadService.close(() => t.end());
     });
 
   });
@@ -265,12 +265,12 @@ tape('/upload tests', test => {
     process.env.MAX_UPLOAD_SIZE = 1024;
 
     // start the service with the upload endpoint
-    const upload_service = express()
+    const uploadService = express()
       .use('/', require('../upload'))
       .listen();
 
     request({
-      uri: `http://localhost:${upload_service.address().port}/`,
+      uri: `http://localhost:${uploadService.address().port}/`,
       method: 'POST',
       formData: {
         datafile: {
@@ -295,7 +295,7 @@ tape('/upload tests', test => {
       t.equals(err.error, `max upload size is ${process.env.MAX_UPLOAD_SIZE}`);
     })
     .finally(() => {
-      upload_service.close(() => t.end());
+      uploadService.close(() => t.end());
     });
 
   });

@@ -7,7 +7,7 @@ tape('error conditions', test => {
   test.test('request failing to getContent should response with 400 and error', t => {
     t.plan(4);
 
-    const sources_endpoint = proxyquire('../sources', {
+    const sourcesEndpoint = proxyquire('../sources', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -28,10 +28,10 @@ tape('error conditions', test => {
       }
     });
 
-    const submit_service = express().use('/*', sources_endpoint).listen();
+    const submitService = express().use('/*', sourcesEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/cc/rc`,
+      uri: `http://localhost:${submitService.address().port}/cc/rc`,
       method: 'GET',
       qs: {},
       json: true,
@@ -49,7 +49,7 @@ tape('error conditions', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -57,7 +57,7 @@ tape('error conditions', test => {
   test.test('getContent returning a file should response with 400 and error', t => {
     t.plan(4);
 
-    const sources_endpoint = proxyquire('../sources', {
+    const sourcesEndpoint = proxyquire('../sources', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -84,10 +84,10 @@ tape('error conditions', test => {
       }
     });
 
-    const submit_service = express().use('/*', sources_endpoint).listen();
+    const submitService = express().use('/*', sourcesEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/cc/rc/file.json`,
+      uri: `http://localhost:${submitService.address().port}/cc/rc/file.json`,
       method: 'GET',
       qs: {},
       json: true,
@@ -105,7 +105,7 @@ tape('error conditions', test => {
       });
     })
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });
@@ -116,7 +116,7 @@ tape('success conditions', test => {
   test.test('all directories and .json file sources should be returned', t => {
     t.plan(4);
 
-    const sources_endpoint = proxyquire('../sources', {
+    const sourcesEndpoint = proxyquire('../sources', {
       '@octokit/rest': function GitHub() {
         return {
           authenticate: () => {},
@@ -164,10 +164,10 @@ tape('success conditions', test => {
       }
     });
 
-    const submit_service = express().use('/*', sources_endpoint).listen();
+    const submitService = express().use('/*', sourcesEndpoint).listen();
 
     request({
-      uri: `http://localhost:${submit_service.address().port}/cc/rc`,
+      uri: `http://localhost:${submitService.address().port}/cc/rc`,
       method: 'GET',
       qs: {},
       json: true,
@@ -196,7 +196,7 @@ tape('success conditions', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
-      submit_service.close();
+      submitService.close();
     });
 
   });

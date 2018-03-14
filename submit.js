@@ -40,7 +40,15 @@ function postBodyErrorHandler(err, req, res, next) {
 
 // verify that req.body contains an actual JSON object
 function preconditionsCheck(req, res, next) {
-  if (_.isEmpty(req.body)) {
+  if (!process.env.GITHUB_ACCESS_TOKEN) {
+    res.status(500).type('application/json').send({
+      error: {
+        code: 500,
+        message: 'GITHUB_ACCESS_TOKEN not defined in process environment'
+      }
+    });
+
+  } else if (_.isEmpty(req.body)) {
     logger.error('POST body empty');
     res.status(400).type('application/json').send({
       error: {

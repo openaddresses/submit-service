@@ -6,7 +6,44 @@ const string2stream = require('string-to-stream');
 const _ = require('lodash');
 
 tape('error conditions', test => {
+  test.test('GITHUB_ACCESS_TOKEN missing from environment should respond with error', t => {
+    t.plan(3);
+
+    // remove GITHUB_ACCESS_TOKEN from the process environment
+    delete process.env.GITHUB_ACCESS_TOKEN;
+
+    const submit_service = express().use('/', require('../submit')).listen();
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/`,
+      method: 'POST',
+      qs: {},
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 500,
+          message: 'GITHUB_ACCESS_TOKEN not defined in process environment'
+        }
+      });
+
+    })
+    .finally(() => {
+      submit_service.close();
+    });
+
+  });
+
   test.test('undefined POST body should respond with 500 and error message', t => {
+    t.plan(3);
+
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
     const submit_service = express().use('/', require('../submit')).listen();
 
     request({
@@ -35,6 +72,8 @@ tape('error conditions', test => {
   });
 
   test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
+    t.plan(3);
+
     const submit_service = express().use('/', require('../submit')).listen();
 
     request({
@@ -64,6 +103,8 @@ tape('error conditions', test => {
   });
 
   test.test('POST body not parseable as JSON should respond with 500 and error message', t => {
+    t.plan(3);
+
     const submit_service = express().use('/', require('../submit')).listen();
 
     request({
@@ -84,7 +125,7 @@ tape('error conditions', test => {
           message: 'POST body exceeds max size of 50kb'
         }
       });
-      t.end();
+
     })
     .finally(() => {
       submit_service.close();
@@ -467,7 +508,6 @@ tape('valid source tests', test => {
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {
-      t.end();
       submit_service.close();
     });
 

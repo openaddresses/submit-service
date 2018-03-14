@@ -9,6 +9,22 @@ const logger = winston.createLogger({
   ]
 });
 
+// if no datafile parameter was supplied, bail immediately
+function uploadPreconditionsCheck(req, res, next) {
+  if (!process.env.GITHUB_ACCESS_TOKEN) {
+    res.status(500).type('application/json').send({
+      error: {
+        code: 500,
+        message: 'GITHUB_ACCESS_TOKEN not defined in process environment'
+      }
+    });
+
+  } else {
+    return next();
+  }
+
+}
+
 // retrieve sources (files or directories) on a path
 function getCommits(req, res, next) {
   const github = new GitHubApi();
@@ -102,4 +118,7 @@ function getCommits(req, res, next) {
 }
 
 module.exports = express.Router()
-  .get('/', getCommits);
+  .get('/', 
+    uploadPreconditionsCheck,
+    getCommits
+  );

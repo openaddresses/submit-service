@@ -4,13 +4,69 @@ const request = require('request-promise');
 const proxyquire = require('proxyquire');
 
 tape('error conditions', test => {
-  test.test('request failing to getContent should response with 400 and error', t => {
-    t.plan(4);
+  test.test('GITHUB_ACCESS_TOKEN missing from environment should respond with error', t => {
+    t.plan(3);
+
+    // remove GITHUB_ACCESS_TOKEN from the process environment
+    delete process.env.GITHUB_ACCESS_TOKEN;
 
     const sources_endpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
         return {
-          authenticate: () => {},
+          authenticate: () => {
+            t.fail('authenticate should not have been called');
+          },
+          repos: {
+            getCommits: () => {
+              t.fail('getCommits should not have been called');
+            }
+
+          }
+        };
+      }
+    });
+
+    const submit_service = express().use('/maintainers/*', sources_endpoint).listen();
+
+    request({
+      uri: `http://localhost:${submit_service.address().port}/maintainers/sources/cc/rc/source.json`,
+      method: 'GET',
+      qs: {},
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 500,
+          message: 'GITHUB_ACCESS_TOKEN not defined in process environment'
+        }
+      });
+      
+    })
+    .finally(() => {
+      submit_service.close();
+    });
+
+  });
+
+  test.test('request failing to getContent should response with 400 and error', t => {
+    t.plan(5);
+
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    const sources_endpoint = proxyquire('../maintainers', {
+      '@octokit/rest': function GitHub() {
+        return {
+          authenticate: auth => {
+            t.deepEquals(auth, {
+              type: 'oauth',
+              token: 'github access token'
+            });
+          },
           repos: {
             getCommits: (params, callback) => {
               t.deepEquals(params, {
@@ -47,6 +103,7 @@ tape('error conditions', test => {
           message: 'Error getting commits: getCommits failed'
         }
       });
+
     })
     .finally(() => {
       submit_service.close();
@@ -56,6 +113,8 @@ tape('error conditions', test => {
 
   test.test('getContent returning an error for any sha should respond with 400 and error', t => {
     t.plan(4);
+
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
     const maintainers_endpoint = proxyquire('../maintainers', {
       '@octokit/rest': function GitHub() {
@@ -149,6 +208,7 @@ tape('error conditions', test => {
           message: 'Error getting contents: getContent failed for sha 3'
         }
       });
+
     })
     .finally(() => {
       submit_service.close();
@@ -198,6 +258,7 @@ tape('success conditions', test => {
       t.equals(response.statusCode, 200);
       t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
       t.deepEquals(response.body, [], 'there should be no commits');
+
     })
     .catch(err => t.fail.bind(null, 'request should have been successful'))
     .finally(() => {

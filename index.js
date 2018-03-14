@@ -1,5 +1,3 @@
-const _ = require('lodash');
-
 try {
   const app = require('./app');
 

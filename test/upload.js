@@ -1,43 +1,71 @@
 const tape = require('tape');
 const express = require('express');
 const request = require('request-promise');
-const fs = require('fs');
 const _ = require('lodash');
-const Readable = require('stream').Readable;
 const proxyquire = require('proxyquire');
 const toString = require('stream-to-string');
-
-class NLengthStream extends Readable {
-  constructor(options, requestedSize) {
-    super(options);
-    this.requestedSize = requestedSize;
-    this.bytesRead = 0;
-  }
-
-  _read(size = 1024) {
-    if (this.bytesRead >= this.requestedSize) {
-      this.push(null);
-      return;
-    }
-
-    if (this.bytesRead + size > this.requestedSize) {
-      this.push(_.repeat('0', this.requestedSize - this.bytesRead));
-      this.bytesRead += this.requestedSize - this.bytesRead;
-    } else {
-      this.push(_.repeat('0', size));
-      this.bytesRead += size;
-    }
-
-  }
-
-}
+const string2stream = require('string-to-stream');
 
 tape('/upload tests', test => {
+  test.test('MAX_UPLOAD_SIZE missing from environment should respond with error', t => {
+    process.env.MAX_UPLOAD_SIZE = undefined;
+
+    const upload = proxyquire('../upload', {
+      'aws-sdk/clients/s3': function S3(options) {
+        return {
+          upload(params, callback) {
+            t.fail('upload should not have been called');
+          }
+        };
+
+      },
+      'lodash': {
+        random: (start, end) => 8435425
+      }
+    });
+
+    // start the service with the upload endpoint
+    const upload_service = express().use('/', upload).listen();
+
+    // make a request to the submit service without a 'source' parameter
+    request({
+      uri: `http://localhost:${upload_service.address().port}/`,
+      method: 'POST',
+      formData: {
+        datafile: {
+          value: string2stream(_.repeat('0', 1024)),
+          options: {
+            filename: 'file.zip',
+            contentType: 'text/plain',
+            knownLength: 1024
+          }
+        }
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      }
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
+      t.equals(err.error, 'MAX_UPLOAD_SIZE not defined in process environment');
+    })
+    .finally(() => {
+      // don't call t.end() here because the test will be closed multiple times
+      upload_service.close();
+      t.end();
+    });
+
+  });
+
   test.test('zip/csv/geojson extensions: successful upload should redirect with source', t => {
     const tests_per_extension = 6;
     const extensions = ['zip', 'csv', 'geojson'];
 
     t.plan(tests_per_extension * extensions.length);
+
+    process.env.MAX_UPLOAD_SIZE = 1024;
 
     extensions.forEach(extension => {
       const upload = proxyquire('../upload', {
@@ -51,7 +79,7 @@ tape('/upload tests', test => {
 
               // verify that the file contents being passed is the same as what was posted
               toString(params.Body, (err, body) => {
-                t.equals(body, fs.readFileSync('./package.json').toString());
+                t.equals(body, _.repeat('0', process.env.MAX_UPLOAD_SIZE));
                 callback(null, {
                   Location: 'this is the upload s3 object URL'
                 });
@@ -75,10 +103,12 @@ tape('/upload tests', test => {
         method: 'POST',
         formData: {
           datafile: {
-            value: fs.createReadStream('./package.json'),
+            // value: fs.createReadStream('./package.json'),
+            value: string2stream(_.repeat('0', process.env.MAX_UPLOAD_SIZE)),
             options: {
               filename: `file.${extension}`,
-              contentType: 'text/plain'
+              contentType: 'text/plain',
+              knownLength: process.env.MAX_UPLOAD_SIZE
             }
           }
         },
@@ -101,6 +131,8 @@ tape('/upload tests', test => {
   });
 
   test.test('failed upload should respond with 500 and error message', t => {
+    process.env.MAX_UPLOAD_SIZE = 1024;
+
     const upload = proxyquire('../upload', {
       'aws-sdk/clients/s3': function S3(options) {
         t.deepEquals(options, { apiVersion: '2006-03-01' });
@@ -112,7 +144,7 @@ tape('/upload tests', test => {
 
             // verify that the file contents being passed is the same as what was posted
             toString(params.Body, (err, body) => {
-              t.equals(body, fs.readFileSync('./package.json').toString());
+              t.equals(body, _.repeat('0', process.env.MAX_UPLOAD_SIZE));
               callback('error message returned from s3');
             });
 
@@ -134,10 +166,11 @@ tape('/upload tests', test => {
       method: 'POST',
       formData: {
         datafile: {
-          value: fs.createReadStream('./package.json'),
+          value: string2stream(_.repeat('0', process.env.MAX_UPLOAD_SIZE)),
           options: {
             filename: 'file.zip',
-            contentType: 'text/plain'
+            contentType: 'text/plain',
+            knownLength: process.env.MAX_UPLOAD_SIZE
           }
         }
       },
@@ -160,6 +193,8 @@ tape('/upload tests', test => {
   });
 
   test.test('request without dataFile parameter should return 400', t => {
+    process.env.MAX_UPLOAD_SIZE = 1024;
+
     // start the service with the upload endpoint
     const upload_service = express()
       .use('/', require('../upload'))
@@ -188,6 +223,8 @@ tape('/upload tests', test => {
   });
 
   test.test('non-zip/geojson/csv file extension should return error', t => {
+    process.env.MAX_UPLOAD_SIZE = 1024;
+
     // start the service with the upload endpoint
     const upload_service = express()
       .use('/', require('../upload'))
@@ -199,10 +236,11 @@ tape('/upload tests', test => {
       method: 'POST',
       formData: {
         datafile: {
-          value: fs.createReadStream('./LICENSE'),
+          value: string2stream(_.repeat('0', process.env.MAX_UPLOAD_SIZE)),
           options: {
             filename: 'file.txt',
-            contentType: 'text/plain'
+            contentType: 'text/plain',
+            knownLength: process.env.MAX_UPLOAD_SIZE
           }
         }
       },
@@ -223,24 +261,25 @@ tape('/upload tests', test => {
 
   });
 
-  test.test('file upload size greater than 50MB should return error', t => {
+  test.test('file upload size greater than MAX_UPLOAD_SIZE should return error', t => {
+    process.env.MAX_UPLOAD_SIZE = 1024;
+
     // start the service with the upload endpoint
     const upload_service = express()
       .use('/', require('../upload'))
       .listen();
-
-    const size = 50*1024*1024+1;
 
     request({
       uri: `http://localhost:${upload_service.address().port}/`,
       method: 'POST',
       formData: {
         datafile: {
-          value: new NLengthStream({}, size),
+          // create one more byte than the max supported
+          value: string2stream(_.repeat('0', process.env.MAX_UPLOAD_SIZE+1)),
           options: {
             filename: 'file.zip',
             contentType: 'text/plain',
-            knownLength: size
+            knownLength: process.env.MAX_UPLOAD_SIZE+1
           }
         }
       },
@@ -253,7 +292,7 @@ tape('/upload tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `max upload size is ${50*1024*1024}`);
+      t.equals(err.error, `max upload size is ${process.env.MAX_UPLOAD_SIZE}`);
     })
     .finally(() => {
       upload_service.close(() => t.end());

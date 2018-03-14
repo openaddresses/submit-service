@@ -7,12 +7,13 @@ const string2stream = require('string-to-stream');
 
 const acceptableUploadFileExtensions = ['.zip', '.csv', '.geojson'];
 
-// max upload size is 50MB
-const maxUploadSize = 50*1024*1024;
-
 // if no datafile parameter was supplied, bail immediately
-const uploadPreconditionsCheck = (req, res, next) => {
-  if (!_.has(req, 'files.datafile')) {
+function uploadPreconditionsCheck(req, res, next) {
+  const maxUploadSize = parseInt(process.env.MAX_UPLOAD_SIZE);
+
+  if (isNaN(maxUploadSize)) {
+    res.status(500).type('text/plain').send('MAX_UPLOAD_SIZE not defined in process environment');
+  } else if (!_.has(req, 'files.datafile')) {
     res.status(400).type('text/plain').send('\'datafile\' parameter is required');
   } else if (!_.includes(acceptableUploadFileExtensions, path.extname(req.files.datafile.name))) {
     res.status(400).type('text/plain').send('supported extensions are .zip, .csv, and .geojson');
@@ -25,7 +26,7 @@ const uploadPreconditionsCheck = (req, res, next) => {
 };
 
 // upload the file to s3 and redirect to /sample
-const handleFileUpload = (req, res, next) => {
+function handleFileUpload(req, res, next) {
   const s3 = new S3({apiVersion: '2006-03-01'});
 
   // generate a 6 char hex string that doesn't start with a 0 to uniqify the s3 object Key

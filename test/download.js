@@ -5,7 +5,39 @@ const archiver = require('archiver');
 const ZipContentsStream = require('./ZipContentsStream');
 
 tape('error conditions', test => {
+  test.test('OPENADDRESSES_METADATA_FILE missing from environment should respond with error', t => {
+    delete process.env.OPENADDRESSES_METADATA_FILE;
+
+    // start the service with the download endpoint
+    const download_service = express().use('/download/*', require('../download')).listen();
+
+    // make a request to the download service
+    request({
+      uri: `http://localhost:${download_service.address().port}/download/rc/cc/file.json`,
+      qs: {},
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(response => t.fail('request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 500,
+          message: 'OPENADDRESSES_METADATA_FILE not defined in process environment'
+        }
+      });
+    })
+    .finally(() => {
+      download_service.close(() => t.end());
+    });
+
+  });
+
   test.test('invalid format value should return 400 and error message', t => {
+    process.env.OPENADDRESSES_METADATA_FILE = 'this is the OA metadata file';
+
     // start the service with the download endpoint
     const download_service = express().use('/download/*', require('../download')).listen();
 

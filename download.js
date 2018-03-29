@@ -5,6 +5,7 @@ const toString = require('stream-to-string');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
 const yauzl = require('yauzl');
+const path = require('path');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -291,14 +292,13 @@ function getData(req, res, next) {
                 zipfile.readEntry();
 
                 // output the first .csv file found (there should only ever be 1)
-                if (_.endsWith(entry.fileName, '.csv') && !csvFileFound) {
-                  zipfile.openReadStream(entry, (err, stream) => {
-                    // the CSV file has been found so just pipe the contents to response
-                    csvFileFound = true;
+                if (path.extname(entry.fileName) === '.csv' && !csvFileFound) {
+                  // the CSV file has been found so just pipe the contents to response
+                  csvFileFound = true;
 
+                  zipfile.openReadStream(entry, (err, stream) => {
                     // call the response handler according to output format
                     res.locals.outputHandler(res, stream, next);
-
                   });
 
                 } else {

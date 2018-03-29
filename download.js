@@ -31,6 +31,10 @@ const outputHandlers = {
   geojson: respondWithGeojson
 };
 
+function isOutputFormatSupported(format) {
+  return outputHandlers.hasOwnProperty(format);
+}
+
 function handleCatastrophicError(errorCode, res, file) {
   res.status(500).type('application/json').send({
     error: {
@@ -89,16 +93,21 @@ function respondWithCsv(res, entry, next) {
 
 // return the processed file contents as GeoJSON
 function respondWithGeojson(res, entry, next) {
-  const o = {
-    type: 'FeatureCollection',
-    features: []
-  };
+  // create a stream to write to
+  const out = res.
+    status(200).
+    type('application/json').
+    set('Content-Disposition', 'attachment; filename=data.geojson');
 
-  // process the .csv file
+  // output the GeoJSON header
+  out.write('{"type":"FeatureCollection","features":[');
+
+  // keep track of the number of records for comma delimters
+  let count = 0;
+
+  // stream the .csv file, converting to JSON on the way 
   entry
   .pipe(csvParse({
-    // DO NOT USE `from` and `to` to limit records since it downloads the entire
-    // file whereas this way simply stops the download after 10 records
     skip_empty_lines: true,
     columns: true
   }))
@@ -108,7 +117,8 @@ function respondWithGeojson(res, entry, next) {
     res.status(400).type('text/plain').send(errorMessage);
   })
   .pipe(through2.obj(function(record, enc, callback) {
-    o.features.push({
+    // convert the record to a GeoJSON point
+    const point = {
       geometry: {
         type: 'Point',
         coordinates: [
@@ -117,25 +127,35 @@ function respondWithGeojson(res, entry, next) {
         ]
       },
       properties: _.omit(record, ['LON', 'LAT'])
-    });
+    };
+
+    callback(null, point);
+
+  }))
+  .pipe(through2.obj(function(point, enc, callback) {
+    // if this isn't the first record, prefix the string with a comma
+    if (count++ > 0) {
+      out.write(',');
+    }
+
+    // stringify the point and output
+    out.write(JSON.stringify(point));
 
     callback();
 
   }))
   .on('finish', () => {
-    res.
-      status(200).
-      type('application/json').
-      set('Content-Disposition', 'attachment: filename=data.geojson').
-      send(JSON.stringify(o));
-
+    // output the GeoJSON footer
+    out.write(']}');
+    res.end();
     next();
-
   });
 
 }
 
 function preconditionsCheck(req, res, next) {
+  req.query.format = _.defaultTo(req.query.format, 'csv');
+
   if (!process.env.OPENADDRESSES_METADATA_FILE) {
     // if OPENADDRESSES_METADATA_FILE isn't available, then bail immediately
     res.status(500).type('application/json').send({
@@ -145,8 +165,8 @@ function preconditionsCheck(req, res, next) {
       }
     });
 
-  } else if (req.query.format && ['csv', 'geojson'].indexOf(req.query.format) < 0) {
-    // if format parameter is none of undefined, 'csv', or 'geojson', bail immediately
+  } else if (!isOutputFormatSupported(req.query.format)) {
+    // if format parameter is not 'csv' or 'geojson', bail immediately
     logger.debug('rejecting request due to invalid `format` parameter');
     res.status(400).type('application/json').send({
       error: {
@@ -156,6 +176,7 @@ function preconditionsCheck(req, res, next) {
     });
 
   } else {
+    res.locals.outputHandler = outputHandlers[req.query.format];
     logger.debug({ format: req.query.format });
     next();
 
@@ -276,8 +297,7 @@ function getData(req, res, next) {
                     csvFileFound = true;
 
                     // call the response handler according to output format
-                    // defaulting to csv 
-                    outputHandlers[_.defaultTo(req.query.format, 'csv')](res, stream, next);
+                    res.locals.outputHandler(res, stream, next);
 
                   });
 

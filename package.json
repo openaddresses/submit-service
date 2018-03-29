@@ -84,7 +84,6 @@
       "no-empty": "error",
       "no-unreachable": "error",
       "no-new": "error",
-      "no-plusplus": "error",
       "no-undef": "error",
       "no-unused-expressions": "error",
       "quotes": [

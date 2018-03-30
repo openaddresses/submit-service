@@ -23,6 +23,7 @@
     "aws-sdk": "^2.182.0",
     "aws-serverless-express": "^3.0.2",
     "body-parser": "^1.18.2",
+    "compression": "^1.7.2",
     "csv-parse": "^2.0.0",
     "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
     "express": "^4.16.2",

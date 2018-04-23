@@ -20,5 +20,4 @@ module.exports = express()
   .use('/sources/*', require('./sources'))
   .use('/sources', require('./sources'))
   .use('/submit', require('./submit'))
-  .use('/upload', require('./upload'))
   .use(express.static(__dirname + '/public'));

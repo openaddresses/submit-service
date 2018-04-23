@@ -1,6 +1,6 @@
 const express = require('express');
 const router = require('express').Router();
-const url = require('url');
+const { URL } = require('url');
 const _ = require('lodash');
 const request = require('request');
 const csvParse = require( 'csv-parse' );
@@ -10,7 +10,6 @@ const morgan = require('morgan');
 const toString = require('stream-to-string');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
-const urlJoin = require('url-join');
 const yauzl = require('yauzl');
 
 const winston = require('winston');
@@ -61,7 +60,15 @@ function setupTemp(req, res, next) {
 
 // determine the protocol, type, and compression to make decisions easier later on
 function determineType(req, res, next) {
-  const source = url.parse(req.query.source);
+  let source;
+
+  try {
+    source = new URL(req.query.source);
+  } catch (err) {
+    logger.info(`Unable to parse URL from '${req.query.source}'`);
+    res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
+    return;
+  }
 
   // setup a working context
   res.locals.source = {
@@ -117,10 +124,14 @@ const isFtpSource = protocolCheck.bind(null, 'ftp');
 function sampleArcgis(req, res, next) {
   logger.debug(`using arcgis sampler for ${res.locals.source.data}`);
 
-  const queryUrl = urlJoin(res.locals.source.data, 'query',
-    '?outFields=*', '&where=1%3D1', '&resultRecordCount=10', '&resultOffset=0', '&f=json');
+  const url = new URL(`${res.locals.source.data}/query`);
+  url.searchParams.append('outFields', '*');
+  url.searchParams.append('where', '1=1');
+  url.searchParams.append('resultRecordCount', '10');
+  url.searchParams.append('resultOffset', '0');
+  url.searchParams.append('f', 'json');
 
-  oboe(queryUrl)
+  oboe(url.href)
     .node('error', err => {
       const msg = `Error connecting to Arcgis server ${res.locals.source.data}: ${err.message} (${err.code})`;
       logger.info(`ARCGIS: ${msg}`);
@@ -478,17 +489,19 @@ function sampleHttpSource(req, res, next) {
 function sampleFtpSource(req, res, next) {
   logger.debug(`FTP GEOJSON: ${res.locals.source.data}`);
 
-  const ftpUrl = url.parse(res.locals.source.data);
+  const url = new URL(res.locals.source.data);
 
   const options = {
-    host: ftpUrl.hostname,
-    port: ftpUrl.port
+    host: url.hostname,
+    port: url.port,
+    user: url.username,
+    pass: url.password
   };
 
-  if (ftpUrl.auth) {
-    options.user = ftpUrl.auth.split(':')[0];
-    options.pass = ftpUrl.auth.split(':')[1];
-  }
+  // if (url.username || url.password) {
+  //   options.user = url.username;
+  //   options.pass = url.password;
+  // }
 
   const ftp = new JSFtp(options);
 

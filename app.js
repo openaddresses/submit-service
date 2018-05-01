@@ -1,7 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
-const compression = require('compression');
 
 module.exports = express()
   .use(helmet({
@@ -9,7 +8,6 @@ module.exports = express()
       action: 'deny'
     }
   }))
-  .use(compression())
   .use(morgan('combined'))
   .use('/download/**/*.json', require('./download'))
   .use('/maintainers/sources/**/*.json', require('./maintainers'))

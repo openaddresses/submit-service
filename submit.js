@@ -144,12 +144,15 @@ async function branchFromMaster(req, res, next) {
 // take the POST body of this request and add it as a file to the branch
 async function addFileToBranch(req, res, next) {
   try {
+    // remove the source_data field that was returned by /sample
+    const body = _.omit(req.body, 'source_data');
+
     await res.locals.github.repos.createFile({
       owner: 'openaddresses',
       repo: 'openaddresses',
       path: res.locals.path,
       message: 'This file was added by the OpenAddresses submit-service',
-      content: Buffer.from(JSON.stringify(req.body, null, 4)).toString('base64'),
+      content: Buffer.from(JSON.stringify(body, null, 4)).toString('base64'),
       branch: res.locals.reference_name
     });
 

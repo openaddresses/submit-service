@@ -20,6 +20,9 @@ const logger = winston.createLogger({
   ]
 });
 
+// don't reject minor SSL errors
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+
 // matches:
 // - MapServer/0
 // - FeatureServer/13

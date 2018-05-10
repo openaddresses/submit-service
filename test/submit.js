@@ -456,7 +456,7 @@ tape('valid source tests', test => {
   });
 
   test.test('request creating pull request should return 200 and PR link', t => {
-    t.plan(3);
+    t.plan(4);
 
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
@@ -478,7 +478,13 @@ tape('valid source tests', test => {
             createReference: o => new Promise((resolve, reject) => resolve())
           },
           repos: {
-            createFile: o => new Promise((resolve, reject) => resolve())
+            createFile: o => {
+              const parsed = JSON.parse(Buffer.from(o.content, 'base64').toString());
+
+              t.notOk(_.has(parsed, 'source_data'), 'source_data should have been removed');
+
+              return new Promise((resolve, reject) => resolve());
+            }
           },
           pullRequests: {
             create: o => new Promise((resolve, reject) => resolve({
@@ -501,7 +507,8 @@ tape('valid source tests', test => {
         note: 'this is the note',
         data: 'this is the data URL',
         type: 'source type',
-        conform: {}
+        conform: {},
+        source_data: 'this should be removed'
       },
       json: true,
       resolveWithFullResponse: true

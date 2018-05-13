@@ -559,56 +559,76 @@ tape('http geojson tests', test => {
 
 tape('http csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
-    // startup an HTTP server that will respond to file.geojson requests with valid CSV
-    const sourceServer = express().get('/file.csv', (req, res, next) => {
-      const rows = _.range(20).reduce((rows, i) => {
-        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-      }, ['attribute 1,attribute 2']);
+    const delimiters = [',', ';', '|', '\t'];
 
-      res.status(200).send(rows.join('\n'));
+    t.plan(delimiters.length * 3);
 
-    }).listen();
+    delimiters.forEach(delimiter => {
+      // startup an HTTP server that will respond to file.geojson requests with valid CSV
+      const sourceServer = express().get('/file.csv', (req, res, next) => {
+        const csvHeader = [
+          'attribute 1', 
+          'attribute 2'
+        ].join(delimiter);
 
-    // start the service with the sample endpoint
-    const sampleService = express().use('/', require('../sample')).listen();
+        // generate 20 rows to serve back via FTP
+        const csvDataRows = _.range(20).map(i => 
+          // generate a row with 2 columns
+          [
+            `feature ${i} attribute 1 value`, 
+            `feature ${i} attribute 2 value`
+          ].join(delimiter)
+        );
 
-    const source = `http://localhost:${sourceServer.address().port}/file.csv`;
+        const csvContents = [csvHeader].concat(csvDataRows).join('\n');
 
-    // make a request to the submit service
-    request({
-      uri: `http://localhost:${sampleService.address().port}/`,
-      qs: {
-        source: source
-      },
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(response => {
-      t.equals(response.statusCode, 200);
-      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
-      t.deepEquals(response.body, {
-        coverage: {},
-        note: '',
-        type: 'http',
-        data: source,
-        source_data: {
-          fields: ['attribute 1', 'attribute 2'],
-          results: _.range(10).reduce((features, i) => {
-            features.push({
-              'attribute 1': `feature ${i} attribute 1 value`,
-              'attribute 2': `feature ${i} attribute 2 value`
-            });
-            return features;
-          }, [])
+        res.status(200).send(csvContents);
+
+      }).listen();
+
+      // start the service with the sample endpoint
+      const sampleService = express().use('/', require('../sample')).listen();
+
+      const source = `http://localhost:${sourceServer.address().port}/file.csv`;
+
+      // make a request to the submit service
+      request({
+        uri: `http://localhost:${sampleService.address().port}/`,
+        qs: {
+          source: source
         },
-        conform: {
-          type: 'csv'
-        }
+        json: true,
+        resolveWithFullResponse: true
+      })
+      .then(response => {
+        t.equals(response.statusCode, 200);
+        t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+        t.deepEquals(response.body, {
+          coverage: {},
+          note: '',
+          type: 'http',
+          data: source,
+          source_data: {
+            fields: ['attribute 1', 'attribute 2'],
+            results: _.range(10).reduce((features, i) => {
+              features.push({
+                'attribute 1': `feature ${i} attribute 1 value`,
+                'attribute 2': `feature ${i} attribute 2 value`
+              });
+              return features;
+            }, [])
+          },
+          conform: {
+            type: 'csv',
+            csvsplit: delimiter
+          }
+        });
+      })
+      .catch(err => t.fail(err))
+      .finally(() => {
+        sampleService.close(() => sourceServer.close());
       });
-    })
-    .catch(err => t.fail(err))
-    .finally(() => {
-      sampleService.close(() => sourceServer.close(() => t.end()));
+
     });
 
   });
@@ -657,7 +677,8 @@ tape('http csv tests', test => {
           }, [])
         },
         conform: {
-          type: 'csv'
+          type: 'csv',
+          csvsplit: ','
         }
       });
     })
@@ -718,7 +739,8 @@ tape('http csv tests', test => {
           }, [])
         },
         conform: {
-          type: 'csv'
+          type: 'csv',
+          csvsplit: ','
         }
       });
     })
@@ -760,7 +782,7 @@ tape('http csv tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1085,73 +1107,93 @@ tape('http zip tests', test => {
   });
 
   test.test('csv.zip: fields and sample results, should limit to 10', t => {
-    // startup an HTTP server that will respond to data.zip requests with .zip
-    // file containing an parseable .csv file
-    const sourceServer = express().get('/data.zip', (req, res, next) => {
-      const output = new ZipContentsStream();
+    const delimiters = [',', ';', '|', '\t'];
 
-      output.on('finish', function() {
-        res.set('Content-Type', 'application/zip');
-        res.set('Content-Disposition', 'attachment; filename=data.zip');
-        res.set('Content-Length', this.buffer.length);
-        res.end(this.buffer, 'binary');
-      });
+    t.plan(delimiters.length * 3);
 
-      const data = _.range(20).reduce((rows, i) => {
-        return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-      }, ['attribute 1,attribute 2']);
+    delimiters.forEach(delimiter => {
+      // startup an HTTP server that will respond to data.zip requests with .zip
+      // file containing an parseable .csv file
+      const sourceServer = express().get('/data.zip', (req, res, next) => {
+        const output = new ZipContentsStream();
 
-      const archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
-      });
-      archive.pipe(output);
-      archive.append('this is the README', { name: 'README.md' });
-      archive.append(data.join('\n'), { name: 'file.csv' });
-      archive.finalize();
+        output.on('finish', function() {
+          res.set('Content-Type', 'application/zip');
+          res.set('Content-Disposition', 'attachment; filename=data.zip');
+          res.set('Content-Length', this.buffer.length);
+          res.end(this.buffer, 'binary');
+        });
 
-    }).listen();
+        const csvHeader = [
+          'attribute 1', 
+          'attribute 2'
+        ].join(delimiter);
 
-    // start the service with the sample endpoint
-    const sampleService = express().use('/', require('../sample')).listen();
+        // generate 20 rows to serve back via FTP
+        const csvDataRows = _.range(20).map(i => 
+          // generate a row with 2 columns
+          [
+            `feature ${i} attribute 1 value`, 
+            `feature ${i} attribute 2 value`
+          ].join(delimiter)
+        );
 
-    const source = `http://localhost:${sourceServer.address().port}/data.zip`;
+        const csvContents = [csvHeader].concat(csvDataRows).join('\n');
 
-    // make a request to the submit service
-    request({
-      uri: `http://localhost:${sampleService.address().port}/`,
-      qs: {
-        source: source
-      },
-      json: true,
-      resolveWithFullResponse: true
-    })
-    .then(response => {
-      t.equals(response.statusCode, 200);
-      t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
-      t.deepEquals(response.body, {
-        coverage: {},
-        note: '',
-        type: 'http',
-        compression: 'zip',
-        data: source,
-        source_data: {
-          fields: ['attribute 1', 'attribute 2'],
-          results: _.range(10).reduce((features, i) => {
-            features.push({
-              'attribute 1': `feature ${i} attribute 1 value`,
-              'attribute 2': `feature ${i} attribute 2 value`
-            });
-            return features;
-          }, [])
+        const archive = archiver('zip', {
+          zlib: { level: 9 } // Sets the compression level.
+        });
+        archive.pipe(output);
+        archive.append('this is the README', { name: 'README.md' });
+        archive.append(csvContents, { name: 'file.csv' });
+        archive.finalize();
+
+      }).listen();
+
+      // start the service with the sample endpoint
+      const sampleService = express().use('/', require('../sample')).listen();
+
+      const source = `http://localhost:${sourceServer.address().port}/data.zip`;
+
+      // make a request to the submit service
+      request({
+        uri: `http://localhost:${sampleService.address().port}/`,
+        qs: {
+          source: source
         },
-        conform: {
-          type: 'csv'
-        }
+        json: true,
+        resolveWithFullResponse: true
+      })
+      .then(response => {
+        t.equals(response.statusCode, 200);
+        t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+        t.deepEquals(response.body, {
+          coverage: {},
+          note: '',
+          type: 'http',
+          compression: 'zip',
+          data: source,
+          source_data: {
+            fields: ['attribute 1', 'attribute 2'],
+            results: _.range(10).reduce((features, i) => {
+              features.push({
+                'attribute 1': `feature ${i} attribute 1 value`,
+                'attribute 2': `feature ${i} attribute 2 value`
+              });
+              return features;
+            }, [])
+          },
+          conform: {
+            type: 'csv',
+            csvsplit: delimiter
+          }
+        });
+      })
+      .catch(err => t.fail(err))
+      .finally(() => {
+        sampleService.close(() => sourceServer.close());
       });
-    })
-    .catch(err => t.fail(err))
-    .finally(() => {
-      sampleService.close(() => sourceServer.close(() => t.end()));
+
     });
 
   });
@@ -1217,7 +1259,8 @@ tape('http zip tests', test => {
           }, [])
         },
         conform: {
-          type: 'csv'
+          type: 'csv',
+          csvsplit: ','
         }
       });
     })
@@ -1275,7 +1318,7 @@ tape('http zip tests', test => {
     .catch(err => {
       t.equals(err.statusCode, 400);
       t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
+      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -2149,62 +2192,81 @@ tape('ftp geojson tests', test => {
 
 tape('ftp csv tests', test => {
   test.test('fields and sample results, should limit to 10', t => {
-    // get a random port for the FTP server
-    getPort().then(port => {
-      const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
+    const delimiters = [',', ';', '|', '\t'];
 
-      // fire up the ftp and submit-service servers and make the request
-      ftpServer.listen().then(() => {
-        ftpServer.on('login', (credentials, resolve) => {
-          // generate 11 features to serve back via FTP
-          const rows = _.range(11).reduce((rows, i) => {
-            return rows.concat(`feature ${i} attribute 1 value,feature ${i} attribute 2 value`);
-          }, ['attribute 1,attribute 2']);
+    t.plan(delimiters.length * 3);
 
-          resolve( { fs: new MockFileSystem(string2stream(rows.join('\n'))) });
-        });
+    delimiters.forEach(delimiter => {
+      // get a random port for the FTP server
+      getPort().then(port => {
+        const ftpServer = new FtpSrv(`ftp://127.0.0.1:${port}`);
 
-        // start the service with the sample endpoint
-        const sampleService = express().use('/', require('../sample')).listen();
+        // fire up the ftp and submit-service servers and make the request
+        ftpServer.listen().then(() => {
+          ftpServer.on('login', (credentials, resolve) => {
+            const csvHeader = [
+              'attribute 1', 
+              'attribute 2'
+            ].join(delimiter);
 
-        const source = `ftp://127.0.0.1:${port}/file.csv`;
+            // generate 20 rows to serve back via FTP
+            const csvDataRows = _.range(20).map(i => 
+              // generate a row with 2 columns
+              [
+                `feature ${i} attribute 1 value`, 
+                `feature ${i} attribute 2 value`
+              ].join(delimiter)
+            );
 
-        // make a request to the submit service
-        request({
-          uri: `http://localhost:${sampleService.address().port}/`,
-          qs: {
-            source: source
-          },
-          json: true,
-          resolveWithFullResponse: true
-        })
-        .then(response => {
-          t.equals(response.statusCode, 200);
-          t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
-          t.deepEquals(response.body, {
-            coverage: {},
-            note: '',
-            type: 'ftp',
-            data: source,
-            source_data: {
-              fields: ['attribute 1', 'attribute 2'],
-              results: _.range(10).reduce((features, i) => {
-                features.push({
-                  'attribute 1': `feature ${i} attribute 1 value`,
-                  'attribute 2': `feature ${i} attribute 2 value`
-                });
-                return features;
-              }, [])
-            },
-            conform: {
-              type: 'csv'
-            }
+            const csvContents = [csvHeader].concat(csvDataRows).join('\n');
+
+            resolve( { fs: new MockFileSystem(string2stream(csvContents)) });
           });
-        })
-        .catch(err => t.fail(err))
-        .finally(() => {
-          // close ftp server -> app server -> tape
-          ftpServer.close().then(() => sampleService.close(err => t.end()));
+
+          // start the service with the sample endpoint
+          const sampleService = express().use('/', require('../sample')).listen();
+
+          const source = `ftp://127.0.0.1:${port}/file.csv`;
+
+          // make a request to the submit service
+          request({
+            uri: `http://localhost:${sampleService.address().port}/`,
+            qs: {
+              source: source
+            },
+            json: true,
+            resolveWithFullResponse: true
+          })
+          .then(response => {
+            t.equals(response.statusCode, 200);
+            t.equals(response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(response.body, {
+              coverage: {},
+              note: '',
+              type: 'ftp',
+              data: source,
+              source_data: {
+                fields: ['attribute 1', 'attribute 2'],
+                results: _.range(10).reduce((features, i) => {
+                  features.push({
+                    'attribute 1': `feature ${i} attribute 1 value`,
+                    'attribute 2': `feature ${i} attribute 2 value`
+                  });
+                  return features;
+                }, [])
+              },
+              conform: {
+                type: 'csv',
+                csvsplit: delimiter
+              }
+            });
+          })
+          .catch(err => t.fail(err))
+          .finally(() => {
+            // close ftp server -> app server -> tape
+            ftpServer.close().then(() => sampleService.close());
+          });
+
         });
 
       });
@@ -2262,7 +2324,8 @@ tape('ftp csv tests', test => {
               }, [])
             },
             conform: {
-              type: 'csv'
+              type: 'csv',
+              csvsplit: ','
             }
           });
         })
@@ -2355,7 +2418,7 @@ tape('ftp csv tests', test => {
         .catch(err => {
           t.equals(err.statusCode, 400);
           t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
+          t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2419,7 +2482,8 @@ tape('ftp csv tests', test => {
               ]
             },
             conform: {
-              type: 'csv'
+              type: 'csv',
+              csvsplit: ','
             }
           });
         })
@@ -2810,7 +2874,8 @@ tape('ftp zip tests', test => {
                 }, [])
               },
               conform: {
-                type: 'csv'
+                type: 'csv',
+                csvsplit: ','
               }
             });
 
@@ -2899,7 +2964,8 @@ tape('ftp zip tests', test => {
                 }, [])
               },
               conform: {
-                type: 'csv'
+                type: 'csv',
+                csvsplit: ','
               }
             });
 
@@ -2973,7 +3039,7 @@ tape('ftp zip tests', test => {
           .catch(err => {
             t.equals(err.statusCode, 400);
             t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 2 does not match header`);
+            t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3421,7 +3487,8 @@ tape('ftp zip tests', test => {
                 ]
               },
               conform: {
-                type: 'csv'
+                type: 'csv',
+                csvsplit: ','
               }
             });
 

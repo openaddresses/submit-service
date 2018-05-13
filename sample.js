@@ -11,6 +11,8 @@ const toString = require('stream-to-string');
 const dbfstream = require('dbfstream');
 const JSFtp = require('jsftp');
 const yauzl = require('yauzl');
+const byline = require('byline');
+const fs = require('fs');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -229,46 +231,71 @@ function parseCsvStream(stream, res, next) {
   }
   prefix += ' CSV';
 
-  // otherwise everything was fine so pipe the response to CSV and collect records
-  stream.pipe(csvParse({
-    // DO NOT USE `from` and `to` to limit records since it downloads the entire
-    // file whereas this way simply stops the download after 10 records
-    skip_empty_lines: true,
-    columns: true
-  }))
-  .on('error', err => {
-    const errorMessage = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
-    // const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
-    logger.info(`${prefix}: ${errorMessage}`);
-    res.status(400).type('text/plain').send(errorMessage);
-  })
-  .pipe(through2.obj(function(record, enc, callback) {
-    if (res.locals.source.source_data.results.length < 10) {
-      if (_.isEmpty(res.locals.source.source_data.fields)) {
-        logger.debug(`${prefix}: fields: ${JSON.stringify(_.keys(record))}`);
-        res.locals.source.source_data.fields = _.keys(record);
+  stream.once('data', data => {
+    // grab the first line from the stream
+    const lines = Buffer.from(data).toString().split('\n');
+
+    const headerLine = lines.shift();
+
+    // get the counts of each delimiter 
+    const delimiterHistogram = _.pick(_.countBy(headerLine), [',', '|', '\t', ';']);
+
+    // find the potential delimiter that appears most often 
+    const likelyDelimiter = _.maxBy(_.keys(delimiterHistogram), i => delimiterHistogram[i]);
+
+    res.locals.source.source_data.fields = headerLine.split(likelyDelimiter);
+    // console.log(`${prefix}: fields: ${res.locals.source.source_data.fields}`);
+    logger.debug(`${prefix}: fields: ${res.locals.source.source_data.fields}`);
+
+    res.locals.source.conform.csvsplit = likelyDelimiter;
+    logger.debug(`${prefix}: likely delimiter for ${res.locals.source.data} '${likelyDelimiter}'`);
+
+    // pause the stream and put everything else but the first line
+    // back on the stream
+    stream.pause();
+    stream.unshift(Buffer.from(lines.join('\n')));
+
+    // otherwise everything was fine so pipe the response to CSV and collect records
+    stream.pipe(csvParse({
+      // DO NOT USE `from` and `to` to limit records since it downloads the entire
+      // file whereas this way simply stops the download after 10 records
+      delimiter: likelyDelimiter,
+      skip_empty_lines: true,
+      columns: res.locals.source.source_data.fields
+    }))
+    .on('error', err => {
+      const errorMessage = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
+      // const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
+      logger.info(`${prefix}: ${errorMessage}`);
+      res.status(400).type('text/plain').send(errorMessage);
+    })
+    .pipe(through2.obj(function(record, enc, callback) {
+      // console.log('READING A RECORD')
+
+      if (res.locals.source.source_data.results.length < 10) {
+        logger.debug(`${prefix}: record: ${JSON.stringify(record)}`);
+        res.locals.source.source_data.results.push(record);
+
+        callback();
+
+      } else {
+        // there are enough records so end the stream prematurely, handle in 'close' event
+        logger.debug('${prefix}: found 10 results, exiting');
+        this.destroy();
       }
 
-      logger.debug(`${prefix}: record: ${JSON.stringify(record)}`);
-      res.locals.source.source_data.results.push(record);
+    }))
+    .on('close', () => {
+      logger.debug(`${prefix}: stream ended prematurely`);
+      next();
+    })
+    .on('finish', () => {
+      logger.debug(`${prefix}: stream ended normally`);
+      next();
+    });
 
-      callback();
+    stream.resume();
 
-    } else {
-      // there are enough records so end the stream prematurely, handle in 'close' event
-      logger.debug('${prefix}: found 10 results, exiting');
-      this.destroy();
-
-    }
-
-  }))
-  .on('close', () => {
-    logger.debug(`${prefix}: stream ended prematurely`);
-    next();
-  })
-  .on('finish', () => {
-    logger.debug(`${prefix}: stream ended normally`);
-    next();
   });
 
 }
@@ -477,7 +504,42 @@ function sampleHttpSource(req, res, next) {
         parseGeoJsonStream(r, res, next);
       } 
       else if (res.locals.source.conform.type === 'csv') {
-        parseCsvStream(r, res, next);
+        // Write the header line and 100 data lines from the file to 
+        // a temp file, then read that stream back in and process with that.
+        // This approach is required because the actual CSV parser unshifts
+        // records back onto the stream, which requires a readable stream and
+        // `r` is not one of them.  
+        const tempCsvFile = res.locals.temp.createWriteStream();
+
+        let lineCount = 0;
+
+        // read the stream in line-by-line
+        r.pipe(byline.createStream())
+          .pipe(through2.obj(function (line, enc, next) { 
+            if (lineCount++ < 101) {
+              this.push(line + '\n');
+              // console.error(`wrote line # ${lineCount}`);
+              return next();
+            }
+
+            // once 101 lines have been read, destroy the stream
+            this.destroy(); // triggers 'close' event
+
+            // close the temporary stream
+            tempCsvFile.emit('close');
+
+          }))
+          .on('error', (err) => {
+            logger.info(`HTTP CSV: ${err.message}`);
+            res.status(400).type('text/plain').send(err.message);
+            next();
+          })
+          .pipe(tempCsvFile)
+          .on('close', () => {
+            // once the temporary stream has been closed, parse it
+            parseCsvStream(fs.createReadStream(tempCsvFile.path), res, next);
+          });
+
       } 
       else if (res.locals.source.compression === 'zip') {
         processZipFile(r, res, next);

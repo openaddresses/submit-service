@@ -9,28 +9,28 @@ tape('success conditions', test => {
 
     t.deepEquals(listEndpoints(app), [
       {
+        path: '/sample',
+        methods: ['GET']
+      },
+      {
+        path: '/submit',
+        methods: ['POST']
+      },
+      {
+        path: '/sources',
+        methods: ['GET']
+      },
+      {
+        path: '/sources',
+        methods: ['GET']
+      },
+      {
         path: '/download',
         methods: ['GET']
       },
       {
         path: '/maintainers/sources',
         methods: ['GET']
-      },
-      {
-        path: '/sample',
-        methods: ['GET']
-      },
-      {
-        path: '/sources',
-        methods: ['GET']
-      },
-      {
-        path: '/sources',
-        methods: ['GET']
-      },
-      {
-        path: '/submit',
-        methods: ['POST']
       }
     ]);
 

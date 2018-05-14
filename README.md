@@ -6,7 +6,7 @@ This project provides an HTTP service that can be used to back a website that ma
 
 ## Usage
 
-While the service can be run directly from node, the preferred method is docker.
+While the service can be run directly from node and docker, the preferred method is by calling the AWS API Gateway URLs.
 
 To run using docker, enter:
 
@@ -33,6 +33,7 @@ The service exposes two endpoints for programmatic access:
 - `/sample`: looks up the field names and first 10 records from a source
 - `/submit`: submits a pull request to the OpenAddresses repo
 - `/upload`: uploads a file to be hosted to the OpenAddresses S3 bucket
+- `/sources`: 
 
 ### `/sample`
 
@@ -115,22 +116,6 @@ Since programmatically assigning a unique name based on the input is very diffic
 - HTTP status 500 with a message is returned if any Github API operations occur (meaning that credentials have most likely be entered incorrectly)
 - HTTP status 400 with a message is returned if the `source` parameter value does not conform to the OpenAddresses [source schema](https://github.com/openaddresses/openaddresses/blob/master/schema/source_schema.json)
 
-### `/upload`
- -		
-The `/upload` endpoint is available to upload data sources that require hosting by uploading to the OpenAddresses AWS S3 bucket.  The only available parameter is named `datafile`.  Upon successful upload to the OpenAddresses AWS S3 bucket, an HTTP status 302 (redirect) is returned with the target being the `/sample` endpoint complete with `source` parameter supplied.  		
-
-Since programmatically assigning a unique name based on the input is very difficult, the `/submit` endpoint creates a unique name based on random numbers.  		
-
-#### Error Conditions
-
-`/upload` supports the following error conditions:		
-
-- HTTP status 500 with a message is returned if any AWS S3 API operations occur (meaning that credentials have most likely be entered incorrectly)		
-- HTTP status 400 with a message is returned for the following scenarios:		
-  - the `datafile` parameter was not supplied		
-  - the uploaded file extension is not one of `.zip`, `.csv`, or `.geojson`		
-  - the uploaded file 
-
 ### `/sources`
 
 The `/sources` endpoint returns all subfolders and .json files of a folder in the OpenAddress GitHub repository.  This endpoint should be used for navigation of the [sources](https://github.com/openaddresses/openaddresses/tree/master/sources) folder.  Only folders should be specified in the path.  Example request:
@@ -176,9 +161,9 @@ This request would return (at the time of this documentation):
 
 ```json
 {
-  maintainers: [
+  "maintainers": [
     {
-      email: "propertyinfo@jamescitycountyva.gov"
+      "email": "propertyinfo@jamescitycountyva.gov"
     }
   ]
 }
@@ -196,18 +181,16 @@ This request would return (at the time of this documentation):
 
 ### `/download`
 
-The `/download` endpoint returns the processed data for a source in either CSV or GeoJSON format.  The format can be specified using the `format` parameter.  The supported values are `csv` (the default) and `geojson`.  The endpoint uses the [OpenAddresses results metadata file](https://results.openaddresses.io/state.txt) as a reference to find the requested source.  
+The `/download` endpoint returns the URL for latest run of a source.  The [OpenAddresses results metadata file](https://results.openaddresses.io/state.txt) as a reference to find the requested source.  
 
 #### Error Conditions
 
 `/download` endpoint supports the following error conditions:
 
 - HTTP status 400 with a message is returned in the following scenarios:
-  - the `format` parameter not either either blank, `csv`, or `geojson` 
   - the specified source does not exist in the OpenAddresses result metadata file
 - HTTP status 500 with a message is returned in the following scenarios:
   - the OpenAddresses results metadata file cannot be found
-  - the processed data cannot be parsed as CSV
   - the processed data is not a .zip file
 
 ## Supported Types

@@ -31,6 +31,12 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 // - MapServer/1/
 const arcgisRegexp = /(Map|Feature)Server\/\d+\/?$/;
 
+// matches:
+// - file.csv
+// - file.TsV
+// - file.PSV
+const delimitedFileRegexp = /\.[cpt]sv$/i;
+
 // if no source parameter was supplied, bail immediately
 function preconditionsCheck(req, res, next) {
   if (!req.query.source) {
@@ -49,6 +55,10 @@ function getProtocol(protocol) {
   } else if ('ftp:' === protocol) {
     return 'ftp';
   }
+}
+
+function isDelimitedFile(filename) {
+  return delimitedFileRegexp.test(filename);
 }
 
 // make temp scoped to individual requests so that calls to cleanup affect only
@@ -96,7 +106,7 @@ function determineType(req, res, next) {
   } else if (_.endsWith(source.pathname, '.geojson')) {
     res.locals.source.type = getProtocol(source.protocol);
     res.locals.source.conform.type = 'geojson';
-  } else if (_.endsWith(source.pathname, '.csv')) {
+  } else if (isDelimitedFile(source.pathname)) {
     res.locals.source.type = getProtocol(source.protocol);
     res.locals.source.conform.type = 'csv';
   } else if (_.endsWith(source.pathname, '.zip')) {
@@ -382,7 +392,7 @@ function processZipFile(zipfile, res, next) {
         zipfile.readEntry();
 
         zipfile.on('entry', function(entry) {
-          if (_.endsWith(entry.fileName, '.csv')) {
+          if (isDelimitedFile(entry.fileName)) {
             logger.debug(`${protocol} ZIP CSV: ${entry.fileName}`);
             res.locals.source.conform.type = 'csv';
 

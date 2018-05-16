@@ -85,6 +85,18 @@ function determineType(req, res, next) {
     return;
   }
 
+  res.locals.size = _.defaultTo(parseInt(req.query.size), 10);
+  if (!_.isInteger(res.locals.size)) {
+    res.status(400).type('text/plain').send(`Invalid size parameter value: ${req.query.size}`);
+    return;
+  }
+
+  res.locals.offset = _.defaultTo(parseInt(req.query.offset), 0);
+  if (!_.isInteger(res.locals.offset)) {
+    res.status(400).type('text/plain').send(`Invalid offset parameter value: ${req.query.offset}`);
+    return;
+  }
+
   // setup a working context
   res.locals.source = {
     coverage: {},
@@ -142,8 +154,8 @@ function sampleArcgis(req, res, next) {
   const url = new URL(`${res.locals.source.data}/query`);
   url.searchParams.append('outFields', '*');
   url.searchParams.append('where', '1=1');
-  url.searchParams.append('resultRecordCount', '10');
-  url.searchParams.append('resultOffset', '0');
+  url.searchParams.append('resultRecordCount', res.locals.size);
+  url.searchParams.append('resultOffset', res.locals.offset);
   url.searchParams.append('f', 'json');
 
   oboe(url.href)
@@ -196,8 +208,15 @@ function parseGeoJsonStream(stream, res, next) {
   }
   prefix += ' GEOJSON';
 
+  const last = res.locals.offset + res.locals.size - 1;
+
   oboe(stream)
-    .node('features.*.properties', properties => {
+    .node('features.*.properties', (properties, path) => {
+      // skip nodes until we get to the first needed
+      if (path[1] < res.locals.offset) {
+        return;
+      }
+
       if (_.isEmpty(res.locals.source.source_data.fields)) {
         logger.debug(`${prefix}: fields: ${JSON.stringify(_.keys(properties))}`);
         res.locals.source.source_data.fields = _.keys(properties);
@@ -207,8 +226,8 @@ function parseGeoJsonStream(stream, res, next) {
       res.locals.source.source_data.results.push(properties);
 
     })
-    .node('features[9]', function() {
-      // bail after the 10th result.  'done' does not get called after .abort()
+    .node(`features[${last}]`, function() {
+      // bail after the last result.  'done' does not get called after .abort()
       //  so next() must be called explicitly
       // must use full function() syntax for "this" reference
       logger.debug(`${prefix}: found 10 results, exiting`);
@@ -271,18 +290,16 @@ function parseCsvStream(stream, res, next) {
       // file whereas this way simply stops the download after 10 records
       delimiter: likelyDelimiter,
       skip_empty_lines: true,
-      columns: res.locals.source.source_data.fields
+      columns: res.locals.source.source_data.fields,
+      from: res.locals.offset+1
     }))
     .on('error', err => {
       const errorMessage = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
-      // const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
       logger.info(`${prefix}: ${errorMessage}`);
       res.status(400).type('text/plain').send(errorMessage);
     })
     .pipe(through2.obj(function(record, enc, callback) {
-      // console.log('READING A RECORD')
-
-      if (res.locals.source.source_data.results.length < 10) {
+      if (res.locals.source.source_data.results.length < res.locals.size) {
         logger.debug(`${prefix}: record: ${JSON.stringify(record)}`);
         res.locals.source.source_data.results.push(record);
 
@@ -290,7 +307,7 @@ function parseCsvStream(stream, res, next) {
 
       } else {
         // there are enough records so end the stream prematurely, handle in 'close' event
-        logger.debug('${prefix}: found 10 results, exiting');
+        logger.debug(`${prefix}: found ${res.locals.size} results, exiting`);
         this.destroy();
       }
 
@@ -338,8 +355,12 @@ function parseDbfStream(stream, res, next) {
 
   })
   .on('data', record => {
+    if (record['@numOfRecord']-1 < res.locals.offset) {
+      return;
+    }
+
     // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-    if (res.locals.source.source_data.results.length < 10) {
+    if (res.locals.source.source_data.results.length < res.locals.size) {
       if (!record['@deleted']) {
         // find all the non-@ attributes
         const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
@@ -350,7 +371,7 @@ function parseDbfStream(stream, res, next) {
 
       }
 
-    } else if (record['@numOfRecord'] === 11) {
+    } else if (record['@numOfRecord'] === res.locals.offset + res.locals.size + 1) {
       // don't use a plain `else` condition other this will fire multiple times
       logger.debug(`${prefix}: found 10 results, exiting`);
 

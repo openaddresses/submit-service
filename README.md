@@ -32,6 +32,7 @@ The service exposes two endpoints for programmatic access:
 
 - `/sample`: looks up the field names and first 10 records from a source
 - `/submit`: submits a pull request to the OpenAddresses repo
+- `/createIssue`: creates an issue in the [OpenAddresses repo](https://github.com/openaddresses/openaddresses/issues)
 - `/upload`: uploads a file to be hosted to the OpenAddresses S3 bucket
 - `/sources`: 
 
@@ -115,6 +116,50 @@ Since programmatically assigning a unique name based on the input is very diffic
 
 - HTTP status 500 with a message is returned if any Github API operations occur (meaning that credentials have most likely be entered incorrectly)
 - HTTP status 400 with a message is returned if the `source` parameter value does not conform to the OpenAddresses [source schema](https://github.com/openaddresses/openaddresses/blob/master/schema/source_schema.json)
+
+### `/createIssue`
+
+The `/createIssue` endpoint is used for creating GitHub issues in the OpenAddresses repository when the UI is unable to generate a source conform; for example, when the source requires regular expressions to parse correctly. 
+
+The only method supported by `/createIssue` is POST and requests to this endpoint should contain the following properties formatted as JSON:
+
+- `location`: the geographical area that the data represents
+- `emailAddress`: the email address of the contact for questions regarding the data
+- `dataUrl`: the URL of the hosted data
+- `comments`: any contextual information about the data to aid in efforts to accurately ingest this data
+
+An example POST body sent to the `/createIssue` endpoint would be: 
+
+```json
+{
+  "location": "Null Island",
+  "emailAddress": "DrNull@nullisland.com",
+  "dataUrl": "http://nullisland.com/data/addresses.zip",
+  "comments": "Data contains a *lot* of nulls, help!"
+}
+```
+
+The response, if successful, is a JSON blob containing the [OpenAddresses issue](https://github.com/openaddresses/openaddresses/issues) URL, for example:
+
+```json
+{
+  "response": {
+    "url": "https://github.com/openaddresses/openaddresses/issues/3855"
+  }
+}
+```
+
+#### Error Conditions
+
+`/createIssue` returns an HTTP status 400 and message if any of the following error conditions apply:
+
+- no POST body parameter is supplied
+- POST body is not parseable as JSON
+- POST body does not contain all of the following fields:
+  - `location`
+  - `emailAddress`
+  - `dataUrl`
+  - `comments`
 
 ### `/sources`
 

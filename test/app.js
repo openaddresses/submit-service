@@ -17,6 +17,10 @@ tape('success conditions', test => {
         methods: ['POST']
       },
       {
+        path: '/createIssue',
+        methods: ['POST']
+      },
+      {
         path: '/sources',
         methods: ['GET']
       },

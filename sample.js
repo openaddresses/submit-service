@@ -41,7 +41,7 @@ const delimitedFileRegexp = /\.[cpt]sv$/i;
 function preconditionsCheck(req, res, next) {
   if (!req.query.source) {
     logger.debug('rejecting request due to lack of `source` parameter');
-    res.status(400).type('text/plain').send('\'source\' parameter is required');
+    res.status(400).type('application/json').send(generateErrorMessage(400, '\'source\' parameter is required'));
   } else {
     logger.debug({ source: req.query.source });
     next();
@@ -81,19 +81,19 @@ function determineType(req, res, next) {
     source = new URL(req.query.source);
   } catch (err) {
     logger.info(`Unable to parse URL from '${req.query.source}'`);
-    res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
+    res.status(400).type('application/json').send(generateErrorMessage(400, `Unable to parse URL from '${req.query.source}'`));
     return;
   }
 
   res.locals.size = _.defaultTo(parseInt(req.query.size), 10);
   if (!_.isInteger(res.locals.size)) {
-    res.status(400).type('text/plain').send(`Invalid size parameter value: ${req.query.size}`);
+    res.status(400).type('application/json').send(generateErrorMessage(400, `Invalid size parameter value: ${req.query.size}`));
     return;
   }
 
   res.locals.offset = _.defaultTo(parseInt(req.query.offset), 0);
   if (!_.isInteger(res.locals.offset)) {
-    res.status(400).type('text/plain').send(`Invalid offset parameter value: ${req.query.offset}`);
+    res.status(400).type('application/json').send(generateErrorMessage(400, `Invalid offset parameter value: ${req.query.offset}`));
     return;
   }
 
@@ -114,7 +114,7 @@ function determineType(req, res, next) {
     res.locals.source.conform.type = 'geojson';
   } else if (!source.protocol) {
     logger.info(`Unable to parse URL from '${req.query.source}'`);
-    res.status(400).type('text/plain').send(`Unable to parse URL from '${req.query.source}'`);
+    res.status(400).type('application/json').send(generateErrorMessage(400, `Unable to parse URL from '${req.query.source}'`));
   } else if (_.endsWith(source.pathname, '.geojson')) {
     res.locals.source.type = getProtocol(source.protocol);
     res.locals.source.conform.type = 'geojson';
@@ -125,7 +125,7 @@ function determineType(req, res, next) {
     res.locals.source.type = getProtocol(source.protocol);
     res.locals.source.compression = 'zip';
   } else {
-    res.status(400).type('text/plain').send('Unsupported type');
+    res.status(400).type('application/json').send(generateErrorMessage(400, 'Unsupported type'));
   }
 
   // only call next() if no response was previously sent (due to error or unsupported type)
@@ -141,6 +141,15 @@ function protocolCheck(protocol, req, res, next) {
   } else {
     next('route');
   }    
+}
+
+function generateErrorMessage(code, message) {
+  return {
+    error: {
+      code: code,
+      message: message
+    }
+  };
 }
 
 const isArcgisSource = protocolCheck.bind(null, 'ESRI');
@@ -162,7 +171,7 @@ function sampleArcgis(req, res, next) {
     .node('error', err => {
       const msg = `Error connecting to Arcgis server ${res.locals.source.data}: ${err.message} (${err.code})`;
       logger.info(`ARCGIS: ${msg}`);
-      res.status(400).type('text/plain').send(msg);
+      res.status(400).type('application/json').send(generateErrorMessage(400, msg));
     })
     .node('fields.*.name', name => {
       logger.debug(`ARCGIS: field name: '${name}'`);
@@ -187,7 +196,7 @@ function sampleArcgis(req, res, next) {
 
       logger.info(`ARCGIS: ${errorMessage}`);
 
-      res.status(400).type('text/plain').send(errorMessage);
+      res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
     })
     .done(() => {
@@ -239,7 +248,7 @@ function parseGeoJsonStream(stream, res, next) {
       errorMessage += 'Could not parse as JSON';
       logger.info(`${prefix}: ${errorMessage}`);
 
-      res.status(400).type('text/plain').send(errorMessage);
+      res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
     })
     .done(() => {
@@ -296,7 +305,7 @@ function parseCsvStream(stream, res, next) {
     .on('error', err => {
       const errorMessage = `Error parsing file from ${res.locals.source.data} as CSV: ${err}`;
       logger.info(`${prefix}: ${errorMessage}`);
-      res.status(400).type('text/plain').send(errorMessage);
+      res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
     })
     .pipe(through2.obj(function(record, enc, callback) {
       if (res.locals.source.source_data.results.length < res.locals.size) {
@@ -352,7 +361,7 @@ function parseDbfStream(stream, res, next) {
       errorMessage += 'Could not parse as shapefile';
       logger.info(`${prefix}: ${errorMessage}`);
 
-      res.status(400).type('text/plain').send(errorMessage);
+      res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
     })
     .on('header', header => {
@@ -393,7 +402,7 @@ function processZipFile(zipfile, res, next) {
       if (err) {
         const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
         logger.info(`${protocol} ZIP: ${errorMessage}`);
-        res.status(400).type('text/plain').send(errorMessage);
+        res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
       } else {
         // read first entry
@@ -459,7 +468,7 @@ function processZipFile(zipfile, res, next) {
         zipfile.on('error', err => {
           const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
           logger.info(`${protocol} ZIP: ${errorMessage}`);
-          res.status(400).type('text/plain').send(errorMessage);
+          res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
         });
 
@@ -467,7 +476,7 @@ function processZipFile(zipfile, res, next) {
         zipfile.on('end', () => {
           if (!res.locals.source.conform.type) {
             logger.info(`${protocol} ZIP: Could not determine type from zip file`);
-            res.status(400).type('text/plain').send('Could not determine type from zip file');
+            res.status(400).type('application/json').send(generateErrorMessage(400, 'Could not determine type from zip file'));
           }
 
         });
@@ -490,7 +499,7 @@ function sampleHttpSource(req, res, next) {
     const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err.code}`;
     logger.info(`HTTP GEOJSON: ${errorMessage}`);
 
-    res.status(400).type('text/plain').send(errorMessage);
+    res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
   });
 
@@ -500,12 +509,12 @@ function sampleHttpSource(req, res, next) {
       // something went wrong so optionally save up the response text and return an error
       let errorMessage = `Error retrieving file ${res.locals.source.data}`;
 
-      // if the content type is text/plain, then use the error message text
+      // if the content type is application/json, then use the error message text
       if (_.startsWith(_.get(response.headers, 'content-type'), 'text/plain')) {
         toString(r, (err, msg) => {
           errorMessage += `: ${msg} (${response.statusCode})`;
           logger.info(`HTTP GEOJSON: ${errorMessage}`);
-          res.status(400).type('text/plain').send(errorMessage);
+          res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
         });
 
@@ -513,7 +522,7 @@ function sampleHttpSource(req, res, next) {
       else {
         errorMessage += `: (${response.statusCode})`;
         logger.info(`HTTP GEOJSON: ${errorMessage}`);
-        res.status(400).type('text/plain').send(errorMessage);
+        res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
 
       }
 
@@ -549,7 +558,7 @@ function sampleHttpSource(req, res, next) {
           }))
           .on('error', (err) => {
             logger.info(`HTTP CSV: ${err.message}`);
-            res.status(400).type('text/plain').send(err.message);
+            res.status(400).type('application/json').send(generateErrorMessage(400, err.message));
             next();
           })
           .pipe(tempCsvFile)
@@ -592,7 +601,7 @@ function sampleFtpSource(req, res, next) {
   ftp.on('error', (err) => {
     const errorMessage = `Error retrieving file ${res.locals.source.data}: ${err}`;
     logger.info(`FTP ZIP: ${errorMessage}`);
-    res.status(400).type('text/plain').send(errorMessage);
+    res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
   });
 
   ftp.auth(options.user, options.pass, authErr => {
@@ -600,7 +609,7 @@ function sampleFtpSource(req, res, next) {
       const errorMessage = `Error retrieving file ${res.locals.source.data}: Authentication error`;
 
       logger.info(`FTP GEOJSON: ${errorMessage}`);
-      res.status(400).type('text/plain').send(errorMessage);
+      res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
       return;
     }
 
@@ -610,7 +619,7 @@ function sampleFtpSource(req, res, next) {
         const errorMessage = `Error retrieving file ${res.locals.source.data}: ${getErr}`;
         logger.info(`FTP GEOJSON: ${errorMessage}`);
 
-        res.status(400).type('text/plain').send(errorMessage);
+        res.status(400).type('application/json').send(generateErrorMessage(400, errorMessage));
         return;
       }
 

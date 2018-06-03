@@ -225,8 +225,13 @@ tape('arcgis tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error connecting to Arcgis server ${source}: Error handling service request (500)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error connecting to Arcgis server ${source}: Error handling service request (500)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -263,8 +268,13 @@ tape('arcgis tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error connecting to Arcgis server ${source}: Could not parse as JSON`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error connecting to Arcgis server ${source}: Could not parse as JSON`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -295,8 +305,13 @@ tape('arcgis tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error connecting to Arcgis server ${source}: page not found (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error connecting to Arcgis server ${source}: page not found (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -326,8 +341,13 @@ tape('arcgis tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error connecting to Arcgis server ${source}: ECONNREFUSED`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error connecting to Arcgis server ${source}: ECONNREFUSED`
+            }
+          });
         })
         .finally(() => {
           sampleService.close(() => t.end());
@@ -625,8 +645,13 @@ tape('http geojson tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: Could not parse as JSON`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -657,8 +682,13 @@ tape('http geojson tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: page not found (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -688,8 +718,13 @@ tape('http geojson tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: ECONNREFUSED`
+            }
+          });
         })
         .finally(() => {
           sampleService.close(() => t.end());
@@ -1003,8 +1038,13 @@ tape('http csv tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1015,7 +1055,7 @@ tape('http csv tests', test => {
   test.test('csv file returning text/plain error should return 400 w/message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
     const sourceServer = express().get('/file.csv', (req, res, next) => {
-      res.status(404).type('text').send('page not found');
+      res.status(404).type('text/plain').send('page not found');
     }).listen();
 
     // start the service with the sample endpoint
@@ -1035,8 +1075,13 @@ tape('http csv tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: page not found (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1044,7 +1089,7 @@ tape('http csv tests', test => {
 
   });
 
-  test.test('csv file returning non-text/plain error should return 400 w/o message', t => {
+  test.test('csv file returning non-application/json error should return 400 w/o message', t => {
     // startup an HTTP server that will respond to file.geojson requests with a 404
     const sourceServer = express().get('/file.csv', (req, res, next) => {
       res.status(404).type('html').send('page not found');
@@ -1067,8 +1112,13 @@ tape('http csv tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1098,8 +1148,13 @@ tape('http csv tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: ECONNREFUSED`
+            }
+          });
         })
         .finally(() => {
           sampleService.close(() => t.end());
@@ -1319,8 +1374,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: Could not parse as JSON`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1543,8 +1603,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1885,8 +1950,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error parsing file from ${source}: Could not parse as shapefile`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error parsing file from ${source}: Could not parse as shapefile`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1917,8 +1987,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: page not found (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: page not found (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1926,7 +2001,7 @@ tape('http zip tests', test => {
 
   });
 
-  test.test('zip file returning non-text/plain error should return 400 w/o message', t => {
+  test.test('zip file returning non-application/json error should return 400 w/o message', t => {
     // startup an HTTP server that will respond to file.zip requests with a 404
     const sourceServer = express().get('/file.zip', (req, res, next) => {
       res.status(404).type('html').send('page not found');
@@ -1949,8 +2024,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: (404)`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: (404)`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -1983,8 +2063,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, `Error retrieving file ${source}: Error: end of central directory record signature not found`);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: `Error retrieving file ${source}: Error: end of central directory record signature not found`
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -2013,8 +2098,13 @@ tape('http zip tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: ECONNREFUSED`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: ECONNREFUSED`
+            }
+          });
         })
         .finally(() => {
           sampleService.close(() => t.end());
@@ -2147,8 +2237,13 @@ tape('http zip tests', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, 'Could not determine type from zip file');
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: 'Could not determine type from zip file'
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => sourceServer.close(() => t.end()));
@@ -2337,8 +2432,9 @@ tape('ftp geojson tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.ok(_.startsWith(err.error, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.equals(err.error.error.code, 400);
+          t.ok(_.startsWith(err.error.error.message, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2379,8 +2475,13 @@ tape('ftp geojson tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: Could not parse as JSON`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2497,8 +2598,13 @@ tape('ftp geojson tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Authentication error`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: Authentication error`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2692,8 +2798,9 @@ tape('ftp csv tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.ok(_.startsWith(err.error, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.equals(err.error.error.code, 400);
+          t.ok(_.startsWith(err.error.error.message, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2740,8 +2847,13 @@ tape('ftp csv tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -2850,8 +2962,13 @@ tape('ftp csv tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Authentication error`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: Authentication error`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -3111,8 +3228,13 @@ tape('ftp zip tests', test => {
           .then(response => t.fail('request should not have been successful'))
           .catch(err => {
             t.equals(err.statusCode, 400);
-            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error retrieving file ${source}: Could not parse as JSON`);
+            t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(err.error, {
+              error: {
+                code: 400,
+                message: `Error retrieving file ${source}: Could not parse as JSON`
+              }
+            });
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3388,8 +3510,13 @@ tape('ftp zip tests', test => {
           .then(response => t.fail('request should not have been successful'))
           .catch(err => {
             t.equals(err.statusCode, 400);
-            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`);
+            t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(err.error, {
+              error: {
+                code: 400,
+                message: `Error parsing file from ${source} as CSV: Error: Number of columns on line 1 does not match header`
+              }
+            });
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3661,8 +3788,13 @@ tape('ftp zip tests', test => {
           .then(response => t.fail('request should not have been successful'))
           .catch(err => {
             t.equals(err.statusCode, 400);
-            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, `Error parsing file from ${source}: Could not parse as shapefile`);
+            t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(err.error, {
+              error: {
+                code: 400,
+                message: `Error parsing file from ${source}: Could not parse as shapefile`
+              }
+            });
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3706,8 +3838,13 @@ tape('ftp zip tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Error: end of central directory record signature not found`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: Error: end of central directory record signature not found`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -3750,8 +3887,9 @@ tape('ftp zip tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.ok(_.startsWith(err.error, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.equals(err.error.error.code, 400);
+          t.ok(_.startsWith(err.error.error.message, `Error retrieving file ${source}: Error: 551 ENOENT: no such file or directory`));
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -3885,8 +4023,13 @@ tape('ftp zip tests', test => {
         .then(response => t.fail('request should not have been successful'))
         .catch(err => {
           t.equals(err.statusCode, 400);
-          t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-          t.equals(err.error, `Error retrieving file ${source}: Authentication error`);
+          t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+          t.deepEquals(err.error, {
+            error: {
+              code: 400,
+              message: `Error retrieving file ${source}: Authentication error`
+            }
+          });
         })
         .finally(() => {
           // close ftp server -> app server -> tape
@@ -3946,8 +4089,13 @@ tape('ftp zip tests', test => {
           .then(response => t.fail('request should not have been successful'))
           .catch(err => {
             t.equals(err.statusCode, 400);
-            t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-            t.equals(err.error, 'Could not determine type from zip file');
+            t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+            t.deepEquals(err.error, {
+              error: {
+                code: 400,
+                message: 'Could not determine type from zip file'
+              }
+            });
           })
           .finally(() => {
             // close ftp server -> app server -> tape
@@ -3978,8 +4126,13 @@ tape('error conditions', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, '\'source\' parameter is required');
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: '\'source\' parameter is required'
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => t.end());
@@ -4003,8 +4156,13 @@ tape('error conditions', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, '\'source\' parameter is required');
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: '\'source\' parameter is required'
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => t.end());
@@ -4028,8 +4186,13 @@ tape('error conditions', test => {
     .then(response => t.fail('request should not have been successful'))
     .catch(err => {
       t.equals(err.statusCode, 400);
-      t.equals(err.response.headers['content-type'], 'text/plain; charset=utf-8');
-      t.equals(err.error, 'Unable to parse URL from \'unsupported type\'');
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 400,
+          message: 'Unable to parse URL from \'unsupported type\''
+        }
+      });
     })
     .finally(() => {
       sampleService.close(() => t.end());

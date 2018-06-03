@@ -738,13 +738,6 @@ data-uri-to-buffer@1:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/data-uri-to-buffer/-/data-uri-to-buffer-1.2.0.tgz#77163ea9c20d8641b4707e8f18abdf9a78f34835"
 
-"dbfstream@git://github.com/trescube/dbfstream#add-error-handling":
-  version "1.0.20"
-  resolved "git://github.com/trescube/dbfstream#d9a062481dc1e321e3fa330379960522a9496827"
-  dependencies:
-    iconv-lite "^0.4.13"
-    is-stream "^1.1.0"
-
 debug@2, debug@2.6.9:
   version "2.6.9"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
@@ -1667,7 +1660,7 @@ husky@^0.14.3:
     normalize-path "^1.0.0"
     strip-indent "^2.0.0"
 
-iconv-lite@0.4.19, iconv-lite@^0.4.13, iconv-lite@^0.4.17, iconv-lite@~0.4.13:
+iconv-lite@0.4.19, iconv-lite@^0.4.17, iconv-lite@~0.4.13:
   version "0.4.19"
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.4.19.tgz#f7468f60135f5e5dad3399c0a81be9a1603a082b"
 
@@ -4103,6 +4096,10 @@ y18n@^3.2.1:
 y18n@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/y18n/-/y18n-4.0.0.tgz#95ef94f85ecc81d007c264e190a120f0a3c8566b"
+
+yadbf@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/yadbf/-/yadbf-2.2.0.tgz#2b7ffa0b9129e240fa18b77d1071c7cc12c3b38a"
 
 yallist@^2.1.2:
   version "2.1.2"

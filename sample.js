@@ -8,7 +8,7 @@ const through2 = require('through2');
 const oboe = require('oboe');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
-const dbfstream = require('dbfstream');
+const yadbf = require('yadbf');
 const JSFtp = require('jsftp');
 const yauzl = require('yauzl');
 const byline = require('byline');
@@ -337,59 +337,46 @@ function parseDbfStream(stream, res, next) {
 
   res.locals.source.source_data.results = [];
 
+  const options = {
+    offset: res.locals.offset,
+    size: res.locals.size
+  };
+
   // pipe the dbf contents from the .zip file to a stream
-  dbfstream(stream)
-  .on('error', err => {
-    let errorMessage = `Error parsing file from ${res.locals.source.data}: `;
-    errorMessage += 'Could not parse as shapefile';
-    logger.info(`${prefix}: ${errorMessage}`);
+  stream
+    .pipe(yadbf(options))
+    .on('error', err => {
+      console.error(err);
 
-    res.status(400).type('text/plain').send(errorMessage);
+      let errorMessage = `Error parsing file from ${res.locals.source.data}: `;
+      errorMessage += 'Could not parse as shapefile';
+      logger.info(`${prefix}: ${errorMessage}`);
 
-  })
-  .on('header', header => {
-    // there's a header so pull the field names from it
-    res.locals.source.source_data.fields = header.listOfFields.map(f => f.name);
+      res.status(400).type('text/plain').send(errorMessage);
 
-    logger.debug(`${prefix}: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
+    })
+    .on('header', header => {
+      // there's a header so pull the field names from it
+      res.locals.source.source_data.fields = header.fields.map(f => f.name);
 
-  })
-  .on('data', record => {
-    if (record['@numOfRecord']-1 < res.locals.offset) {
-      return;
-    }
+      logger.debug(`${prefix}: fields: ${JSON.stringify(res.locals.source.source_data.fields)}`);
 
-    // if there aren't 10 records in the array yet and the record isn't deleted, then add it
-    if (res.locals.source.source_data.results.length < res.locals.size) {
-      if (!record['@deleted']) {
-        // find all the non-@ attributes
-        const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
+    })
+    .on('data', record => {
+      // find all the non-@ attributes
+      const attributes = _.pickBy(record, (value, key) => !_.startsWith(key, '@'));
 
-        logger.debug(`${prefix}: attributes: ${JSON.stringify(attributes)}`);
+      logger.debug(`${prefix}: attributes: ${JSON.stringify(attributes)}`);
 
-        res.locals.source.source_data.results.push(attributes);
+      res.locals.source.source_data.results.push(attributes);
 
+    })
+    .on('end', () => {
+      // ran out of records before 10, so call next()
+      if (!res.headersSent) {
+        return next();
       }
-
-    } else if (record['@numOfRecord'] === res.locals.offset + res.locals.size + 1) {
-      // don't use a plain `else` condition other this will fire multiple times
-      logger.debug(`${prefix}: found 10 results, exiting`);
-
-      // discard the remains of the .dbf file
-      // entry.autodrain();
-
-      // there are 10 records, so call next()
-      return next();
-
-    }
-
-  })
-  .on('end', () => {
-    // ran out of records before 10, so call next()
-    if (!res.headersSent) {
-      return next();
-    }
-  });
+    });
 
 }
 

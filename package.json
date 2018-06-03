@@ -24,7 +24,7 @@
     "body-parser": "^1.18.2",
     "byline": "^5.0.0",
     "csv-parse": "^2.0.0",
-    "dbfstream": "git://github.com/trescube/dbfstream#add-error-handling",
+    "yadbf": "^2.2.0",
     "express": "^4.16.2",
     "helmet": "^3.9.0",
     "indian-ocean": "^3.0.2",

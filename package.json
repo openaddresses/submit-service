@@ -51,7 +51,7 @@
     "husky": "^0.14.3",
     "proxyquire": "^2.0.0",
     "request-promise": "^4.2.2",
-    "tap-dot": "^1.0.1",
+    "tap-dot": "^2.0.0",
     "tape": "^4.2.2"
   },
   "eslintConfig": {

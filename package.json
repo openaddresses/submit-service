@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "archiver": "^2.1.1",
-    "claudia": "^4.0.0",
+    "claudia": "^5.0.0",
     "eslint": "^4.15.0",
     "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.15.0",

@@ -1,5 +1,6 @@
 const express = require('express');
 const GitHubApi = require('@octokit/rest');
+const cors = require('cors');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -119,6 +120,7 @@ function getCommits(req, res, next) {
 
 module.exports = express.Router()
   .get('/', 
+    cors(),
     uploadPreconditionsCheck,
     getCommits
   );

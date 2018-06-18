@@ -2,6 +2,7 @@ const express = require('express');
 const GitHubApi = require('@octokit/rest');
 const _ = require('lodash');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -146,6 +147,7 @@ module.exports = express.Router()
   .use(bodyParser.json())
   .use(postBodyErrorHandler)
   .post('/', [
+    cors(),
     preconditionsCheck,
     authenticateWithGithub,
     createIssue,

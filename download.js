@@ -4,6 +4,7 @@ const _ = require('lodash');
 const toString = require('stream-to-string');
 const csvParse = require( 'csv-parse' );
 const through2 = require('through2');
+const cors = require('cors');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -157,6 +158,7 @@ function getMetaData(req, res, next) {
 
 module.exports = express.Router()
   .get('/', [
+    cors(),
     preconditionsCheck,
     getMetaData
   ]);

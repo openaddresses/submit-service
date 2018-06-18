@@ -13,6 +13,7 @@ const JSFtp = require('jsftp');
 const yauzl = require('yauzl');
 const byline = require('byline');
 const fs = require('fs');
+const cors = require('cors');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -669,6 +670,7 @@ const ftpRouter = express.Router();
 ftpRouter.get('/', isFtpSource, sampleFtpSource);
 
 router.get('/',
+  cors(),
   preconditionsCheck,
   determineType,
   setupTemp,

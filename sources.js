@@ -1,5 +1,6 @@
 const express = require('express');
 const GitHubApi = require('@octokit/rest');
+const cors = require('cors');
 
 const winston = require('winston');
 const logger = winston.createLogger({
@@ -61,4 +62,6 @@ function getSources(req, res, next) {
 }
 
 module.exports = express.Router()
-  .get('/', getSources);
+  .get('/', [
+    cors(), getSources
+  ]);

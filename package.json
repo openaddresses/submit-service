@@ -53,49 +53,5 @@
     "request-promise": "^4.2.2",
     "tap-dot": "^2.0.0",
     "tape": "^4.2.2"
-  },
-  "eslintConfig": {
-    "env": {
-      "node": true,
-      "es6": true
-    },
-    "parserOptions": {
-      "ecmaVersion": 2017
-    },
-    "rules": {
-      "curly": "error",
-      "eqeqeq": "error",
-      "max-depth": [
-        "error",
-        4
-      ],
-      "max-len": [
-        "error",
-        140
-      ],
-      "max-params": [
-        "error",
-        4
-      ],
-      "newIsCap": true,
-      "no-global-assign": "error",
-      "no-empty": "error",
-      "no-unreachable": "error",
-      "no-new": "error",
-      "no-undef": "error",
-      "no-unused-expressions": "error",
-      "quotes": [
-        "error",
-        "single"
-      ],
-      "semi": [
-        "error",
-        "always"
-      ]
-    }
-  },
-  "eslintIgnore": [
-    "node_modules",
-    "public/jquery*"
-  ]
+  }
 }

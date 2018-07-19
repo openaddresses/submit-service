@@ -186,7 +186,9 @@ tape('valid source tests', test => {
       method: 'POST',
       qs: {},
       body: {
-        coverage: {},
+        coverage: {
+
+        },
         note: 'this is the note',
         data: 'this is the data URL',
         type: 'source type',
@@ -300,11 +302,20 @@ tape('valid source tests', test => {
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
 
     const postContent = {
-      coverage: {},
       note: 'this is the note',
       data: 'this is the data URL',
       type: 'source type',
       conform: {}
+    };
+
+    const expectedPostContent = {
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {},
+      coverage: {
+        country: 'xx'
+      },
     };
 
     // mock the github in the submit route
@@ -331,7 +342,7 @@ tape('valid source tests', test => {
                 repo: 'openaddresses',
                 path: 'sources/contrib/source_45554d.json',
                 message: 'This file was added by the OpenAddresses submit-service',
-                content: Buffer.from(JSON.stringify(postContent, null, 4)).toString('base64'),
+                content: Buffer.from(JSON.stringify(expectedPostContent, null, 4)).toString('base64'),
                 branch: 'submit_service_45554d'
               });
 
@@ -530,4 +541,390 @@ tape('valid source tests', test => {
 
   });
 
+});
+
+tape('source fixing', test => {
+  test.test('source should be fixed', t => {
+    t.plan(4);
+
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    // coverage should be added with country
+    // license: null values removed
+    // test: property removed
+    // website: property removed
+    // conform children: nulls removed
+    // conform children: set to 'fields' when no 'function'
+
+    const postContent = {
+      license: {
+        url: 'url value',
+        attribution: null,
+        'attribution name': null,
+        'share-alike': null
+      },
+      test: true,
+      website: {},
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {
+        type: 'shapefile',
+        number: {
+          fields: [
+            'field 1',
+            'field 2'
+          ],
+          function: null
+        },
+        street: {
+          fields: [
+            'field 3',
+            'field 4'
+          ],
+          function: null,
+          may_contain_units: null
+        },
+        unit: {
+          function: null,
+          fields: [
+            'field 5',
+            'field 6'
+          ]
+        },
+        city: {
+          function: null,
+          fields: null
+        },
+        district: {
+          function: null,
+          fields: null
+        }
+      }
+    };
+
+    const expectedPostContent = {
+      license: {
+        url: 'url value'
+      },
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {
+        type: 'shapefile',
+        number: [
+          'field 1',
+          'field 2'
+        ],
+        street: [
+          'field 3',
+          'field 4'
+        ],
+        unit: [
+          'field 5',
+          'field 6'
+        ]
+      },
+      coverage: {
+        country: 'xx'
+      }
+    };
+
+    // mock the github in the submit route
+    const submitEndpoint = proxyquire('../submit', {
+      '@octokit/rest': function GitHub() {
+        return {
+          authenticate: () => {},
+          gitdata: {
+            getReference: o => new Promise((resolve, reject) => resolve(
+              {
+                data: {
+                  object: {
+                    sha: 'master sha'
+                  }
+                }
+              }
+            )),
+            createReference: o => new Promise((resolve, reject) => resolve())
+          },
+          repos: {
+            createFile: o => {
+              t.deepEquals(o, {
+                owner: 'openaddresses',
+                repo: 'openaddresses',
+                path: 'sources/contrib/source_45554d.json',
+                message: 'This file was added by the OpenAddresses submit-service',
+                content: Buffer.from(JSON.stringify(expectedPostContent, null, 4)).toString('base64'),
+                branch: 'submit_service_45554d'
+              });
+
+              return new Promise((resolve, reject) => reject('createFile in local reference failed'));
+
+            }
+          },
+          pullRequests: {
+            create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
+          }
+        };
+      },
+      'lodash': {
+        random: (start, end) => 4543821
+      }
+    });
+
+    const submitService = express().use('/', submitEndpoint).listen();
+
+    request({
+      uri: `http://localhost:${submitService.address().port}/`,
+      method: 'POST',
+      body: postContent,
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 500,
+          message: 'Error creating file for reference: createFile in local reference failed'
+        }
+      });
+    })
+    .finally(() => {
+      submitService.close();
+    });
+  });
+
+  test.test('lat/lon should be removed for type=shapefile/geojson', t => {
+    t.plan(4 * 2);
+
+    ['shapefile', 'geojson'].forEach(conformType => {
+      process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+      const postContent = {
+        license: {
+          url: 'url value'
+        },
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {
+          type: conformType,
+          number: [
+            'field 1',
+            'field 2'
+          ],
+          lat: {
+            function: null,
+            fields: null
+          },
+          lon: {
+            function: null,
+            fields: null
+          }
+        }
+      };
+
+      const expectedPostContent = {
+        license: {
+          url: 'url value'
+        },
+        note: 'this is the note',
+        data: 'this is the data URL',
+        type: 'source type',
+        conform: {
+          type: conformType,
+          number: [
+            'field 1',
+            'field 2'
+          ]
+        },
+        coverage: {
+          country: 'xx'
+        }
+      };
+
+      // mock the github in the submit route
+      const submitEndpoint = proxyquire('../submit', {
+        '@octokit/rest': function GitHub() {
+          return {
+            authenticate: () => {},
+            gitdata: {
+              getReference: o => new Promise((resolve, reject) => resolve(
+                {
+                  data: {
+                    object: {
+                      sha: 'master sha'
+                    }
+                  }
+                }
+              )),
+              createReference: o => new Promise((resolve, reject) => resolve())
+            },
+            repos: {
+              createFile: o => {
+                t.deepEquals(o, {
+                  owner: 'openaddresses',
+                  repo: 'openaddresses',
+                  path: 'sources/contrib/source_45554d.json',
+                  message: 'This file was added by the OpenAddresses submit-service',
+                  content: Buffer.from(JSON.stringify(expectedPostContent, null, 4)).toString('base64'),
+                  branch: 'submit_service_45554d'
+                });
+
+                return new Promise((resolve, reject) => reject('createFile in local reference failed'));
+
+              }
+            },
+            pullRequests: {
+              create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
+            }
+          };
+        },
+        'lodash': {
+          random: (start, end) => 4543821
+        }
+      });
+
+      const submitService = express().use('/', submitEndpoint).listen();
+
+      request({
+        uri: `http://localhost:${submitService.address().port}/`,
+        method: 'POST',
+        body: postContent,
+        json: true,
+        resolveWithFullResponse: true
+      })
+      .then(t.fail.bind(null, 'request should not have been successful'))
+      .catch(err => {
+        t.equals(err.statusCode, 500);
+        t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+        t.deepEquals(err.error, {
+          error: {
+            code: 500,
+            message: 'Error creating file for reference: createFile in local reference failed'
+          }
+        });
+      })
+      .finally(() => {
+        submitService.close();
+      });
+    });
+
+  });
+
+  test.test('lat/lon should be retained for type=csv and converted to string', t => {
+    t.plan(4);
+
+    process.env.GITHUB_ACCESS_TOKEN = 'github access token';
+
+    const postContent = {
+      license: {
+        url: 'url value'
+      },
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {
+        type: 'csv',
+        lat: {
+          function: null,
+          fields: [
+            'field 1'
+          ]
+        },
+        lon: {
+          function: null,
+          fields: [
+            'field 2'
+          ]
+        }
+      }
+    };
+
+    const expectedPostContent = {
+      license: {
+        url: 'url value'
+      },
+      note: 'this is the note',
+      data: 'this is the data URL',
+      type: 'source type',
+      conform: {
+        type: 'csv',
+        lat: 'field 1',
+        lon: 'field 2'
+      },
+      coverage: {
+        country: 'xx'
+      }
+    };
+
+    // mock the github in the submit route
+    const submitEndpoint = proxyquire('../submit', {
+      '@octokit/rest': function GitHub() {
+        return {
+          authenticate: () => {},
+          gitdata: {
+            getReference: o => new Promise((resolve, reject) => resolve(
+              {
+                data: {
+                  object: {
+                    sha: 'master sha'
+                  }
+                }
+              }
+            )),
+            createReference: o => new Promise((resolve, reject) => resolve())
+          },
+          repos: {
+            createFile: o => {
+              t.deepEquals(o, {
+                owner: 'openaddresses',
+                repo: 'openaddresses',
+                path: 'sources/contrib/source_45554d.json',
+                message: 'This file was added by the OpenAddresses submit-service',
+                content: Buffer.from(JSON.stringify(expectedPostContent, null, 4)).toString('base64'),
+                branch: 'submit_service_45554d'
+              });
+
+              return new Promise((resolve, reject) => reject('createFile in local reference failed'));
+
+            }
+          },
+          pullRequests: {
+            create: () => t.fail.bind(null, 'pullRequests.create should not have been called')
+          }
+        };
+      },
+      'lodash': {
+        random: (start, end) => 4543821
+      }
+    });
+
+    const submitService = express().use('/', submitEndpoint).listen();
+
+    request({
+      uri: `http://localhost:${submitService.address().port}/`,
+      method: 'POST',
+      body: postContent,
+      json: true,
+      resolveWithFullResponse: true
+    })
+    .then(t.fail.bind(null, 'request should not have been successful'))
+    .catch(err => {
+      t.equals(err.statusCode, 500);
+      t.equals(err.response.headers['content-type'], 'application/json; charset=utf-8');
+      t.deepEquals(err.error, {
+        error: {
+          code: 500,
+          message: 'Error creating file for reference: createFile in local reference failed'
+        }
+      });
+    })
+    .finally(() => {
+      submitService.close();
+    });
+  });
 });

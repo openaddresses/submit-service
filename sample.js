@@ -8,7 +8,7 @@ const through2 = require('through2');
 const oboe = require('oboe');
 const morgan = require('morgan');
 const toString = require('stream-to-string');
-const yadbf = require('yadbf');
+const YADBF = require('yadbf');
 const JSFtp = require('jsftp');
 const yauzl = require('yauzl');
 const byline = require('byline');
@@ -140,7 +140,7 @@ function protocolCheck(protocol, req, res, next) {
     next();
   } else {
     next('route');
-  }    
+  }
 }
 
 function generateErrorMessage(code, message) {
@@ -275,10 +275,10 @@ function parseCsvStream(stream, res, next) {
 
     const headerLine = lines.shift();
 
-    // get the counts of each delimiter 
+    // get the counts of each delimiter
     const delimiterHistogram = _.pick(_.countBy(headerLine), [',', '|', '\t', ';']);
 
-    // find the potential delimiter that appears most often 
+    // find the potential delimiter that appears most often
     const likelyDelimiter = _.maxBy(_.keys(delimiterHistogram), i => delimiterHistogram[i]);
 
     res.locals.source.source_data.fields = headerLine.split(likelyDelimiter);
@@ -353,10 +353,8 @@ function parseDbfStream(stream, res, next) {
 
   // pipe the dbf contents from the .zip file to a stream
   stream
-    .pipe(yadbf(options))
+    .pipe(new YADBF(options))
     .on('error', err => {
-      console.error(err);
-
       let errorMessage = `Error parsing file from ${res.locals.source.data}: `;
       errorMessage += 'Could not parse as shapefile';
       logger.info(`${prefix}: ${errorMessage}`);
@@ -433,7 +431,7 @@ function processZipFile(zipfile, res, next) {
                 console.error(`err: ${err}`);
               } else {
                 parseGeoJsonStream(stream, res, next);
-              } 
+              }
 
             });
 
@@ -529,20 +527,20 @@ function sampleHttpSource(req, res, next) {
     } else {
       if (res.locals.source.conform.type === 'geojson') {
         parseGeoJsonStream(r, res, next);
-      } 
+      }
       else if (res.locals.source.conform.type === 'csv') {
-        // Write the header line and 100 data lines from the file to 
+        // Write the header line and 100 data lines from the file to
         // a temp file, then read that stream back in and process with that.
         // This approach is required because the actual CSV parser unshifts
         // records back onto the stream, which requires a readable stream and
-        // `r` is not one of them.  
+        // `r` is not one of them.
         const tempCsvFile = res.locals.temp.createWriteStream();
 
         let lineCount = 0;
 
         // read the stream in line-by-line
         r.pipe(byline.createStream())
-          .pipe(through2.obj(function (line, enc, next) { 
+          .pipe(through2.obj(function (line, enc, next) {
             if (lineCount++ < 101) {
               this.push(line + '\n');
               // console.error(`wrote line # ${lineCount}`);
@@ -567,10 +565,10 @@ function sampleHttpSource(req, res, next) {
             parseCsvStream(fs.createReadStream(tempCsvFile.path), res, next);
           });
 
-      } 
+      }
       else if (res.locals.source.compression === 'zip') {
         processZipFile(r, res, next);
-      } 
+      }
 
     }
 
@@ -628,13 +626,13 @@ function sampleFtpSource(req, res, next) {
 
       if (res.locals.source.conform.type === 'geojson') {
         parseGeoJsonStream(stream, res, next);
-      } 
+      }
       else if (res.locals.source.conform.type === 'csv') {
         parseCsvStream(stream, res, next);
-      } 
+      }
       else if (res.locals.source.compression === 'zip') {
         processZipFile(stream, res, next);
-      } 
+      }
 
     });
 

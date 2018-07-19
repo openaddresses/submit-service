@@ -750,15 +750,15 @@ tape('http csv tests', test => {
         // startup an HTTP server that will respond to file.geojson requests with valid CSV
         const sourceServer = express().get(`/file.${extension}`, (req, res, next) => {
           const csvHeader = [
-            'attribute 1', 
+            'attribute 1',
             'attribute 2'
           ].join(delimiter);
 
           // generate 20 rows to serve back via FTP
-          const csvDataRows = _.range(20).map(i => 
+          const csvDataRows = _.range(20).map(i =>
             // generate a row with 2 columns
             [
-              `feature ${i} attribute 1 value`, 
+              `feature ${i} attribute 1 value`,
               `feature ${i} attribute 2 value`
             ].join(delimiter)
           );
@@ -880,15 +880,15 @@ tape('http csv tests', test => {
     // startup an HTTP server that will respond to file.geojson requests with valid CSV
     const sourceServer = express().get('/file.csv', (req, res, next) => {
       const csvHeader = [
-        'attribute 1', 
+        'attribute 1',
         'attribute 2'
       ].join(',');
 
       // generate 100 rows to serve back
-      const csvDataRows = _.range(100).map(i => 
+      const csvDataRows = _.range(100).map(i =>
         // generate a row with 2 columns
         [
-          `feature ${i} attribute 1 value`, 
+          `feature ${i} attribute 1 value`,
           `feature ${i} attribute 2 value`
         ].join(',')
       );
@@ -1409,15 +1409,15 @@ tape('http zip tests', test => {
           });
 
           const csvHeader = [
-            'attribute 1', 
+            'attribute 1',
             'attribute 2'
           ].join(delimiter);
 
           // generate 20 rows to serve back via FTP
-          const csvDataRows = _.range(20).map(i => 
+          const csvDataRows = _.range(20).map(i =>
             // generate a row with 2 columns
             [
-              `feature ${i} attribute 1 value`, 
+              `feature ${i} attribute 1 value`,
               `feature ${i} attribute 2 value`
             ].join(delimiter)
           );
@@ -2634,15 +2634,15 @@ tape('ftp csv tests', test => {
         ftpServer.listen().then(() => {
           ftpServer.on('login', (credentials, resolve) => {
             const csvHeader = [
-              'attribute 1', 
+              'attribute 1',
               'attribute 2'
             ].join(delimiter);
 
             // generate 20 rows to serve back via FTP
-            const csvDataRows = _.range(20).map(i => 
+            const csvDataRows = _.range(20).map(i =>
               // generate a row with 2 columns
               [
-                `feature ${i} attribute 1 value`, 
+                `feature ${i} attribute 1 value`,
                 `feature ${i} attribute 2 value`
               ].join(delimiter)
             );
@@ -3259,15 +3259,15 @@ tape('ftp zip tests', test => {
       delimiters.forEach(delimiter => {
         // generate 11 features
         const csvHeader = [
-          'attribute 1', 
+          'attribute 1',
           'attribute 2'
         ].join(delimiter);
 
         // generate 20 rows to serve back via FTP
-        const csvDataRows = _.range(20).map(i => 
+        const csvDataRows = _.range(20).map(i =>
           // generate a row with 2 columns
           [
-            `feature ${i} attribute 1 value`, 
+            `feature ${i} attribute 1 value`,
             `feature ${i} attribute 2 value`
           ].join(delimiter)
         );

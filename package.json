@@ -23,8 +23,8 @@
     "aws-serverless-express": "^3.0.2",
     "body-parser": "^1.18.2",
     "byline": "^5.0.0",
+    "cors": "^2.8.4",
     "csv-parse": "^2.0.0",
-    "yadbf": "^3.0.0",
     "express": "^4.16.2",
     "helmet": "^3.9.0",
     "indian-ocean": "^3.0.2",
@@ -39,6 +39,7 @@
     "temp": "^0.8.3",
     "through2": "^2.0.3",
     "winston": "^3.0.0-rc1",
+    "yadbf": "^3.0.0",
     "yauzl": "^2.9.1"
   },
   "devDependencies": {

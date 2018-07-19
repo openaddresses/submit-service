@@ -147,6 +147,59 @@ async function addFileToBranch(req, res, next) {
     // remove the source_data field that was returned by /sample
     const body = _.omit(req.body, 'source_data');
 
+    // temporary fixes for null
+    delete body.test;
+    delete body.website;
+
+    if (_.has(body, 'license')) {
+      body.license = _.pickBy(body.license, _.negate(_.isNull));
+    }
+
+    if (body.conform.type === 'csv') {
+      if (_.has(body.conform, 'lat')) {
+        body.conform.lat = body.conform.lat.fields[0];
+      }
+      if (_.has(body.conform, 'lon')) {
+        body.conform.lon = body.conform.lon.fields[0];
+      }
+    } else {
+      delete body.conform.lat;
+      delete body.conform.lon;
+    }
+
+    Object.keys(body.conform).forEach(k => {
+      // ignore the 'type' field
+      if (k === 'type') {
+        return;
+      }
+
+      // if both function and fields are null, just remove the key
+      if (_.isNull(body.conform[k].function) && _.isNull(body.conform[k].fields)) {
+        delete body.conform[k];
+        return;
+      }
+
+      // remove a null may_contain_units
+      if (_.isNull(body.conform[k].may_contain_units)) {
+        delete body.conform[k].may_contain_units;
+      }
+
+      // if function is null, then use the fields property for the key
+      if (_.isNull(body.conform[k].function)) {
+        delete body.conform[k]['function'];
+
+        body.conform[k] = body.conform[k].fields;
+        delete body.conform[k].fields;
+      }
+
+    });
+
+    body.coverage = {
+      country: 'xx'
+    };
+
+    // end of temporary fixes for null
+
     await res.locals.github.repos.createFile({
       owner: 'openaddresses',
       repo: 'openaddresses',
@@ -209,7 +262,7 @@ function output(req, res, next) {
     response: {
       url: res.locals.pullRequestUrl
     }
-  });    
+  });
 }
 
 module.exports = express.Router()

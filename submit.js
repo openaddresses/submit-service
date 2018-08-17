@@ -155,21 +155,9 @@ async function addFileToBranch(req, res, next) {
       body.license = _.pickBy(body.license, _.negate(_.isNull));
     }
 
-    if (body.conform.type === 'csv') {
-      if (_.has(body.conform, 'lat')) {
-        body.conform.lat = body.conform.lat.fields[0];
-      }
-      if (_.has(body.conform, 'lon')) {
-        body.conform.lon = body.conform.lon.fields[0];
-      }
-    } else {
-      delete body.conform.lat;
-      delete body.conform.lon;
-    }
-
     Object.keys(body.conform).forEach(k => {
-      // ignore the 'type' field
-      if (k === 'type') {
+      // ignore the 'type', 'lat', and 'lon' fields
+      if (k === 'type' || k === 'lat' || k === 'lon') {
         return;
       }
 
@@ -182,14 +170,6 @@ async function addFileToBranch(req, res, next) {
       // remove a null may_contain_units
       if (_.isNull(body.conform[k].may_contain_units)) {
         delete body.conform[k].may_contain_units;
-      }
-
-      // if function is null, then use the fields property for the key
-      if (_.isNull(body.conform[k].function)) {
-        delete body.conform[k]['function'];
-
-        body.conform[k] = body.conform[k].fields;
-        delete body.conform[k].fields;
       }
 
     });

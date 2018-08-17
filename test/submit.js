@@ -586,11 +586,11 @@ tape('source fixing', test => {
           may_contain_units: null
         },
         unit: {
-          function: null,
           fields: [
             'field 5',
             'field 6'
-          ]
+          ],
+          function: null
         },
         city: {
           function: null,
@@ -612,18 +612,27 @@ tape('source fixing', test => {
       type: 'source type',
       conform: {
         type: 'shapefile',
-        number: [
-          'field 1',
-          'field 2'
-        ],
-        street: [
-          'field 3',
-          'field 4'
-        ],
-        unit: [
-          'field 5',
-          'field 6'
-        ]
+        number: {
+          fields: [
+            'field 1',
+            'field 2'
+          ],
+          function: null
+        },
+        street: {
+          fields: [
+            'field 3',
+            'field 4'
+          ],
+          function: null
+        },
+        unit: {
+          fields: [
+            'field 5',
+            'field 6'
+          ],
+          function: null
+        }
       },
       coverage: {
         country: 'xx'
@@ -697,7 +706,7 @@ tape('source fixing', test => {
     });
   });
 
-  test.test('lat/lon should be removed for type=shapefile/geojson', t => {
+  test.test('lat/lon should be retained for type=shapefile/geojson', t => {
     t.plan(4 * 2);
 
     ['shapefile', 'geojson'].forEach(conformType => {
@@ -739,7 +748,15 @@ tape('source fixing', test => {
           number: [
             'field 1',
             'field 2'
-          ]
+          ],
+          lat: {
+            function: null,
+            fields: null
+          },
+          lon: {
+            function: null,
+            fields: null
+          }
         },
         coverage: {
           country: 'xx'
@@ -812,10 +829,9 @@ tape('source fixing', test => {
         submitService.close();
       });
     });
-
   });
 
-  test.test('lat/lon should be retained for type=csv and converted to string', t => {
+  test.test('lat/lon should be not be modified for type=csv', t => {
     t.plan(4);
 
     process.env.GITHUB_ACCESS_TOKEN = 'github access token';
@@ -853,8 +869,18 @@ tape('source fixing', test => {
       type: 'source type',
       conform: {
         type: 'csv',
-        lat: 'field 1',
-        lon: 'field 2'
+        lat: {
+          function: null,
+          fields: [
+            'field 1'
+          ]
+        },
+        lon: {
+          function: null,
+          fields: [
+            'field 2'
+          ]
+        }
       },
       coverage: {
         country: 'xx'

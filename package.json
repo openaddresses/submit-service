@@ -8,7 +8,7 @@
     "test": "node test/test | tap-dot",
     "travis": "yarn test",
     "lint": "eslint .",
-    "deploy": "claudia update --profile claudia --handler lambda.handler --deploy-proxy-api --region us-east-1",
+    "deploy": "claudia update --profile claudia --handler lambda.handler --use-s3-bucket submit-ui-dev.openaddresses.io --deploy-proxy-api --region us-east-1 --timeout 300",
     "pretest": "yarn lint",
     "precommit": "yarn test"
   },
@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "archiver": "^3.0.0",
-    "claudia": "^5.0.0",
+    "claudia": "^5.1.1",
     "eslint": "^5.0.0",
     "express-list-endpoints": "^3.0.1",
     "ftp-srv": "^2.15.0",

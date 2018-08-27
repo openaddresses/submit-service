@@ -570,13 +570,6 @@ tape('source fixing', test => {
       type: 'source type',
       conform: {
         type: 'shapefile',
-        number: {
-          fields: [
-            'field 1',
-            'field 2'
-          ],
-          function: null
-        },
         street: {
           fields: [
             'field 3',
@@ -585,18 +578,7 @@ tape('source fixing', test => {
           function: null,
           may_contain_units: null
         },
-        unit: {
-          fields: [
-            'field 5',
-            'field 6'
-          ],
-          function: null
-        },
         city: {
-          function: null,
-          fields: null
-        },
-        district: {
           function: null,
           fields: null
         }
@@ -612,26 +594,17 @@ tape('source fixing', test => {
       type: 'source type',
       conform: {
         type: 'shapefile',
-        number: {
-          fields: [
-            'field 1',
-            'field 2'
-          ],
-          function: null
-        },
         street: {
           fields: [
             'field 3',
             'field 4'
           ],
-          function: null
+          function: null,
+          may_contain_units: null
         },
-        unit: {
-          fields: [
-            'field 5',
-            'field 6'
-          ],
-          function: null
+        city: {
+          function: null,
+          fields: null
         }
       },
       coverage: {

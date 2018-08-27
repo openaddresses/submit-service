@@ -155,29 +155,9 @@ async function addFileToBranch(req, res, next) {
       body.license = _.pickBy(body.license, _.negate(_.isNull));
     }
 
-    Object.keys(body.conform).forEach(k => {
-      // ignore the 'type', 'lat', and 'lon' fields
-      if (k === 'type' || k === 'lat' || k === 'lon') {
-        return;
-      }
-
-      // if both function and fields are null, just remove the key
-      if (_.isNull(body.conform[k].function) && _.isNull(body.conform[k].fields)) {
-        delete body.conform[k];
-        return;
-      }
-
-      // remove a null may_contain_units
-      if (_.isNull(body.conform[k].may_contain_units)) {
-        delete body.conform[k].may_contain_units;
-      }
-
-    });
-
     body.coverage = {
       country: 'xx'
     };
-
     // end of temporary fixes for null
 
     await res.locals.github.repos.createFile({

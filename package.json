@@ -36,7 +36,7 @@
     "sha1": "^1.1.1",
     "stream-to-string": "^1.1.0",
     "string-to-stream": "^1.1.0",
-    "temp": "^0.8.3",
+    "temp": "^0.9.0",
     "through2": "^2.0.3",
     "winston": "^3.0.0-rc1",
     "yadbf": "^3.0.0",

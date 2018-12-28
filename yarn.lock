@@ -1186,9 +1186,9 @@ expect-ct@0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/expect-ct/-/expect-ct-0.1.0.tgz#52735678de18530890d8d7b95f0ac63640958094"
 
-express-list-endpoints@^3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/express-list-endpoints/-/express-list-endpoints-3.0.1.tgz#d304fe9457ad14b8cf8692759398e3eea21abcb2"
+express-list-endpoints@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/express-list-endpoints/-/express-list-endpoints-4.0.0.tgz#c7e8b3e0655e82403ab314292b00945377a7d8e6"
 
 express@^4.16.2:
   version "4.16.3"

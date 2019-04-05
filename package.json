@@ -48,7 +48,7 @@
     "eslint": "^5.0.0",
     "express-list-endpoints": "^4.0.0",
     "ftp-srv": "^2.15.0",
-    "get-port": "^4.0.0",
+    "get-port": "^5.0.0",
     "husky": "^1.0.0",
     "proxyquire": "^2.0.0",
     "request-promise": "^4.2.2",

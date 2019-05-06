@@ -46,7 +46,7 @@
     "archiver": "^3.0.0",
     "claudia": "^5.1.1",
     "eslint": "^5.0.0",
-    "express-list-endpoints": "^4.0.0",
+    "express-list-endpoints": "^4.0.1",
     "ftp-srv": "^2.15.0",
     "get-port": "^4.0.0",
     "husky": "^1.0.0",

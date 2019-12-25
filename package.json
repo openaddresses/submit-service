@@ -24,7 +24,7 @@
     "body-parser": "^1.18.2",
     "byline": "^5.0.0",
     "cors": "^2.8.4",
-    "csv-parse": "^3.0.0",
+    "csv-parse": "^4.8.3",
     "express": "^4.16.2",
     "helmet": "^3.9.0",
     "indian-ocean": "^3.0.2",

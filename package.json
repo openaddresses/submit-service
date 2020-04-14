@@ -43,7 +43,7 @@
     "yauzl": "^2.9.1"
   },
   "devDependencies": {
-    "archiver": "^3.0.0",
+    "archiver": "^4.0.0",
     "claudia": "^5.1.1",
     "eslint": "^5.0.0",
     "express-list-endpoints": "^4.0.0",

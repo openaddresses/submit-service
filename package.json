@@ -53,6 +53,6 @@
     "proxyquire": "^2.0.0",
     "request-promise": "^4.2.2",
     "tap-dot": "^2.0.0",
-    "tape": "^4.10.1"
+    "tape": "^5.0.0"
   }
 }

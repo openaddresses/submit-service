@@ -793,9 +793,10 @@ crypto-random-string@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/crypto-random-string/-/crypto-random-string-1.0.0.tgz#a230f64f568310e1498009940790ec99545bca7e"
 
-csv-parse@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/csv-parse/-/csv-parse-3.0.0.tgz#2d592cf4bf7f3b1606900812df298a5bcc9f66e5"
+csv-parse@^4.10.0:
+  version "4.10.0"
+  resolved "https://registry.yarnpkg.com/csv-parse/-/csv-parse-4.10.0.tgz#2b2f8ffe17811e0e41ee43e5271aecdd2cfd11b4"
+  integrity sha512-cv1sM2raMCyGEmGnWdvgV4JOXaLtZew+DnQYScmubyifWKI46ttP350gqt7p79pJZQ5G8OIm6s7mQ5ZwIN0xBg==
 
 cyclist@~0.2.2:
   version "0.2.2"
